@@ -1,0 +1,87 @@
+<?php
+
+namespace App\Http\Controllers;
+
+use App\Models\Appointment;
+use App\Models\DentistSchedule;
+use App\Models\UserAccount;
+use Carbon\Carbon;
+use Illuminate\Http\Request;
+
+class UserController extends Controller
+{
+    // show landing page front end
+    public function showLandingPage(Request $request, \App\Http\Controllers\AppointmentBookingController $booking)
+    {
+        // The appointment calendar is private to signed-in patients.
+        $bookingData = session('user_id') ? $booking->calendarData($request) : [];
+
+        return view('users.landing-page', $bookingData);
+    }
+    // show settings front end
+    public function showSettings()
+    {
+        return view('users.settings');
+    }
+    // show user appointment front end
+    public function showUserAppointment(Request $request)
+    {
+        if (!session('user_id')) return redirect()->route('login');
+
+        $user = UserAccount::with('patientInfo')->findOrFail(session('user_id'));
+        abort_unless($user->patientInfo, 403, 'Please complete your patient profile first.');
+        $patientId = $user->patientInfo->PatientID;
+        $status = $request->query('status');
+        $search = $request->query('search');
+
+        $history = Appointment::with('service')->where('PatientID', $patientId)
+            ->when($status, fn ($q) => $q->where('Status', $status))
+            ->when($search, fn ($q) => $q->whereHas('service', fn ($s) => $s->where('ServiceName', 'like', "%{$search}%")))
+            ->orderByDesc('AppointmentDate')->orderByDesc('AppointmentTime')
+            ->paginate(10)->withQueryString();
+
+        $current = Appointment::with('service')->where('PatientID', $patientId)
+            ->whereIn('Status', ['Pending', 'Approved'])
+            ->whereDate('AppointmentDate', '>=', today())
+            ->orderBy('AppointmentDate')->orderBy('AppointmentTime')->first();
+
+        return view('users.user-appointment', compact('history', 'current', 'status', 'search'));
+    }
+
+    public function removeAppointment(Request $request, Appointment $appointment)
+    {
+        if (!session('user_id')) return redirect()->route('login');
+        $user = UserAccount::with('patientInfo')->findOrFail(session('user_id'));
+        abort_unless($user->patientInfo && $appointment->PatientID === $user->patientInfo->PatientID, 403);
+        abort_unless(in_array($appointment->Status, ['Pending', 'Approved']), 422);
+
+        $this->releaseAppointmentSlots($appointment);
+        $appointment->delete();
+        $action = $request->input('action') === 'reschedule' ? 'rescheduled' : 'cancelled';
+        return redirect()->route('userAppointment')->with('success', "Appointment {$action}. The time slot is available again.");
+    }
+
+    protected function releaseAppointmentSlots(Appointment $appointment): void
+    {
+        $times = ['09:00', '10:00', '11:00', '13:00', '14:00', '15:00', '16:00', '17:00', '18:00'];
+        $start = array_search($appointment->AppointmentTime, $times, true);
+        $duration = $appointment->Status === 'Approved' ? max(1, (int) ($appointment->DurationHours ?? 1)) : 1;
+        for ($offset = 0; $start !== false && $offset < $duration && isset($times[$start + $offset]); $offset++) {
+            $time = $times[$start + $offset];
+            $stillHeld = Appointment::whereKeyNot($appointment->AppointmentID)
+                ->whereDate('AppointmentDate', $appointment->AppointmentDate)
+                ->whereIn('Status', ['Pending', 'Approved'])->get()
+                ->contains(function ($other) use ($times, $time) {
+                    $otherStart = array_search($other->AppointmentTime, $times, true);
+                    $otherDuration = $other->Status === 'Approved' ? max(1, (int) ($other->DurationHours ?? 1)) : 1;
+                    return $otherStart !== false && in_array($time, array_slice($times, $otherStart, $otherDuration), true);
+                });
+            if (!$stillHeld) DentistSchedule::where('Date', $appointment->AppointmentDate->format('Y-m-d'))->where('Time', $time)->update(['Status' => 'Available']);
+        }
+    }
+    // show user profile front end
+    public function showUserProfile()
+    {
+        return view('users.user-profile');
+    }
+}

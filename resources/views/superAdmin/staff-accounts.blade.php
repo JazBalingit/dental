@@ -39,13 +39,6 @@
                 <a href="{{ route('patientRecords') }}"><i class="bi bi-folder2-open"></i> Patient Records</a>
                 <div class="nav-section">System</div>
                 <a href="{{ route('configuration') }}"><i class="bi bi-sliders2"></i> Configuration</a>
-                <div class="divider"></div>
-                <form method="POST" action="{{ route('logout') }}" class="m-0">
-                    @csrf
-                    <button type="submit" style="all:unset; cursor:pointer; display:flex; align-items:center; gap:8px; padding: 8px 12px; width: 100%;">
-                        <i class="bi bi-box-arrow-right"></i> Log Out
-                    </button>
-                </form>
             </nav>
             <div class="footer">© PUS-PUS BRITANICO DENTAL CLINIC</div>
         </aside>
@@ -56,13 +49,26 @@
                     <button class="toggle"><i class="bi bi-list"></i></button>
                 </div>
                 <div class="right">
-                    <div class="user-chip">
-                        <div><img class="avatar" src="/images/default.png" alt=""></div>
-                        <div class="meta">
-                            <div class="name"> Admin</div>
-                            <div class="role">Administrator</div>
-                        </div>
-                        <i class="bi bi-chevron-down ms-1 text-muted-2"></i>
+                    <div class="dropdown">
+                        <button class="user-chip" type="button" data-bs-toggle="dropdown" aria-expanded="false"
+                            style="all:unset; cursor:pointer; display:flex; align-items:center; gap:.6rem; padding:.35rem .8rem .35rem .35rem; border-radius:999px; background:var(--brand-50); border:1px solid var(--brand-100); font-family:inherit;">
+                            <div><img class="avatar" src="/images/default.png" alt=""></div>
+                            <div class="meta">
+                                <div class="name">{{ session('user_email', 'Admin') }}</div>
+                                <div class="role">{{ session('account_type') === 'staff' ? 'Staff' : 'Administrator' }}</div>
+                            </div>
+                            <i class="bi bi-chevron-down ms-1 text-muted-2"></i>
+                        </button>
+                        <ul class="dropdown-menu dropdown-menu-end shadow-sm">
+                            <li><a class="dropdown-item small" href="{{ route('staffProfile') }}"><i class="bi bi-person me-2"></i>My Profile</a></li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li>
+                                <form method="POST" action="{{ route('logout') }}" class="m-0">
+                                    @csrf
+                                    <button type="submit" class="dropdown-item text-danger small"><i class="bi bi-box-arrow-right me-1"></i> Log Out</button>
+                                </form>
+                            </li>
+                        </ul>
                     </div>
                 </div>
             </div>
@@ -74,8 +80,6 @@
                         <div class="crumbs">Manage clinic staff and dentist logins.</div>
                     </div>
                     <div>
-                        <button class="btn btn-brand" data-bs-toggle="modal" data-bs-target="#archivesModal"><i
-                                class="bi bi-archive"></i> Archives</button>
                         <button class="btn btn-brand" data-bs-toggle="modal" data-bs-target="#addModal"><i
                                 class="bi bi-people-fill"></i> Add Staff</button>
                     </div>
@@ -87,28 +91,27 @@
                 @if (session('error'))
                     <div class="alert alert-danger">{{ session('error') }}</div>
                 @endif
-                @if ($errors->any())
-                    <div class="alert alert-danger">
-                        <ul class="mb-0 ps-3">
-                            @foreach ($errors->all() as $error)
-                                <li>{{ $error }}</li>
-                            @endforeach
-                        </ul>
-                    </div>
-                @endif
 
                 <div class="card-soft p-3 p-md-4">
                     <form method="GET" action="{{ route('staffAcc') }}" class="data-toolbar">
                         <div class="left">
-                            <span class="text-muted-2 small">Show</span>
-                            <select class="form-select" style="width: 80px;">
-                                <option>10</option>
-                                <option>25</option>
-                                <option>50</option>
-                            </select>
-                            <span class="text-muted-2 small">entries</span>
+                            <ul class="nav nav-pills" id="staffTabs" role="tablist">
+                                <li class="nav-item" role="presentation">
+                                    <button class="nav-link {{ $tab !== 'archived' ? 'active' : '' }}" id="active-tab-btn"
+                                        data-bs-toggle="pill" data-bs-target="#activePane" type="button" role="tab">
+                                        Active
+                                    </button>
+                                </li>
+                                <li class="nav-item" role="presentation">
+                                    <button class="nav-link {{ $tab === 'archived' ? 'active' : '' }}" id="archived-tab-btn"
+                                        data-bs-toggle="pill" data-bs-target="#archivedPane" type="button" role="tab">
+                                        Archived
+                                    </button>
+                                </li>
+                            </ul>
                         </div>
                         <div class="right">
+                            <input type="hidden" name="tab" id="activeTabField" value="{{ $tab }}">
                             <div class="input-icon search">
                                 <i class="bi bi-search"></i>
                                 <input class="form-control" name="search" value="{{ $search }}"
@@ -117,122 +120,157 @@
                         </div>
                     </form>
 
-                    <div class="table-responsive">
-                        <table class="table-soft">
-                            <thead>
-                                <tr>
-                                    <th>User</th>
-                                    <th>Email</th>
-                                    <th>Role</th>
-                                    <th>Status</th>
-                                    <th class="text-end">Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                @forelse ($staff as $acc)
-                                    @php $si = $acc->staffInfo; @endphp
-                                    <tr>
-                                        <td><span><img class="avatar-initials" src="{{ $si->photo_url ?? asset('images/default.png') }}" alt=""></span><span
-                                                class="fw-semibold">{{ $si->FirstName ?? '' }} {{ $si->LastName ?? '' }}</span></td>
-                                        <td>{{ $acc->Email }}</td>
-                                        <td>{{ $acc->Position }}</td>
-                                        <td><span class="pill pill-success">Active</span></td>
-                                        <td class="text-end">
-                                            <button class="btn btn-pill btn-pill-edit me-1" data-bs-toggle="modal"
-                                                data-bs-target="#editUserModal{{ $acc->StaffID }}"><i class="bi bi-pencil-square"></i>
-                                                Edit</button>
-                                            <form method="POST" action="{{ route('staffAcc.archive', $acc->StaffID) }}" class="d-inline">
-                                                @csrf
-                                                <button type="submit" class="btn btn-pill btn-pill-archive"><i class="bi bi-archive"></i>
-                                                    Archive</button>
-                                            </form>
-                                        </td>
-                                    </tr>
-                                @empty
-                                    <tr>
-                                        <td colspan="5" class="text-center text-muted-2 py-4">No staff accounts yet.</td>
-                                    </tr>
-                                @endforelse
-                            </tbody>
-                        </table>
-                    </div>
+                    <div class="tab-content mt-3">
+                        <div class="tab-pane fade {{ $tab !== 'archived' ? 'show active' : '' }}" id="activePane" role="tabpanel">
+                            <div class="table-responsive">
+                                <table class="table-soft">
+                                    <thead>
+                                        <tr>
+                                            <th>User</th>
+                                            <th>Email</th>
+                                            <th>Phone</th>
+                                            <th>Role</th>
+                                            <th>Date Created</th>
+                                            <th>Status</th>
+                                            <th>Verification</th>
+                                            <th class="text-end">Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        @forelse ($staff as $acc)
+                                            @php $si = $acc->staffInfo; @endphp
+                                            <tr>
+                                                <td><span><img class="avatar-initials" src="{{ $si->photo_url ?? asset('images/default.png') }}" alt=""></span><span
+                                                        class="fw-semibold">{{ $si->FirstName ?? '' }} {{ $si->LastName ?? '' }}</span></td>
+                                                <td>{{ $acc->Email }}</td>
+                                                <td>{{ $si->PhoneNumber ?? '—' }}</td>
+                                                <td>{{ $acc->Position }} <span class="pill pill-info">{{ ucfirst($acc->AccountRole) }}</span></td>
+                                                <td>{{ \Carbon\Carbon::parse($acc->DateCreated)->format('M j, Y') }}</td>
+                                                <td><span class="pill pill-success">Active</span></td>
+                                                <td>
+                                                    @if ($acc->EmailVerifiedAt)
+                                                        <span class="pill pill-success"><i class="bi bi-patch-check-fill"></i> Verified</span>
+                                                    @else
+                                                        <span class="pill pill-warning"><i class="bi bi-exclamation-triangle"></i> Unverified</span>
+                                                    @endif
+                                                </td>
+                                                <td class="text-end">
+                                                    <button class="btn btn-pill btn-pill-edit me-1" data-bs-toggle="modal"
+                                                        data-bs-target="#editUserModal{{ $acc->UserID }}"><i class="bi bi-pencil-square"></i>
+                                                        Edit</button>
+                                                    <form method="POST" action="{{ route('staffAcc.archive', $acc->UserID) }}" class="d-inline">
+                                                        @csrf
+                                                        <button type="submit" class="btn btn-pill btn-pill-archive"><i class="bi bi-archive"></i>
+                                                            Archive</button>
+                                                    </form>
+                                                </td>
+                                            </tr>
+                                        @empty
+                                            <tr>
+                                                <td colspan="8" class="text-center text-muted-2 py-4">No staff accounts yet.</td>
+                                            </tr>
+                                        @endforelse
+                                    </tbody>
+                                </table>
+                            </div>
 
-                    <div class="pagination-soft">
-                        <div>Showing {{ $staff->count() }} of {{ $staff->total() }} entries</div>
-                        <div class="pages">
-                            <a href="{{ $staff->previousPageUrl() ?? '#' }}"><i class="bi bi-chevron-left"></i></a>
-                            @for ($i = 1; $i <= $staff->lastPage(); $i++)
-                                <a href="{{ $staff->url($i) }}" class="{{ $staff->currentPage() === $i ? 'active' : '' }}">{{ $i }}</a>
-                            @endfor
-                            <a href="{{ $staff->nextPageUrl() ?? '#' }}"><i class="bi bi-chevron-right"></i></a>
+                            <div class="pagination-soft">
+                                <div>Showing {{ $staff->count() }} of {{ $staff->total() }} entries</div>
+                                <div class="pages">
+                                    <a href="{{ $staff->previousPageUrl() ?? '#' }}"><i class="bi bi-chevron-left"></i></a>
+                                    @for ($i = 1; $i <= $staff->lastPage(); $i++)
+                                        <a href="{{ $staff->url($i) }}" class="{{ $staff->currentPage() === $i ? 'active' : '' }}">{{ $i }}</a>
+                                    @endfor
+                                    <a href="{{ $staff->nextPageUrl() ?? '#' }}"><i class="bi bi-chevron-right"></i></a>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="tab-pane fade {{ $tab === 'archived' ? 'show active' : '' }}" id="archivedPane" role="tabpanel">
+                            <div class="table-responsive">
+                                <table class="table-soft">
+                                    <thead>
+                                        <tr>
+                                            <th>User</th>
+                                            <th>Email</th>
+                                            <th>Phone</th>
+                                            <th>Role</th>
+                                            <th>Date Created</th>
+                                            <th>Status</th>
+                                            <th>Verification</th>
+                                            <th class="text-end">Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        @forelse ($archivedStaff as $acc)
+                                            @php $si = $acc->staffInfo; @endphp
+                                            <tr>
+                                                <td><span><img class="avatar-initials" src="{{ $si->photo_url ?? asset('images/default.png') }}" alt=""></span><span
+                                                        class="fw-semibold">{{ $si->FirstName ?? '' }} {{ $si->LastName ?? '' }}</span></td>
+                                                <td>{{ $acc->Email }}</td>
+                                                <td>{{ $si->PhoneNumber ?? '—' }}</td>
+                                                <td>{{ $acc->Position }} <span class="pill pill-info">{{ ucfirst($acc->AccountRole) }}</span></td>
+                                                <td>{{ \Carbon\Carbon::parse($acc->DateCreated)->format('M j, Y') }}</td>
+                                                <td><span class="pill pill-muted">Frozen</span></td>
+                                                <td>
+                                                    @if ($acc->EmailVerifiedAt)
+                                                        <span class="pill pill-success"><i class="bi bi-patch-check-fill"></i> Verified</span>
+                                                    @else
+                                                        <span class="pill pill-warning"><i class="bi bi-exclamation-triangle"></i> Unverified</span>
+                                                    @endif
+                                                </td>
+                                                <td class="text-end">
+                                                    <button class="btn btn-pill btn-pill-edit me-1" data-bs-toggle="modal"
+                                                        data-bs-target="#editUserModal{{ $acc->UserID }}"><i class="bi bi-pencil-square"></i>
+                                                        Edit</button>
+                                                    <form method="POST" action="{{ route('staffAcc.unarchive', $acc->UserID) }}" class="d-inline">
+                                                        @csrf
+                                                        <button type="submit" class="btn btn-pill btn-pill-archive"><i class="bi bi-archive"></i>
+                                                            Unarchive</button>
+                                                    </form>
+                                                </td>
+                                            </tr>
+                                        @empty
+                                            <tr>
+                                                <td colspan="8" class="text-center text-muted-2 py-4">No archived accounts.</td>
+                                            </tr>
+                                        @endforelse
+                                    </tbody>
+                                </table>
+                            </div>
+
+                            <div class="pagination-soft">
+                                <div>Showing {{ $archivedStaff->count() }} of {{ $archivedStaff->total() }} entries</div>
+                                <div class="pages">
+                                    <a href="{{ $archivedStaff->previousPageUrl() ?? '#' }}"><i class="bi bi-chevron-left"></i></a>
+                                    @for ($i = 1; $i <= $archivedStaff->lastPage(); $i++)
+                                        <a href="{{ $archivedStaff->url($i) }}" class="{{ $archivedStaff->currentPage() === $i ? 'active' : '' }}">{{ $i }}</a>
+                                    @endfor
+                                    <a href="{{ $archivedStaff->nextPageUrl() ?? '#' }}"><i class="bi bi-chevron-right"></i></a>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
+
+                <script>
+                    document.querySelectorAll('#staffTabs button').forEach(function (btn) {
+                        btn.addEventListener('shown.bs.tab', function () {
+                            document.getElementById('activeTabField').value = btn.id === 'archived-tab-btn' ? 'archived' : 'active';
+                        });
+                    });
+                </script>
             </div>
         </main>
     </div>
 
-    <!-- ===================== ARCHIVES MODAL ===================== -->
-    <div class="modal fade" id="archivesModal" tabindex="-1" aria-labelledby="modalWeek3Label" aria-hidden="true">
-        <div class="modal-dialog modal-dialog-centered modal-xl">
-            <div class="modal-content">
-                <div class="modal-header border-0 pb-0">
-                    <div>
-                        <h5 class="modal-title fw-semibold" id="modalWeek3Label">Staff Accounts - Archives</h5>
-                        <div class="small text-muted">View and manage archived (frozen) accounts</div>
-                    </div>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                </div>
-                <div class="modal-body pt-2">
-                    <div class="table-responsive">
-                        <table class="table-soft">
-                            <thead>
-                                <tr>
-                                    <th>User</th>
-                                    <th>Email</th>
-                                    <th>Role</th>
-                                    <th>Status</th>
-                                    <th class="text-end">Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                @forelse ($archivedStaff as $acc)
-                                    @php $si = $acc->staffInfo; @endphp
-                                    <tr>
-                                        <td><span><img class="avatar-initials" src="{{ $si->photo_url ?? asset('images/default.png') }}" alt=""></span><span
-                                                class="fw-semibold">{{ $si->FirstName ?? '' }} {{ $si->LastName ?? '' }}</span></td>
-                                        <td>{{ $acc->Email }}</td>
-                                        <td>{{ $acc->Position }}</td>
-                                        <td><span class="pill pill-muted">Frozen</span></td>
-                                        <td class="text-end">
-                                            <button class="btn btn-pill btn-pill-edit me-1" data-bs-toggle="modal"
-                                                data-bs-target="#editUserModal{{ $acc->StaffID }}"><i class="bi bi-pencil-square"></i>
-                                                Edit</button>
-                                            <form method="POST" action="{{ route('staffAcc.unarchive', $acc->StaffID) }}" class="d-inline">
-                                                @csrf
-                                                <button type="submit" class="btn btn-pill btn-pill-archive"><i class="bi bi-archive"></i>
-                                                    Unarchive</button>
-                                            </form>
-                                        </td>
-                                    </tr>
-                                @empty
-                                    <tr>
-                                        <td colspan="5" class="text-center text-muted-2 py-4">No archived accounts.</td>
-                                    </tr>
-                                @endforelse
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-                <div class="modal-footer border-0 pt-0">
-                    <button type="button" class="btn btn-ghost" data-bs-dismiss="modal">Close</button>
-                </div>
-            </div>
-        </div>
-    </div>
-
     <!-- ===================== ADD USER MODAL ===================== -->
-    <div class="modal fade" id="addModal" tabindex="-1" aria-labelledby="addModalLabel" aria-hidden="true">
+    @php $addFailed = $errors->any() && old('form_source') === 'add'; @endphp
+    @if ($addFailed)
+        <div class="modal-backdrop fade show"></div>
+    @endif
+    <div class="modal fade {{ $addFailed ? 'show' : '' }}" id="addModal" tabindex="-1" aria-labelledby="addModalLabel"
+        aria-hidden="{{ $addFailed ? 'false' : 'true' }}" style="{{ $addFailed ? 'display:block;' : '' }}">
         <div class="modal-dialog modal-dialog-centered modal-lg">
             <div class="modal-content">
                 <div class="modal-header border-0 pb-0">
@@ -244,7 +282,18 @@
                 </div>
                 <form method="POST" action="{{ route('staffAcc.store') }}" enctype="multipart/form-data">
                     @csrf
+                    <input type="hidden" name="form_source" value="add">
                     <div class="modal-body pt-2">
+
+                        @if ($addFailed)
+                            <div class="alert alert-danger">
+                                <ul class="mb-0 ps-3">
+                                    @foreach ($errors->all() as $error)
+                                        <li>{{ $error }}</li>
+                                    @endforeach
+                                </ul>
+                            </div>
+                        @endif
 
                         <div class="d-flex align-items-center gap-3 mb-4">
                             <img class="avatar-initials" src="/images/default.png" alt="" style="width:64px;height:64px;">
@@ -262,61 +311,57 @@
                             <div class="col-md-4">
                                 <label class="form-label">Last name</label>
                                 <div class="input-icon"><i class="bi bi-person"></i><input type="text" name="last_name" class="form-control"
-                                        placeholder="Last name" required /></div>
+                                        value="{{ old('last_name') }}" placeholder="Last name" required /></div>
                             </div>
                             <div class="col-md-4">
                                 <label class="form-label">First name</label>
                                 <div class="input-icon"><i class="bi bi-person"></i><input type="text" name="first_name" class="form-control"
-                                        placeholder="First name" required /></div>
+                                        value="{{ old('first_name') }}" placeholder="First name" required /></div>
                             </div>
                             <div class="col-md-4">
                                 <label class="form-label">Middle name</label>
                                 <div class="input-icon"><i class="bi bi-person"></i><input type="text" name="middle_name" class="form-control"
-                                        placeholder="Middle name" /></div>
+                                        value="{{ old('middle_name') }}" placeholder="Middle name" /></div>
                             </div>
 
                             <div class="col-md-6">
                                 <label class="form-label">Birthdate</label>
                                 <div class="input-icon"><i class="bi bi-calendar-event"></i><input type="date" name="birthdate"
-                                        class="form-control" required />
+                                        class="form-control" value="{{ old('birthdate') }}" required />
                                 </div>
-                            </div>
-                            <div class="col-md-6">
-                                <label class="form-label">Age</label>
-                                <div class="input-icon"><i class="bi bi-calendar3"></i><input type="number" min="0" name="age"
-                                        class="form-control" placeholder="14" /></div>
+                                <div class="small text-muted-2 mt-1">Age is calculated automatically from the birthdate.</div>
                             </div>
 
                             <div class="col-md-6">
                                 <label class="form-label">Gender</label>
                                 <div class="input-icon">
                                     <select class="form-select" name="gender" required>
-                                        <option value="" disabled selected>Select gender</option>
-                                        <option value="male">Male</option>
-                                        <option value="female">Female</option>
-                                        <option value="other">Other</option>
+                                        <option value="" disabled {{ old('gender') ? '' : 'selected' }}>Select gender</option>
+                                        <option value="male" {{ old('gender') === 'male' ? 'selected' : '' }}>Male</option>
+                                        <option value="female" {{ old('gender') === 'female' ? 'selected' : '' }}>Female</option>
+                                        <option value="other" {{ old('gender') === 'other' ? 'selected' : '' }}>Other</option>
                                     </select>
                                 </div>
                             </div>
                             <div class="col-md-6">
                                 <label class="form-label">Religion</label>
                                 <div class="input-icon"><i class="bi bi-book"></i><input class="form-control" name="religion"
-                                        placeholder="Catholic" />
+                                        value="{{ old('religion') }}" placeholder="Catholic" />
                                 </div>
                             </div>
 
                             <div class="col-md-6">
                                 <label class="form-label">Nationality</label>
                                 <div class="input-icon"><i class="bi bi-flag"></i><input class="form-control" name="nationality"
-                                        placeholder="Filipino" required />
+                                        value="{{ old('nationality') }}" placeholder="Filipino" required />
                                 </div>
                             </div>
                             <div class="col-md-6">
                                 <label class="form-label">Role</label>
                                 <div class="input-icon">
                                     <select class="form-select" name="role" required>
-                                        <option value="Dentist">Dentist</option>
-                                        <option value="Staff">Staff</option>
+                                        <option value="Dentist" {{ old('role') === 'Dentist' ? 'selected' : '' }}>Dentist</option>
+                                        <option value="Staff" {{ old('role', 'Staff') === 'Staff' ? 'selected' : '' }}>Staff</option>
                                     </select>
                                 </div>
                             </div>
@@ -324,7 +369,7 @@
                             <div class="col-12">
                                 <label class="form-label">Home address</label>
                                 <div class="input-icon"><i class="bi bi-geo-alt"></i><input class="form-control" name="address"
-                                        placeholder="Street, City, Province" required /></div>
+                                        value="{{ old('address') }}" placeholder="Street, City, Province" required /></div>
                             </div>
                         </div>
 
@@ -333,12 +378,12 @@
                             <div class="col-md-6">
                                 <label class="form-label">Email address</label>
                                 <div class="input-icon"><i class="bi bi-envelope"></i><input type="email" name="email"
-                                        class="form-control" placeholder="you@clinic.com" required /></div>
+                                        class="form-control" value="{{ old('email') }}" placeholder="you@clinic.com" required /></div>
                             </div>
                             <div class="col-md-6">
                                 <label class="form-label">Cell/Mobile number</label>
                                 <div class="input-icon"><i class="bi bi-telephone"></i><input class="form-control" name="phone"
-                                        placeholder="+63 9XX XXX XXXX" required /></div>
+                                        value="{{ old('phone') }}" placeholder="+63 9XX XXX XXXX" required /></div>
                             </div>
                         </div>
 
@@ -368,8 +413,16 @@
 
     {{-- ===================== ONE EDIT MODAL PER STAFF MEMBER (active + archived) ===================== --}}
     @foreach ($staff->merge($archivedStaff) as $acc)
-        @php $si = $acc->staffInfo; @endphp
-        <div class="modal fade" id="editUserModal{{ $acc->StaffID }}" tabindex="-1" aria-hidden="true">
+        @php
+            $si = $acc->staffInfo;
+            $editFailed = $errors->any() && old('form_source') === 'edit_' . $acc->UserID;
+            $ev = fn ($field, $default = '') => $editFailed ? old($field) : $default;
+        @endphp
+        @if ($editFailed)
+            <div class="modal-backdrop fade show"></div>
+        @endif
+        <div class="modal fade {{ $editFailed ? 'show' : '' }}" id="editUserModal{{ $acc->UserID }}" tabindex="-1"
+            aria-hidden="{{ $editFailed ? 'false' : 'true' }}" style="{{ $editFailed ? 'display:block;' : '' }}">
             <div class="modal-dialog modal-dialog-centered modal-lg">
                 <div class="modal-content">
                     <div class="modal-header border-0 pb-0">
@@ -379,9 +432,20 @@
                         </div>
                         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                     </div>
-                    <form method="POST" action="{{ route('staffAcc.update', $acc->StaffID) }}" enctype="multipart/form-data">
+                    <form method="POST" action="{{ route('staffAcc.update', $acc->UserID) }}" enctype="multipart/form-data">
                         @csrf
+                        <input type="hidden" name="form_source" value="edit_{{ $acc->UserID }}">
                         <div class="modal-body pt-2">
+
+                            @if ($editFailed)
+                                <div class="alert alert-danger">
+                                    <ul class="mb-0 ps-3">
+                                        @foreach ($errors->all() as $error)
+                                            <li>{{ $error }}</li>
+                                        @endforeach
+                                    </ul>
+                                </div>
+                            @endif
 
                             <div class="d-flex align-items-center gap-3 mb-4">
                                 <img class="avatar-initials" src="{{ $si->photo_url ?? asset('images/default.png') }}" alt="" style="width:64px;height:64px;">
@@ -399,60 +463,56 @@
                                 <div class="col-md-4">
                                     <label class="form-label">Last name</label>
                                     <div class="input-icon"><i class="bi bi-person"></i><input type="text" name="last_name" class="form-control"
-                                            value="{{ $si->LastName ?? '' }}" required /></div>
+                                            value="{{ $ev('last_name', $si->LastName ?? '') }}" required /></div>
                                 </div>
                                 <div class="col-md-4">
                                     <label class="form-label">First name</label>
                                     <div class="input-icon"><i class="bi bi-person"></i><input type="text" name="first_name" class="form-control"
-                                            value="{{ $si->FirstName ?? '' }}" required /></div>
+                                            value="{{ $ev('first_name', $si->FirstName ?? '') }}" required /></div>
                                 </div>
                                 <div class="col-md-4">
                                     <label class="form-label">Middle name</label>
                                     <div class="input-icon"><i class="bi bi-person"></i><input type="text" name="middle_name" class="form-control"
-                                            value="{{ $si->MiddleName ?? '' }}" /></div>
+                                            value="{{ $ev('middle_name', $si->MiddleName ?? '') }}" /></div>
                                 </div>
 
                                 <div class="col-md-6">
                                     <label class="form-label">Birthdate</label>
                                     <div class="input-icon"><i class="bi bi-calendar-event"></i><input type="date" name="birthdate"
-                                            class="form-control" value="{{ optional($si->DateOfBirth ?? null)->format('Y-m-d') }}" required />
+                                            class="form-control" value="{{ $ev('birthdate', optional($si->DateOfBirth ?? null)->format('Y-m-d')) }}" required />
                                     </div>
-                                </div>
-                                <div class="col-md-6">
-                                    <label class="form-label">Age</label>
-                                    <div class="input-icon"><i class="bi bi-calendar3"></i><input type="number" min="0" name="age"
-                                            class="form-control" value="{{ $si->Age ?? '' }}" /></div>
+                                    <div class="small text-muted-2 mt-1">Age is calculated automatically from the birthdate.</div>
                                 </div>
 
                                 <div class="col-md-6">
                                     <label class="form-label">Gender</label>
                                     <div class="input-icon">
                                         <select class="form-select" name="gender" required>
-                                            <option value="male" {{ ($si->Gender ?? '') === 'male' ? 'selected' : '' }}>Male</option>
-                                            <option value="female" {{ ($si->Gender ?? '') === 'female' ? 'selected' : '' }}>Female</option>
-                                            <option value="other" {{ ($si->Gender ?? '') === 'other' ? 'selected' : '' }}>Other</option>
+                                            <option value="male" {{ $ev('gender', $si->Gender ?? '') === 'male' ? 'selected' : '' }}>Male</option>
+                                            <option value="female" {{ $ev('gender', $si->Gender ?? '') === 'female' ? 'selected' : '' }}>Female</option>
+                                            <option value="other" {{ $ev('gender', $si->Gender ?? '') === 'other' ? 'selected' : '' }}>Other</option>
                                         </select>
                                     </div>
                                 </div>
                                 <div class="col-md-6">
                                     <label class="form-label">Religion</label>
                                     <div class="input-icon"><i class="bi bi-book"></i><input class="form-control" name="religion"
-                                            value="{{ $si->Religion ?? '' }}" />
+                                            value="{{ $ev('religion', $si->Religion ?? '') }}" />
                                     </div>
                                 </div>
 
                                 <div class="col-md-6">
                                     <label class="form-label">Nationality</label>
                                     <div class="input-icon"><i class="bi bi-flag"></i><input class="form-control" name="nationality"
-                                            value="{{ $si->Nationality ?? '' }}" required />
+                                            value="{{ $ev('nationality', $si->Nationality ?? '') }}" required />
                                     </div>
                                 </div>
                                 <div class="col-md-6">
                                     <label class="form-label">Role</label>
                                     <div class="input-icon">
                                         <select class="form-select" name="role" required>
-                                            <option value="Dentist" {{ $acc->Position === 'Dentist' ? 'selected' : '' }}>Dentist</option>
-                                            <option value="Staff" {{ $acc->Position === 'Staff' ? 'selected' : '' }}>Staff</option>
+                                            <option value="Dentist" {{ $ev('role', $acc->Position) === 'Dentist' ? 'selected' : '' }}>Dentist</option>
+                                            <option value="Staff" {{ $ev('role', $acc->Position) === 'Staff' ? 'selected' : '' }}>Staff</option>
                                         </select>
                                     </div>
                                 </div>
@@ -460,7 +520,7 @@
                                 <div class="col-12">
                                     <label class="form-label">Home address</label>
                                     <div class="input-icon"><i class="bi bi-geo-alt"></i><input class="form-control" name="address"
-                                            value="{{ $si->Address ?? '' }}" required /></div>
+                                            value="{{ $ev('address', $si->Address ?? '') }}" required /></div>
                                 </div>
                             </div>
 
@@ -469,12 +529,12 @@
                                 <div class="col-md-6">
                                     <label class="form-label">Email address</label>
                                     <div class="input-icon"><i class="bi bi-envelope"></i><input type="email" name="email"
-                                            class="form-control" value="{{ $acc->Email }}" required /></div>
+                                            class="form-control" value="{{ $ev('email', $acc->Email) }}" required /></div>
                                 </div>
                                 <div class="col-md-6">
                                     <label class="form-label">Cell/Mobile number</label>
                                     <div class="input-icon"><i class="bi bi-telephone"></i><input class="form-control" name="phone"
-                                            value="{{ $si->PhoneNumber ?? '' }}" required /></div>
+                                            value="{{ $ev('phone', $si->PhoneNumber ?? '') }}" required /></div>
                                 </div>
                             </div>
 

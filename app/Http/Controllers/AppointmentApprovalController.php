@@ -18,8 +18,21 @@ class AppointmentApprovalController extends Controller
     // approves an appointment with a multi-hour duration.
     protected array $slotOrder = ['09:00', '10:00', '11:00', '13:00', '14:00', '15:00', '16:00', '17:00', '18:00'];
 
+    protected function guard()
+    {
+        if (!session('user_id') || session('user_role') !== 'admin') {
+            return redirect()->route('login')->with('login_error', 'Please log in as an administrator to continue.');
+        }
+
+        return null;
+    }
+
     public function index(Request $request)
     {
+        if ($redirect = $this->guard()) {
+            return $redirect;
+        }
+
         $status = $request->query('status');
         $search = $request->query('search');
 
@@ -63,6 +76,10 @@ class AppointmentApprovalController extends Controller
 
     public function approve(Request $request, $id)
     {
+        if ($redirect = $this->guard()) {
+            return $redirect;
+        }
+
         $data = $request->validate([
             'duration_hours' => 'required|integer|min:1|max:8',
         ]);
@@ -94,6 +111,10 @@ class AppointmentApprovalController extends Controller
 
     public function decline(Request $request, $id)
     {
+        if ($redirect = $this->guard()) {
+            return $redirect;
+        }
+
         $data = $request->validate([
             'reason' => 'required|string|max:500',
         ]);

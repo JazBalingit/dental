@@ -223,7 +223,7 @@
         <!-- Stats -->
         <div class="stats-row">
             <div class="stat-box">
-                <div class="stat-ico" style="background:rgba(59,159,217,0.1);color:#3b9fd9"><i
+                <div class="stat-ico" style="background:rgba(59,217,101,0.1);color:#0f7a33"><i
                         class="fas fa-calendar-day"></i></div>
                 <div>
                     <div class="stat-val">{{ $history->whereIn('Status', ['Pending', 'Approved'])->count() }}</div>
@@ -333,7 +333,7 @@
         <div class="modal-dialog modal-dialog-centered">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h5 class="modal-title"><i class="fas fa-calendar-alt me-2" style="color:#3b9fd9"></i>Reschedule Appointment
+                    <h5 class="modal-title"><i class="fas fa-calendar-alt me-2" style="color:#0f7a33"></i>Reschedule Appointment
                     </h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
@@ -375,7 +375,7 @@
         <div class="modal-dialog modal-dialog-centered">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h5 class="modal-title"><i class="fas fa-calendar-plus me-2" style="color:#3b9fd9"></i>Book New
+                    <h5 class="modal-title"><i class="fas fa-calendar-plus me-2" style="color:#0f7a33"></i>Book New
                         Appointment</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>

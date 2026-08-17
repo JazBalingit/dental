@@ -8,6 +8,7 @@ use App\Models\UserAccount;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Facades\RateLimiter;
 
 class LoginController extends Controller
 {
@@ -23,18 +24,28 @@ class LoginController extends Controller
             'password' => 'required|string',
         ]);
 
+        $throttleKey = 'login:' . strtolower($data['email']) . '|' . $request->ip();
+
+        if (RateLimiter::tooManyAttempts($throttleKey, 5)) {
+            $seconds = RateLimiter::availableIn($throttleKey);
+            return redirect()->route('login')->with('login_error', "Too many failed attempts. Please try again in {$seconds} seconds.");
+        }
+
         $user = UserAccount::where('Email', $data['email'])->first();
 
-        if (!$user || !Hash::check($data['password'], $user->Password)) {
+        if (!$user || $user->IsArchived || !Hash::check($data['password'], $user->Password)) {
+            RateLimiter::hit($throttleKey, 60);
             return redirect()->route('login')->with('login_error', 'Incorrect email or password.');
         }
 
+        RateLimiter::clear($throttleKey);
         $request->session()->regenerate();
 
         session([
             'user_id' => $user->UserID,
             'user_role' => $user->AccountRole,
             'user_email' => $user->Email,
+            'account_type' => $user->AccountType === 'Staff' ? 'staff' : 'user',
         ]);
 
         return $user->AccountRole === 'admin'
@@ -44,7 +55,7 @@ class LoginController extends Controller
 
     public function logout(Request $request)
     {
-        $request->session()->forget(['user_id', 'user_role', 'user_email']);
+        $request->session()->forget(['user_id', 'user_role', 'user_email', 'account_type']);
         $request->session()->regenerate();
 
         return redirect()->route('login');
@@ -67,11 +78,19 @@ class LoginController extends Controller
             'email' => 'required|email|exists:tbl_useraccount,Email',
         ]);
 
+        $throttleKey = 'reset-send:' . strtolower($data['email']);
+        if (RateLimiter::tooManyAttempts($throttleKey, 3)) {
+            $seconds = RateLimiter::availableIn($throttleKey);
+            return redirect()->route('login')->with('reset_error', "Too many reset requests. Please try again in " . ceil($seconds / 60) . " minute(s).");
+        }
+        RateLimiter::hit($throttleKey, 600);
+
         $code = (string) random_int(100000, 999999);
 
         session([
             'reset_email' => $data['email'],
             'reset_code' => $code,
+            'reset_attempts' => 0,
             'show_reset_form' => true,
         ]);
         session()->forget('reset_error');
@@ -90,9 +109,18 @@ class LoginController extends Controller
             return redirect()->route('login')->with('reset_expired', true);
         }
 
+        $throttleKey = 'reset-send:' . strtolower(session('reset_email'));
+        if (RateLimiter::tooManyAttempts($throttleKey, 3)) {
+            $seconds = RateLimiter::availableIn($throttleKey);
+            return redirect()->route('login')
+                ->with('show_reset_form', true)
+                ->with('reset_error', "Too many reset requests. Please try again in " . ceil($seconds / 60) . " minute(s).");
+        }
+        RateLimiter::hit($throttleKey, 600);
+
         $code = (string) random_int(100000, 999999);
 
-        session(['reset_code' => $code, 'show_reset_form' => true]);
+        session(['reset_code' => $code, 'reset_attempts' => 0, 'show_reset_form' => true]);
         session()->forget('reset_error');
 
         Mail::to(session('reset_email'))->send(new OtpMail($code));
@@ -122,6 +150,15 @@ class LoginController extends Controller
         }
 
         if ($request->code !== session('reset_code')) {
+            $attempts = session('reset_attempts', 0) + 1;
+
+            if ($attempts >= 5) {
+                session()->forget(['reset_email', 'reset_code', 'reset_attempts', 'show_reset_form']);
+                return redirect()->route('login')->with('reset_expired', true);
+            }
+
+            session(['reset_attempts' => $attempts]);
+
             return redirect()->route('login')
                 ->with('show_reset_form', true)
                 ->with('reset_error', 'Incorrect code. Please try again.');
@@ -136,7 +173,7 @@ class LoginController extends Controller
         $user->Password = Hash::make($request->password);
         $user->save();
 
-        session()->forget(['reset_email', 'reset_code', 'show_reset_form']);
+        session()->forget(['reset_email', 'reset_code', 'reset_attempts', 'show_reset_form']);
 
         return redirect()->route('login')->with('password_reset', true);
     }
@@ -148,7 +185,7 @@ class LoginController extends Controller
      */
     public function cancelReset(Request $request)
     {
-        session()->forget(['reset_email', 'reset_code', 'show_reset_form']);
+        session()->forget(['reset_email', 'reset_code', 'reset_attempts', 'show_reset_form']);
 
         return redirect()->route('login');
     }

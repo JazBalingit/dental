@@ -524,7 +524,7 @@
                         <div>{{ $statusLabel }}@if($isMine && $apptForSlot->Status === 'Approved') · {{ $apptForSlot->service?->ServiceName ?? $apptForSlot->TypeOfAppointment }} · {{ $apptForSlot->DurationHours ?? 1 }} hour(s)@endif</div>
                         @if($isMine && $isStartSlot)
                           <div class="d-flex justify-content-center gap-2 mt-2">
-                            <form method="POST" action="{{ route('userAppointment.remove', $apptForSlot) }}">@csrf<input type="hidden" name="action" value="reschedule"><button class="btn btn-sm btn-light">Reschedule</button></form>
+                            <form method="POST" action="{{ route('userAppointment.remove', $apptForSlot) }}">@csrf<input type="hidden" name="action" value="reschedule"><button class="btn btn-sm text-white" style="background: var(--brand-700); border-color: var(--brand-700);">Reschedule</button></form>
                             <form method="POST" action="{{ route('userAppointment.remove', $apptForSlot) }}">@csrf<input type="hidden" name="action" value="cancel"><button class="btn btn-sm btn-outline-danger">Cancel</button></form>
                           </div>
                         @endif

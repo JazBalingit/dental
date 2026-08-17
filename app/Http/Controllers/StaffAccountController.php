@@ -3,8 +3,9 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\StaffAccount;
 use App\Models\StaffInfo;
+use App\Models\UserAccount;
+use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 
@@ -29,12 +30,15 @@ class StaffAccountController extends Controller
         }
 
         $search = $request->query('search');
+        $tab = $request->query('tab') === 'archived' ? 'archived' : 'active';
 
-        $activeQuery = StaffAccount::with('staffInfo')
-            ->where('AccountStatus', 'Active');
+        $activeQuery = UserAccount::with('staffInfo')
+            ->where('AccountType', 'Staff')
+            ->where('IsArchived', false);
 
-        $archivedQuery = StaffAccount::with('staffInfo')
-            ->where('AccountStatus', 'Archived');
+        $archivedQuery = UserAccount::with('staffInfo')
+            ->where('AccountType', 'Staff')
+            ->where('IsArchived', true);
 
         if ($search) {
             $filter = function ($q) use ($search) {
@@ -48,10 +52,11 @@ class StaffAccountController extends Controller
             $archivedQuery->where($filter);
         }
 
-        return view('admin.staff-accounts', [
+        return view('superAdmin.staff-accounts', [
             'staff' => $activeQuery->orderByDesc('DateCreated')->paginate(10, ['*'], 'page')->withQueryString(),
-            'archivedStaff' => $archivedQuery->orderByDesc('DateCreated')->get(),
+            'archivedStaff' => $archivedQuery->orderByDesc('DateCreated')->paginate(10, ['*'], 'archived_page')->withQueryString(),
             'search' => $search,
+            'tab' => $tab,
         ]);
     }
 
@@ -65,43 +70,44 @@ class StaffAccountController extends Controller
             'last_name' => 'required|string|max:100',
             'first_name' => 'required|string|max:100',
             'middle_name' => 'nullable|string|max:100',
-            'birthdate' => 'required|date',
-            'age' => 'nullable|integer|min:0|max:150',
+            'birthdate' => 'required|date|before:today',
             'gender' => 'required|string',
             'religion' => 'nullable|string|max:100',
             'nationality' => 'required|string|max:100',
             'role' => 'required|in:Dentist,Staff',
             'address' => 'required|string|max:255',
-            'email' => 'required|email|unique:tbl_staffAcc,Email',
+            'email' => 'required|email|unique:tbl_useraccount,Email',
             'phone' => 'required|string|max:20',
             'password' => 'required|string|min:8|confirmed',
             'photo' => 'nullable|image|mimes:jpg,jpeg,png|max:2048',
         ]);
 
-        $account = StaffAccount::create([
+        $account = UserAccount::create([
             'Email' => $data['email'],
             'Password' => Hash::make($data['password']),
             'Position' => $data['role'],
+            'AccountRole' => 'admin',
+            'AccountType' => 'Staff',
             'DateCreated' => now(),
-            'AccountStatus' => 'Active',
+            'IsArchived' => false,
         ]);
 
         $photoPath = null;
         if ($request->hasFile('photo')) {
             $file = $request->file('photo');
-            $filename = 'staff_' . $account->StaffID . '_' . time() . '.' . $file->getClientOriginalExtension();
+            $filename = 'staff_' . $account->UserID . '_' . time() . '.' . $file->getClientOriginalExtension();
             $file->move(public_path('images/profiles'), $filename);
             $photoPath = 'images/profiles/' . $filename;
         }
 
         StaffInfo::create([
-            'StaffID' => $account->StaffID,
+            'UserID' => $account->UserID,
             'LastName' => $data['last_name'],
             'FirstName' => $data['first_name'],
             'MiddleName' => $data['middle_name'] ?? null,
             'PhoneNumber' => $data['phone'],
             'DateOfBirth' => $data['birthdate'],
-            'Age' => $data['age'] ?? null,
+            'Age' => Carbon::parse($data['birthdate'])->age,
             'Gender' => $data['gender'],
             'Religion' => $data['religion'] ?? null,
             'Nationality' => $data['nationality'],
@@ -118,21 +124,20 @@ class StaffAccountController extends Controller
             return $redirect;
         }
 
-        $account = StaffAccount::findOrFail($id);
-        $info = StaffInfo::where('StaffID', $account->StaffID)->firstOrFail();
+        $account = UserAccount::where('AccountType', 'Staff')->findOrFail($id);
+        $info = StaffInfo::where('UserID', $account->UserID)->firstOrFail();
 
         $data = $request->validate([
             'last_name' => 'required|string|max:100',
             'first_name' => 'required|string|max:100',
             'middle_name' => 'nullable|string|max:100',
-            'birthdate' => 'required|date',
-            'age' => 'nullable|integer|min:0|max:150',
+            'birthdate' => 'required|date|before:today',
             'gender' => 'required|string',
             'religion' => 'nullable|string|max:100',
             'nationality' => 'required|string|max:100',
             'role' => 'required|in:Dentist,Staff',
             'address' => 'required|string|max:255',
-            'email' => 'required|email|unique:tbl_staffAcc,Email,' . $account->StaffID . ',StaffID',
+            'email' => 'required|email|unique:tbl_useraccount,Email,' . $account->UserID . ',UserID',
             'phone' => 'required|string|max:20',
             'password' => 'nullable|string|min:8|confirmed',
             'photo' => 'nullable|image|mimes:jpg,jpeg,png|max:2048',
@@ -151,7 +156,7 @@ class StaffAccountController extends Controller
             'MiddleName' => $data['middle_name'] ?? null,
             'PhoneNumber' => $data['phone'],
             'DateOfBirth' => $data['birthdate'],
-            'Age' => $data['age'] ?? null,
+            'Age' => Carbon::parse($data['birthdate'])->age,
             'Gender' => $data['gender'],
             'Religion' => $data['religion'] ?? null,
             'Nationality' => $data['nationality'],
@@ -160,7 +165,7 @@ class StaffAccountController extends Controller
 
         if ($request->hasFile('photo')) {
             $file = $request->file('photo');
-            $filename = 'staff_' . $account->StaffID . '_' . time() . '.' . $file->getClientOriginalExtension();
+            $filename = 'staff_' . $account->UserID . '_' . time() . '.' . $file->getClientOriginalExtension();
             $file->move(public_path('images/profiles'), $filename);
             $updates['ProfilePicture'] = 'images/profiles/' . $filename;
         }
@@ -176,7 +181,7 @@ class StaffAccountController extends Controller
             return $redirect;
         }
 
-        StaffAccount::where('StaffID', $id)->update(['AccountStatus' => 'Archived']);
+        UserAccount::where('AccountType', 'Staff')->where('UserID', $id)->update(['IsArchived' => true]);
 
         return redirect()->route('staffAcc')->with('success', 'Account archived. This staff member can no longer log in.');
     }
@@ -187,7 +192,7 @@ class StaffAccountController extends Controller
             return $redirect;
         }
 
-        StaffAccount::where('StaffID', $id)->update(['AccountStatus' => 'Active']);
+        UserAccount::where('AccountType', 'Staff')->where('UserID', $id)->update(['IsArchived' => false]);
 
         return redirect()->route('staffAcc')->with('success', 'Account restored. This staff member can log in again.');
     }

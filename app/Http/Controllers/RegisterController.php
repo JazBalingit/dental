@@ -9,6 +9,7 @@ use App\Models\UserAccount;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Facades\RateLimiter;
 
 class RegisterController extends Controller
 {
@@ -43,6 +44,13 @@ class RegisterController extends Controller
             'password' => 'required|string|min:8|confirmed',
         ]);
 
+        $throttleKey = 'signup-otp:' . strtolower($data['email']);
+        if (RateLimiter::tooManyAttempts($throttleKey, 3)) {
+            $seconds = RateLimiter::availableIn($throttleKey);
+            return redirect()->route('signup')->with('otp_error', "Too many attempts. Please try again in " . ceil($seconds / 60) . " minute(s).");
+        }
+        RateLimiter::hit($throttleKey, 600);
+
         // Age is computed from the birthdate — no manual input needed.
         $age = \Carbon\Carbon::parse($data['birthdate'])->age;
 
@@ -70,6 +78,7 @@ class RegisterController extends Controller
             'pending_registration' => $pending,
             'otp_code' => $code,
             'otp_email' => $data['email'],
+            'otp_attempts' => 0,
             'show_otp' => true,
         ]);
         session()->forget('otp_error');
@@ -92,6 +101,15 @@ class RegisterController extends Controller
         }
 
         if ($request->code !== session('otp_code')) {
+            $attempts = session('otp_attempts', 0) + 1;
+
+            if ($attempts >= 5) {
+                session()->forget(['pending_registration', 'otp_code', 'otp_email', 'otp_attempts', 'show_otp']);
+                return redirect()->route('signup')->with('otp_expired', true);
+            }
+
+            session(['otp_attempts' => $attempts]);
+
             return redirect()->route('signup')
                 ->with('show_otp', true)
                 ->with('otp_error', 'Incorrect code. Please try again.');
@@ -111,7 +129,7 @@ class RegisterController extends Controller
             ['UserID' => $user->UserID]
         ));
 
-        session()->forget(['pending_registration', 'otp_code', 'otp_email', 'show_otp']);
+        session()->forget(['pending_registration', 'otp_code', 'otp_email', 'otp_attempts', 'show_otp']);
 
         return redirect()->route('login')->with('registered', true);
     }
@@ -126,9 +144,18 @@ class RegisterController extends Controller
             return redirect()->route('signup')->with('otp_expired', true);
         }
 
+        $throttleKey = 'signup-otp:' . strtolower(session('otp_email'));
+        if (RateLimiter::tooManyAttempts($throttleKey, 3)) {
+            $seconds = RateLimiter::availableIn($throttleKey);
+            return redirect()->route('signup')
+                ->with('show_otp', true)
+                ->with('otp_error', "Too many attempts. Please try again in " . ceil($seconds / 60) . " minute(s).");
+        }
+        RateLimiter::hit($throttleKey, 600);
+
         $code = (string) random_int(100000, 999999);
 
-        session(['otp_code' => $code, 'show_otp' => true]);
+        session(['otp_code' => $code, 'otp_attempts' => 0, 'show_otp' => true]);
         session()->forget('otp_error');
 
         Mail::to(session('otp_email'))->send(new OtpMail($code));
@@ -143,7 +170,7 @@ class RegisterController extends Controller
      */
     public function cancelOtp(Request $request)
     {
-        session()->forget(['pending_registration', 'otp_code', 'otp_email', 'show_otp']);
+        session()->forget(['pending_registration', 'otp_code', 'otp_email', 'otp_attempts', 'show_otp']);
 
         return redirect()->route('signup');
     }

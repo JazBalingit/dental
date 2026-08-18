@@ -14,6 +14,9 @@ use App\Http\Controllers\StaffAccountController;
 use App\Http\Controllers\StaffProfileController;
 use App\Http\Controllers\AppointmentApprovalController;
 use App\Http\Controllers\UserAccountController;
+use App\Http\Controllers\NotificationController;
+use App\Http\Controllers\AppointmentsController;
+use App\Http\Controllers\PatientRecordsController;
 
 Route::get('/', function () {
     return view('welcome');
@@ -28,8 +31,6 @@ Route::get('dashboard', [AdminController::class, 'showDashboard'])->name('dashbo
 Route::get('staff-accounts', [AdminController::class, 'showStaffAcc'])->name('staffAcc');
 Route::get('dentist-schedule', [AdminController::class, 'showDentistSchedule'])->name('dentistSchedule');
 Route::get('walk-in', [AdminController::class, 'showWalkIn'])->name('walkIn');
-Route::get('appointments', [AdminController::class, 'showAppointments'])->name('appointments');
-Route::get('patient-records', [AdminController::class, 'showPatientRecords'])->name('patientRecords');
 Route::get('configuration', [AdminController::class, 'showConfiguration'])->name('configuration');
 
 // show all user side front end
@@ -91,6 +92,20 @@ Route::get('/user-accounts', [UserAccountController::class, 'index'])->name('use
 Route::post('/user-accounts/{id}/update', [UserAccountController::class, 'update'])->name('userAcc.update');
 Route::post('/user-accounts/{id}/archive', [UserAccountController::class, 'archive'])->name('userAcc.archive');
 Route::post('/user-accounts/{id}/unarchive', [UserAccountController::class, 'unarchive'])->name('userAcc.unarchive');
+
+// notifications (shared by admin + patient sides)
+Route::post('/notifications/{id}/read', [NotificationController::class, 'markRead'])->name('notifications.read');
+
+// appointments management (admin)
+Route::get('/appointments', [AppointmentsController::class, 'index'])->name('appointments');
+Route::post('/appointments/{id}/complete', [AppointmentsController::class, 'complete'])->name('appointments.complete');
+Route::post('/appointments/{id}/cancel', [AppointmentsController::class, 'cancel'])->name('appointments.cancel');
+
+// patient records (admin)
+Route::get('/patient-records', [PatientRecordsController::class, 'index'])->name('patientRecords');
+Route::post('/patient-records/{id}/update', [PatientRecordsController::class, 'updateNotes'])->name('patientRecords.update');
+Route::post('/patient-records/{id}/archive', [PatientRecordsController::class, 'archive'])->name('patientRecords.archive');
+Route::post('/patient-records/{id}/unarchive', [PatientRecordsController::class, 'unarchive'])->name('patientRecords.unarchive');
 
 // staff user profile (staff self-service: view info, verify email, change password)
 Route::get('/staff-profile', [StaffProfileController::class, 'edit'])->name('staffProfile');

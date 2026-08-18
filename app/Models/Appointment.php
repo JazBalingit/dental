@@ -40,4 +40,9 @@ class Appointment extends Model
     {
         return $this->belongsTo(Service::class, 'ServiceID', 'ServiceID');
     }
+
+    public function patientRecord()
+    {
+        return $this->hasOne(PatientRecord::class, 'AppointmentID', 'AppointmentID');
+    }
 }

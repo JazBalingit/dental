@@ -51,22 +51,7 @@
                 </div>
                 <div class="right">
                     {{-- Notifications left untouched, still static per your request --}}
-                    <div class="dropdown">
-                        <button class="icon-btn" type="button" data-bs-toggle="dropdown" aria-expanded="false">
-                            <i class="bi bi-bell"></i><span class="dot"></span>
-                        </button>
-                        <ul class="dropdown-menu dropdown-menu-end notif-dropdown shadow-sm p-2"
-                            style="width: 500px; max-width: 90vw; max-height: 400px; overflow-y: auto;">
-                            <li>
-                                <h6 class="dropdown-header">Notifications</h6>
-                            </li>
-                            <li>
-                                <hr class="dropdown-divider my-1">
-                            </li>
-                            <li><a class="dropdown-item text-center small" href="#" data-bs-toggle="modal"
-                                    data-bs-target="#allNotificationsModal">View all notifications</a></li>
-                        </ul>
-                    </div>
+                    @include('partials.admin-notif-dropdown')
                     <div class="dropdown">
                         <button class="user-chip" type="button" data-bs-toggle="dropdown" aria-expanded="false"
                             style="all:unset; cursor:pointer; display:flex; align-items:center; gap:.6rem; padding:.35rem .8rem .35rem .35rem; border-radius:999px; background:var(--brand-50); border:1px solid var(--brand-100); font-family:inherit;">
@@ -295,25 +280,7 @@
         @endforeach
     @endforeach
 
-    {{-- Notification Modal left as-is, unchanged from your original file --}}
-    <div class="modal fade" id="allNotificationsModal" tabindex="-1" aria-labelledby="allNotificationsLabel"
-        aria-hidden="true">
-        <div class="modal-dialog modal-lg modal-dialog-scrollable modal-dialog-centered">
-            <div class="modal-content notif-modal">
-                <div class="modal-header notif-modal-header">
-                    <div class="d-flex align-items-center gap-2">
-                        <span class="notif-modal-icon"><i class="bi bi-bell-fill"></i></span>
-                        <h5 class="modal-title mb-0" id="allNotificationsLabel">All Notifications</h5>
-                    </div>
-                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"
-                        aria-label="Close"></button>
-                </div>
-                <div class="modal-body p-3 notif-modal-body">
-                    {{-- ... keep your existing static notification markup here ... --}}
-                </div>
-            </div>
-        </div>
-    </div>
+    @include('partials.admin-notif-modal')
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 </body>

@@ -49,6 +49,7 @@
                     <button class="toggle"><i class="bi bi-list"></i></button>
                 </div>
                 <div class="right">
+                    @include('partials.admin-notif-dropdown')
                     <div class="dropdown">
                         <button class="user-chip" type="button" data-bs-toggle="dropdown" aria-expanded="false"
                             style="all:unset; cursor:pointer; display:flex; align-items:center; gap:.6rem; padding:.35rem .8rem .35rem .35rem; border-radius:999px; background:var(--brand-50); border:1px solid var(--brand-100); font-family:inherit;">
@@ -399,6 +400,8 @@
             </div>
         </div>
     @endforeach
+
+    @include('partials.admin-notif-modal')
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 </body>

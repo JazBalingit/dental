@@ -3,16 +3,18 @@
 
 namespace App\Http\Controllers;
 
-use App\Mail\AppointmentStatusMail;
 use App\Models\Appointment;
 use App\Models\DentistSchedule;
-use App\Models\Notification;
+use App\Services\NotificationService;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Mail;
 
 class AppointmentApprovalController extends Controller
 {
+    public function __construct(protected NotificationService $notifications)
+    {
+    }
+
     // Same ordered slot list used by the Dentist Schedule calendar —
     // needed here to figure out which slots to block when a staff member
     // approves an appointment with a multi-hour duration.
@@ -96,15 +98,8 @@ class AppointmentApprovalController extends Controller
             (int) $data['duration_hours']
         );
 
-        $timeLabel = Carbon::createFromFormat('H:i', $appointment->AppointmentTime)->format('g:i A');
-        $dateLabel = $appointment->AppointmentDate->format('F j, Y');
-
-        $this->notify(
-            $appointment,
-            'Appointment Approved',
-            "Your appointment has been approved! Please be there on {$dateLabel} at {$timeLabel}.",
-            'success'
-        );
+        $this->notifyPatient($appointment, 'Appointment Approved', 'Your appointment has been approved.', 'success');
+        $this->notifyAdminsOfStatus($appointment, 'has been approved', 'Approved');
 
         return redirect()->route('appointmentApproval')->with('success', 'Appointment approved.');
     }
@@ -128,15 +123,13 @@ class AppointmentApprovalController extends Controller
         // Release the single slot that was held while this was pending.
         DentistSchedule::where('ScheduleID', $appointment->ScheduleID)->update(['Status' => 'Available']);
 
-        $timeLabel = Carbon::createFromFormat('H:i', $appointment->AppointmentTime)->format('g:i A');
-        $dateLabel = $appointment->AppointmentDate->format('F j, Y');
-
-        $this->notify(
+        $this->notifyPatient(
             $appointment,
             'Appointment Declined',
-            "Your appointment on {$dateLabel} at {$timeLabel} was declined. Reason: {$data['reason']}",
+            'Your appointment has been declined.',
             'danger'
         );
+        $this->notifyAdminsOfStatus($appointment, 'has been declined', 'Declined');
 
         return redirect()->route('appointmentApproval')->with('success', 'Appointment declined.');
     }
@@ -170,7 +163,7 @@ class AppointmentApprovalController extends Controller
         }
     }
 
-    protected function notify(Appointment $appointment, string $title, string $message, string $type): void
+    protected function notifyPatient(Appointment $appointment, string $title, string $message, string $type): void
     {
         $user = $appointment->patientInfo->userAccount ?? null;
 
@@ -178,13 +171,24 @@ class AppointmentApprovalController extends Controller
             return;
         }
 
-        Notification::create([
-            'UserID' => $user->UserID,
-            'Title' => $title,
-            'Message' => $message,
-            'Type' => $type,
-        ]);
+        $this->notifications->notifyUser($user, $title, $message, $type, $appointment->AppointmentID, $appointment->Status);
+    }
 
-        Mail::to($user->Email)->send(new AppointmentStatusMail($title, $message));
+    /**
+     * Admin-side notification for an approve/decline action. Deliberately
+     * does not include the decline reason — the admin already entered it.
+     */
+    protected function notifyAdminsOfStatus(Appointment $appointment, string $verbPhrase, string $status): void
+    {
+        $p = $appointment->patientInfo;
+        $patientName = $p ? trim($p->FirstName . ' ' . $p->LastName) : 'A patient';
+
+        $this->notifications->notifyAdmins(
+            "Appointment {$status}",
+            "{$patientName}'s appointment {$verbPhrase}.",
+            $status === 'Approved' ? 'success' : 'danger',
+            $appointment->AppointmentID,
+            $status
+        );
     }
 }

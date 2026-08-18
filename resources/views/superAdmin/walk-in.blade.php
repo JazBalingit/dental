@@ -54,35 +54,7 @@
                     </button>
                 </div>
                 <div class="right">
-                    <div class="dropdown">
-                        <button class="icon-btn" type="button" data-bs-toggle="dropdown" aria-expanded="false">
-                            <i class="bi bi-bell"></i><span class="dot"></span>
-                        </button>
-                        <ul class="dropdown-menu dropdown-menu-end notif-dropdown shadow-sm p-2"
-                            style="width: 500px; max-width: 90vw; max-height: 400px; overflow-y: auto;">
-                            <li>
-                                <h6 class="dropdown-header">Notifications</h6>
-                            </li>
-                            <li>
-                                <a class="dropdown-item rounded d-flex gap-2 align-items-start" href="#">
-                                    <i class="bi bi-check-circle-fill text-success mt-1"></i>
-                                    <div>
-                                        <p class="mb-0 small">
-                                            <span class="text-muted">07-15-26:</span>
-                                            <strong>Roberto Blanco</strong> has successfully scheduled an appointment on
-                                            <strong>July 20, 2026</strong> at <strong>10:00 AM</strong>.
-                                        </p>
-                                        <span class="text-muted" style="font-size: 0.75rem;">2 minutes ago</span>
-                                    </div>
-                                </a>
-                            </li>
-                            <li>
-                                <hr class="dropdown-divider">
-                            </li>
-                            <li><a class="dropdown-item text-center small" href="#" data-bs-toggle="modal"
-                                    data-bs-target="#allNotificationsModal">View all notifications</a></li>
-                        </ul>
-                    </div>
+                    @include('partials.admin-notif-dropdown')
                     <div class="dropdown">
                         <button class="user-chip" type="button" data-bs-toggle="dropdown" aria-expanded="false"
                             style="all:unset; cursor:pointer; display:flex; align-items:center; gap:.6rem; padding:.35rem .8rem .35rem .35rem; border-radius:999px; background:var(--brand-50); border:1px solid var(--brand-100); font-family:inherit;">
@@ -600,6 +572,8 @@
 
         </main>
     </div>
+
+    @include('partials.admin-notif-modal')
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 </body>

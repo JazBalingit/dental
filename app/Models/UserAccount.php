@@ -41,4 +41,9 @@ class UserAccount extends Model
     {
         return $this->hasOne(StaffInfo::class, 'UserID', 'UserID');
     }
+
+    public function notifications()
+    {
+        return $this->hasMany(Notification::class, 'UserID', 'UserID');
+    }
 }

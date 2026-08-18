@@ -3,18 +3,20 @@
 
 namespace App\Http\Controllers;
 
-use App\Mail\AppointmentStatusMail;
 use App\Models\Appointment;
 use App\Models\DentistSchedule;
-use App\Models\Notification;
 use App\Models\Service;
 use App\Models\UserAccount;
+use App\Services\NotificationService;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Mail;
 
 class AppointmentBookingController extends Controller
 {
+    public function __construct(protected NotificationService $notifications)
+    {
+    }
+
     protected array $slots = [
         '09:00' => '9:00 AM',
         '10:00' => '10:00 AM',
@@ -157,16 +159,24 @@ class AppointmentBookingController extends Controller
 
         $timeLabel = Carbon::createFromFormat('H:i', $data['time'])->format('g:i A');
         $dateLabel = $date->format('F j, Y');
-        $message = "You have successfully booked an appointment on {$dateLabel} at {$timeLabel}. Status: Pending.";
 
-        Notification::create([
-            'UserID' => $user->UserID,
-            'Title' => 'Appointment Booked',
-            'Message' => $message,
-            'Type' => 'warning',
-        ]);
+        $this->notifications->notifyUser(
+            $user,
+            'Appointment Booked',
+            'Your appointment has been successfully booked.',
+            'warning',
+            $appointment->AppointmentID,
+            'Pending'
+        );
 
-        Mail::to($user->Email)->send(new AppointmentStatusMail('Appointment Booked', $message));
+        $patientName = trim(($user->patientInfo->FirstName ?? '') . ' ' . ($user->patientInfo->LastName ?? ''));
+        $this->notifications->notifyAdmins(
+            'New Appointment',
+            "{$patientName} has booked an appointment.",
+            'info',
+            $appointment->AppointmentID,
+            'Pending'
+        );
 
         return redirect()->to(route('landingPage') . '#appointment')
             ->with('booking_success', "Booked! {$dateLabel} at {$timeLabel} — status: Pending.");

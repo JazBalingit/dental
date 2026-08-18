@@ -5,11 +5,16 @@ namespace App\Http\Controllers;
 use App\Models\Appointment;
 use App\Models\DentistSchedule;
 use App\Models\UserAccount;
+use App\Services\NotificationService;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 
 class UserController extends Controller
 {
+    public function __construct(protected NotificationService $notifications)
+    {
+    }
+
     // show landing page front end
     public function showLandingPage(Request $request, \App\Http\Controllers\AppointmentBookingController $booking)
     {
@@ -56,8 +61,50 @@ class UserController extends Controller
         abort_unless(in_array($appointment->Status, ['Pending', 'Approved']), 422);
 
         $this->releaseAppointmentSlots($appointment);
-        $appointment->delete();
-        $action = $request->input('action') === 'reschedule' ? 'rescheduled' : 'cancelled';
+
+        $isReschedule = $request->input('action') === 'reschedule';
+        $appointment->Status = 'Cancelled';
+        $appointment->save();
+
+        $timeLabel = Carbon::createFromFormat('H:i', $appointment->AppointmentTime)->format('g:i A');
+        $dateLabel = $appointment->AppointmentDate->format('F j, Y');
+        $patientName = trim(($user->patientInfo->FirstName ?? '') . ' ' . ($user->patientInfo->LastName ?? ''));
+
+        if ($isReschedule) {
+            $this->notifications->notifyUser(
+                $user,
+                'Appointment Rescheduled',
+                "Your appointment on {$dateLabel} at {$timeLabel} has been cancelled so you can pick a new time.",
+                'warning',
+                $appointment->AppointmentID,
+                'Cancelled'
+            );
+            $this->notifications->notifyAdmins(
+                'Appointment Rescheduled',
+                "{$patientName} has rescheduled their appointment.",
+                'warning',
+                $appointment->AppointmentID,
+                'Cancelled'
+            );
+        } else {
+            $this->notifications->notifyUser(
+                $user,
+                'Appointment Cancelled',
+                "Your appointment on {$dateLabel} at {$timeLabel} has been cancelled.",
+                'danger',
+                $appointment->AppointmentID,
+                'Cancelled'
+            );
+            $this->notifications->notifyAdmins(
+                'Appointment Cancelled',
+                "{$patientName} has cancelled their appointment.",
+                'danger',
+                $appointment->AppointmentID,
+                'Cancelled'
+            );
+        }
+
+        $action = $isReschedule ? 'rescheduled' : 'cancelled';
         return redirect()->route('userAppointment')->with('success', "Appointment {$action}. The time slot is available again.");
     }
 

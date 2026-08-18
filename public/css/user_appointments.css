@@ -16,7 +16,7 @@
 
             --notif-navy: #0f7a33;
             --notif-blue: #0f7a33;
-            --notif-blue-light: #eaf1fb;
+            --notif-blue-light: #e4f6ed;
             --notif-success: #1e8e5a;
             --notif-success-bg: #e4f6ed;
             --notif-danger: #d6453d;
@@ -820,13 +820,21 @@
 
         .icon-btn .dot {
             position: absolute;
-            top: 10px;
-            right: 12px;
-            width: 10px;
-            height: 10px;
-            border-radius: 50%;
+            top: 6px;
+            right: 8px;
+            min-width: 16px;
+            height: 16px;
+            padding: 0 3px;
+            border-radius: 999px;
             background: #f80000;
             border: 2px solid #fff;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 10px;
+            line-height: 1;
+            font-weight: 700;
+            color: #fff;
         }
 
         .notif-dropdown .dropdown-item {
@@ -835,6 +843,22 @@
 
         .notif-dropdown .dropdown-item>div {
             min-width: 0;
+        }
+
+        .dropdown-item:hover,
+        .dropdown-item:focus {
+            background: var(--brand-50);
+        }
+
+        .dropdown-item:not(.text-danger):active,
+        .dropdown-item:not(.text-danger).active {
+            background: var(--brand-700);
+            color: #fff;
+        }
+
+        .dropdown-item.text-danger:active,
+        .dropdown-item.text-danger.active {
+            background: #fee2e2;
         }
 
         .notif-modal {

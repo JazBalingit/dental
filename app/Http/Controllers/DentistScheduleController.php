@@ -6,9 +6,14 @@ use Illuminate\Http\Request;
 use Carbon\Carbon;
 use App\Models\DentistSchedule;
 use App\Models\Appointment;
+use App\Services\AuditLogService;
 
 class DentistScheduleController extends Controller
 {
+    public function __construct(protected AuditLogService $auditLog)
+    {
+    }
+
     // 24h value => display label, matches the original static modal
     protected array $slots = [
         '09:00' => '9:00',
@@ -33,9 +38,7 @@ class DentistScheduleController extends Controller
                 1
             )->startOfMonth();
         } else {
-            // Default: year 2026, current calendar month (e.g. loading in August
-            // with no query params opens August 2026, not the real current year)
-            $defaultMonth = '2026-' . now()->format('m');
+            $defaultMonth = now()->format('Y-m');
             $monthParam = $request->query('month', $defaultMonth);
             try {
                 $current = Carbon::createFromFormat('Y-m', $monthParam)->startOfMonth();
@@ -133,6 +136,8 @@ class DentistScheduleController extends Controller
 
         $schedule->Status = $schedule->Status === 'Available' ? 'Not Available' : 'Available';
         $schedule->save();
+
+        $this->auditLog->log('Edit', "Set {$request->date} {$request->time} schedule slot to {$schedule->Status}.");
 
         return redirect()
             ->route('dentistSchedule', ['month' => $request->input('month', now()->format('Y-m'))])

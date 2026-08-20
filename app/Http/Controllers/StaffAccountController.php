@@ -5,12 +5,17 @@ namespace App\Http\Controllers;
 
 use App\Models\StaffInfo;
 use App\Models\UserAccount;
+use App\Services\AuditLogService;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 
 class StaffAccountController extends Controller
 {
+    public function __construct(protected AuditLogService $auditLog)
+    {
+    }
+
     /**
      * Only a logged-in admin may access staff account management.
      */
@@ -115,6 +120,8 @@ class StaffAccountController extends Controller
             'ProfilePicture' => $photoPath,
         ]);
 
+        $this->auditLog->log('Create', "Added a new staff account: {$data['first_name']} {$data['last_name']} ({$data['email']}).");
+
         return redirect()->route('staffAcc')->with('success', 'Staff account created successfully.');
     }
 
@@ -172,6 +179,8 @@ class StaffAccountController extends Controller
 
         $info->update($updates);
 
+        $this->auditLog->log('Edit', "Edited staff account: {$data['first_name']} {$data['last_name']} ({$data['email']}).");
+
         return redirect()->route('staffAcc')->with('success', 'Staff account updated successfully.');
     }
 
@@ -181,7 +190,11 @@ class StaffAccountController extends Controller
             return $redirect;
         }
 
+        $account = UserAccount::where('AccountType', 'Staff')->with('staffInfo')->find($id);
         UserAccount::where('AccountType', 'Staff')->where('UserID', $id)->update(['IsArchived' => true]);
+
+        $name = $account?->staffInfo ? trim($account->staffInfo->FirstName . ' ' . $account->staffInfo->LastName) : $account?->Email;
+        $this->auditLog->log('Archive', "Archived staff account: {$name}.");
 
         return redirect()->route('staffAcc')->with('success', 'Account archived. This staff member can no longer log in.');
     }
@@ -192,7 +205,11 @@ class StaffAccountController extends Controller
             return $redirect;
         }
 
+        $account = UserAccount::where('AccountType', 'Staff')->with('staffInfo')->find($id);
         UserAccount::where('AccountType', 'Staff')->where('UserID', $id)->update(['IsArchived' => false]);
+
+        $name = $account?->staffInfo ? trim($account->staffInfo->FirstName . ' ' . $account->staffInfo->LastName) : $account?->Email;
+        $this->auditLog->log('Unarchive', "Unarchived staff account: {$name}.");
 
         return redirect()->route('staffAcc')->with('success', 'Account restored. This staff member can log in again.');
     }

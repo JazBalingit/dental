@@ -5,13 +5,14 @@ namespace App\Http\Controllers;
 
 use App\Models\Appointment;
 use App\Models\DentistSchedule;
+use App\Services\AuditLogService;
 use App\Services\NotificationService;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 
 class AppointmentApprovalController extends Controller
 {
-    public function __construct(protected NotificationService $notifications)
+    public function __construct(protected NotificationService $notifications, protected AuditLogService $auditLog)
     {
     }
 
@@ -39,8 +40,7 @@ class AppointmentApprovalController extends Controller
         $search = $request->query('search');
 
         $query = Appointment::with(['patientInfo', 'service', 'schedule'])
-            ->orderByDesc('AppointmentDate')
-            ->orderBy('AppointmentTime');
+            ->orderByDesc('created_at');
 
         if ($status && in_array($status, ['Pending', 'Approved', 'Declined', 'Completed'])) {
             $query->where('Status', $status);
@@ -90,6 +90,7 @@ class AppointmentApprovalController extends Controller
 
         $appointment->Status = 'Approved';
         $appointment->DurationHours = $data['duration_hours'];
+        $appointment->ApprovedAt = now();
         $appointment->save();
 
         $this->blockSubsequentSlots(
@@ -100,6 +101,10 @@ class AppointmentApprovalController extends Controller
 
         $this->notifyPatient($appointment, 'Appointment Approved', 'Your appointment has been approved.', 'success');
         $this->notifyAdminsOfStatus($appointment, 'has been approved', 'Approved');
+
+        $p = $appointment->patientInfo;
+        $patientName = $p ? trim($p->FirstName . ' ' . $p->LastName) : 'A patient';
+        $this->auditLog->log('Approve', "Approved {$patientName}'s appointment.");
 
         return redirect()->route('appointmentApproval')->with('success', 'Appointment approved.');
     }
@@ -130,6 +135,10 @@ class AppointmentApprovalController extends Controller
             'danger'
         );
         $this->notifyAdminsOfStatus($appointment, 'has been declined', 'Declined');
+
+        $p = $appointment->patientInfo;
+        $patientName = $p ? trim($p->FirstName . ' ' . $p->LastName) : 'A patient';
+        $this->auditLog->log('Decline', "Declined {$patientName}'s appointment. Reason: {$data['reason']}");
 
         return redirect()->route('appointmentApproval')->with('success', 'Appointment declined.');
     }

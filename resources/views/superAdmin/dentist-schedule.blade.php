@@ -94,19 +94,9 @@
                 {{-- ===================== MONTH VIEW ===================== --}}
                 <div class="schedule-wrap">
                     <div class="schedule-toolbar d-flex justify-content-between align-items-center flex-wrap gap-2">
-                        <div class="d-flex align-items-center gap-2">
-                            <a class="icon-btn border-0"
-                                href="{{ route('dentistSchedule', ['month' => $current->copy()->subMonth()->format('Y-m')]) }}">
-                                <i class="bi bi-chevron-left"></i>
-                            </a>
-                            <div>
-                                <div class="fw-semibold">{{ $current->format('F Y') }}</div>
-                                <div class="small text-muted-2">Monthly overview</div>
-                            </div>
-                            <a class="icon-btn border-0"
-                                href="{{ route('dentistSchedule', ['month' => $current->copy()->addMonth()->format('Y-m')]) }}">
-                                <i class="bi bi-chevron-right"></i>
-                            </a>
+                        <div>
+                            <div class="fw-semibold">{{ $current->format('F Y') }}</div>
+                            <div class="small text-muted-2">Monthly overview</div>
                         </div>
 
                         {{-- Year / month picker — plain GET form, no JS required --}}
@@ -119,11 +109,8 @@
                                     </option>
                                 @endforeach
                             </select>
-                            <select name="year" class="form-select form-select-sm" style="width: 100px;">
-                                @for ($y = now()->year; $y <= now()->year + 1; $y++)
-                                    <option value="{{ $y }}" {{ $current->year === $y ? 'selected' : '' }}>{{ $y }}</option>
-                                @endfor
-                            </select>
+                            <input type="number" name="year" class="form-control form-control-sm" style="width: 100px;"
+                                min="2000" max="2100" value="{{ $current->year }}">
                             <button type="submit" class="btn btn-brand btn-sm">Go</button>
                         </form>
                     </div>

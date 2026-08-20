@@ -20,10 +20,12 @@ class Appointment extends Model
         'Status',
         'DurationHours',
         'DeclineReason',
+        'ApprovedAt',
     ];
 
     protected $casts = [
         'AppointmentDate' => 'date:Y-m-d',
+        'ApprovedAt' => 'datetime',
     ];
 
     public function patientInfo()

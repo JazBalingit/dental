@@ -87,9 +87,6 @@
             <h2>Patient Records</h2>
             <div class="crumbs">Browse and manage all patient files and treatment history.</div>
           </div>
-          <button class="btn-brand" data-bs-toggle="modal" data-bs-target="#archivesModal">
-            <i class="bi bi-archive"></i> Archives
-          </button>
         </div>
 
         @if (session('success'))
@@ -109,72 +106,161 @@
         <div class="card-soft p-3 p-md-4">
           <form method="GET" action="{{ route('patientRecords') }}" class="data-toolbar">
             <div class="left">
-              <span class="text-muted-2 small">Completed patient visits</span>
+              <ul class="nav nav-pills" id="recordsTabs" role="tablist">
+                <li class="nav-item" role="presentation">
+                  <button class="nav-link {{ $tab !== 'archived' ? 'active' : '' }}" id="active-tab-btn"
+                    data-bs-toggle="pill" data-bs-target="#activePane" type="button" role="tab">
+                    Active
+                  </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                  <button class="nav-link {{ $tab === 'archived' ? 'active' : '' }}" id="archived-tab-btn"
+                    data-bs-toggle="pill" data-bs-target="#archivedPane" type="button" role="tab">
+                    Archived
+                  </button>
+                </li>
+              </ul>
             </div>
             <div class="right">
+              <input type="hidden" name="tab" id="activeTabField" value="{{ $tab }}">
               <div class="input-icon search">
                 <i class="bi bi-search"></i>
-                <input class="form-control" name="search" value="{{ $search }}" placeholder="Search patient or treatment..." style="height:36px; padding-left:2.4rem;" />
+                <input class="form-control" name="search" value="{{ $search }}" placeholder="Search patient or treatment..." style="height:40px; padding-left:2.4rem;" />
               </div>
             </div>
           </form>
 
-          <div class="table-responsive">
-            <table class="table-soft">
-              <thead>
-                <tr>
-                  <th>Patient ID</th>
-                  <th>Patient</th>
-                  <th>Email</th>
-                  <th>Visit Date &amp; Time</th>
-                  <th>Treatment</th>
-                  <th>Status</th>
-                  <th class="text-end">Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                @forelse ($records as $record)
-                    @php $p = $record->patientInfo; @endphp
+          <div class="tab-content mt-3">
+            <div class="tab-pane fade {{ $tab !== 'archived' ? 'show active' : '' }}" id="activePane" role="tabpanel">
+              <div class="table-responsive">
+                <table class="table-soft">
+                  <thead>
                     <tr>
-                        <td><span style="font-size:12px; color:#9ca3af; font-weight:500;">PT-{{ str_pad($record->PatientID, 4, '0', STR_PAD_LEFT) }}</span></td>
-                        <td>
-                            <div class="d-flex align-items-center gap-2">
-                                <span><img class="avatar-initials" src="{{ $p->photo_url ?? asset('images/default.png') }}" alt=""></span>
-                                <span class="fw-semibold">{{ $p->FirstName ?? '' }} {{ $p->LastName ?? '' }}</span>
-                            </div>
-                        </td>
-                        <td>{{ $p->userAccount->Email ?? '—' }}</td>
-                        <td>{{ $record->VisitDate->format('M j, Y') }} &bull; {{ \Carbon\Carbon::createFromFormat('H:i', $record->VisitTime)->format('g:i A') }}</td>
-                        <td>{{ $record->Service }}</td>
-                        <td><span class="pill pill-success">{{ $record->Status }}</span></td>
-                        <td class="text-end">
-                            <button type="button" class="btn-pill btn-pill-edit me-1" data-bs-toggle="modal" data-bs-target="#viewModal{{ $record->RecordID }}"><i
-                                    class="bi bi-eye"></i> View</button>
-                            <form method="POST" action="{{ route('patientRecords.archive', $record->RecordID) }}" class="d-inline">
-                                @csrf
-                                <button type="submit" class="btn-pill btn-pill-archive"><i class="bi bi-archive"></i> Archive</button>
-                            </form>
-                        </td>
+                      <th>Patient ID</th>
+                      <th>Patient</th>
+                      <th>Email</th>
+                      <th>Visit Date &amp; Time</th>
+                      <th>Treatment</th>
+                      <th>Completed On</th>
+                      <th>Status</th>
+                      <th class="text-end">Actions</th>
                     </tr>
-                @empty
-                    <tr>
-                        <td colspan="7" class="text-center text-muted-2 py-4">No patient records yet.</td>
-                    </tr>
-                @endforelse
-              </tbody>
-            </table>
-          </div>
+                  </thead>
+                  <tbody>
+                    @forelse ($records as $record)
+                        @php $p = $record->patientInfo; @endphp
+                        <tr>
+                            <td><span style="font-size:12px; color:#9ca3af; font-weight:500;">PT-{{ str_pad($record->PatientID, 4, '0', STR_PAD_LEFT) }}</span></td>
+                            <td>
+                                <div class="d-flex align-items-center gap-2">
+                                    <span><img class="avatar-initials" src="{{ $p->photo_url ?? asset('images/default.png') }}" alt=""></span>
+                                    <span class="fw-semibold">{{ $p->FirstName ?? '' }} {{ $p->LastName ?? '' }}</span>
+                                </div>
+                            </td>
+                            <td>{{ $p->userAccount->Email ?? '—' }}</td>
+                            <td>{{ $record->VisitDate->format('M j, Y') }} &bull; {{ \Carbon\Carbon::createFromFormat('H:i', $record->VisitTime)->format('g:i A') }}</td>
+                            <td>{{ $record->Service }}</td>
+                            <td>{{ $record->created_at->format('M j, Y g:i A') }}</td>
+                            <td><span class="pill pill-success">{{ $record->Status }}</span></td>
+                            <td class="text-end">
+                                <button type="button" class="btn-pill btn-pill-edit me-1" data-bs-toggle="modal" data-bs-target="#viewModal{{ $record->RecordID }}"><i
+                                        class="bi bi-eye"></i> View</button>
+                                <form method="POST" action="{{ route('patientRecords.archive', $record->RecordID) }}" class="d-inline">
+                                    @csrf
+                                    <button type="submit" class="btn-pill btn-pill-archive"><i class="bi bi-archive"></i> Archive</button>
+                                </form>
+                            </td>
+                        </tr>
+                    @empty
+                        <tr>
+                            <td colspan="8" class="text-center text-muted-2 py-4">No patient records yet.</td>
+                        </tr>
+                    @endforelse
+                  </tbody>
+                </table>
+              </div>
 
-          <div class="pagination-soft">
-            <div>Showing {{ $records->count() }} of {{ $records->total() }} entries</div>
-            <div class="pages">
-              <a href="{{ $records->previousPageUrl() ?? '#' }}"><i class="bi bi-chevron-left"></i></a>
-              @for ($i = 1; $i <= $records->lastPage(); $i++)
-                <a href="{{ $records->url($i) }}" class="{{ $records->currentPage() === $i ? 'active' : '' }}">{{ $i }}</a>
-              @endfor
-              <a href="{{ $records->nextPageUrl() ?? '#' }}"><i class="bi bi-chevron-right"></i></a>
+              <div class="pagination-soft">
+                <div>Showing {{ $records->count() }} of {{ $records->total() }} entries</div>
+                <div class="pages">
+                  <a href="{{ $records->previousPageUrl() ?? '#' }}"><i class="bi bi-chevron-left"></i></a>
+                  @for ($i = 1; $i <= $records->lastPage(); $i++)
+                    <a href="{{ $records->url($i) }}" class="{{ $records->currentPage() === $i ? 'active' : '' }}">{{ $i }}</a>
+                  @endfor
+                  <a href="{{ $records->nextPageUrl() ?? '#' }}"><i class="bi bi-chevron-right"></i></a>
+                </div>
+              </div>
+            </div>
+
+            <div class="tab-pane fade {{ $tab === 'archived' ? 'show active' : '' }}" id="archivedPane" role="tabpanel">
+              <div class="table-responsive">
+                <table class="table-soft">
+                  <thead>
+                    <tr>
+                      <th>Patient ID</th>
+                      <th>Patient</th>
+                      <th>Email</th>
+                      <th>Visit Date &amp; Time</th>
+                      <th>Treatment</th>
+                      <th>Completed On</th>
+                      <th>Status</th>
+                      <th class="text-end">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    @forelse ($archivedRecords as $record)
+                        @php $p = $record->patientInfo; @endphp
+                        <tr>
+                            <td><span style="font-size:12px; color:#9ca3af; font-weight:500;">PT-{{ str_pad($record->PatientID, 4, '0', STR_PAD_LEFT) }}</span></td>
+                            <td>
+                                <div class="d-flex align-items-center gap-2">
+                                    <span><img class="avatar-initials" src="{{ $p->photo_url ?? asset('images/default.png') }}" alt=""></span>
+                                    <span class="fw-semibold">{{ $p->FirstName ?? '' }} {{ $p->LastName ?? '' }}</span>
+                                </div>
+                            </td>
+                            <td>{{ $p->userAccount->Email ?? '—' }}</td>
+                            <td>{{ $record->VisitDate->format('M j, Y') }} &bull; {{ \Carbon\Carbon::createFromFormat('H:i', $record->VisitTime)->format('g:i A') }}</td>
+                            <td>{{ $record->Service }}</td>
+                            <td>{{ $record->created_at->format('M j, Y g:i A') }}</td>
+                            <td><span class="pill pill-muted">{{ $record->Status }}</span></td>
+                            <td class="text-end">
+                                <button type="button" class="btn-pill btn-pill-edit me-1" data-bs-toggle="modal" data-bs-target="#viewModal{{ $record->RecordID }}"><i
+                                        class="bi bi-eye"></i> View</button>
+                                <form method="POST" action="{{ route('patientRecords.unarchive', $record->RecordID) }}" class="d-inline">
+                                    @csrf
+                                    <button type="submit" class="btn-pill btn-pill-archive"><i class="bi bi-archive"></i> Unarchive</button>
+                                </form>
+                            </td>
+                        </tr>
+                    @empty
+                        <tr>
+                            <td colspan="8" class="text-center text-muted-2 py-4">No archived records.</td>
+                        </tr>
+                    @endforelse
+                  </tbody>
+                </table>
+              </div>
+
+              <div class="pagination-soft">
+                <div>Showing {{ $archivedRecords->count() }} of {{ $archivedRecords->total() }} entries</div>
+                <div class="pages">
+                  <a href="{{ $archivedRecords->previousPageUrl() ?? '#' }}"><i class="bi bi-chevron-left"></i></a>
+                  @for ($i = 1; $i <= $archivedRecords->lastPage(); $i++)
+                    <a href="{{ $archivedRecords->url($i) }}" class="{{ $archivedRecords->currentPage() === $i ? 'active' : '' }}">{{ $i }}</a>
+                  @endfor
+                  <a href="{{ $archivedRecords->nextPageUrl() ?? '#' }}"><i class="bi bi-chevron-right"></i></a>
+                </div>
+              </div>
             </div>
           </div>
+
+          <script>
+            document.querySelectorAll('#recordsTabs button').forEach(function (btn) {
+                btn.addEventListener('shown.bs.tab', function () {
+                    document.getElementById('activeTabField').value = btn.id === 'archived-tab-btn' ? 'archived' : 'active';
+                });
+            });
+          </script>
         </div><!-- /card-soft -->
 
       </div><!-- /content -->
@@ -300,123 +386,6 @@
     </div>
   @endforeach
 
-
-  <!-- ══════════════════════════════════════════════
-     ARCHIVES MODAL
-══════════════════════════════════════════════ -->
-  <div class="modal fade" id="archivesModal" tabindex="-1" aria-labelledby="archivesLabel" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered modal-xl modal-dialog-scrollable">
-      <div class="modal-content">
-
-        <div class="modal-header" style="border-bottom:1px solid var(--border);">
-          <div>
-            <h5 class="modal-title fw-semibold" id="archivesLabel">Patient Records - Archives</h5>
-            <div class="modal-subtitle">View and restore archived patient records</div>
-          </div>
-          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-        </div>
-
-        <div class="modal-body">
-          <!-- Table card -->
-          <div class="card-soft ">
-            <div class="data-toolbar">
-              <div class="left">
-                <span class="text-muted-2 small">Show</span>
-                <select class="form-select" style="width:80px;">
-                  <option>10</option>
-                  <option>25</option>
-                  <option>50</option>
-                </select>
-                <span class="text-muted-2 small">entries</span>
-              </div>
-              <div class="right">
-                <select class="form-select" style="min-width:160px;">
-                  <option>All Treatments</option>
-                  <option>Cleaning</option>
-                  <option>Filling</option>
-                  <option>Extraction</option>
-                  <option>Whitening</option>
-                </select>
-                <select class="form-select" style="min-width:140px;">
-                  <option>All Status</option>
-                  <option>Completed</option>
-                  <option>Scheduled</option>
-                  <option>Cancelled</option>
-                </select>
-                <div class="input-icon search">
-                  <i class="bi bi-search"></i>
-                  <input class="form-control" placeholder="Search patient..."
-                    style="height:36px; padding-left:2.4rem;" />
-                </div>
-              </div>
-            </div>
-          </div><!-- /card-soft -->
-
-          <div class="table-responsive">
-            <table class="table-soft">
-              <thead>
-                <tr>
-                  <th>Patient ID</th>
-                  <th>Patient</th>
-                  <th>Email</th>
-                  <th>Visit Date &amp; Time</th>
-                  <th>Treatment</th>
-                  <th>Status</th>
-                  <th class="text-end">Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                @forelse ($archivedRecords as $record)
-                    @php $p = $record->patientInfo; @endphp
-                    <tr>
-                        <td><span style="font-size:12px; color:#9ca3af; font-weight:500;">PT-{{ str_pad($record->PatientID, 4, '0', STR_PAD_LEFT) }}</span></td>
-                        <td>
-                            <div class="d-flex align-items-center gap-2">
-                                <span><img class="avatar-initials" src="{{ $p->photo_url ?? asset('images/default.png') }}" alt=""></span>
-                                <span class="fw-semibold">{{ $p->FirstName ?? '' }} {{ $p->LastName ?? '' }}</span>
-                            </div>
-                        </td>
-                        <td>{{ $p->userAccount->Email ?? '—' }}</td>
-                        <td>{{ $record->VisitDate->format('M j, Y') }} &bull; {{ \Carbon\Carbon::createFromFormat('H:i', $record->VisitTime)->format('g:i A') }}</td>
-                        <td>{{ $record->Service }}</td>
-                        <td><span class="pill pill-muted">{{ $record->Status }}</span></td>
-                        <td class="text-end">
-                            <button type="button" class="btn-pill btn-pill-edit me-1" data-bs-toggle="modal" data-bs-target="#viewModal{{ $record->RecordID }}"><i
-                                    class="bi bi-eye"></i> View</button>
-                            <form method="POST" action="{{ route('patientRecords.unarchive', $record->RecordID) }}" class="d-inline">
-                                @csrf
-                                <button type="submit" class="btn-pill btn-pill-archive"><i class="bi bi-archive"></i> Unarchive</button>
-                            </form>
-                        </td>
-                    </tr>
-                @empty
-                    <tr>
-                        <td colspan="7" class="text-center text-muted-2 py-4">No archived records.</td>
-                    </tr>
-                @endforelse
-              </tbody>
-            </table>
-          </div>
-
-          <div class="pagination-soft mb-3">
-            <div>Showing {{ $archivedRecords->count() }} of {{ $archivedRecords->total() }} entries</div>
-            <div class="pages">
-              <a href="{{ $archivedRecords->previousPageUrl() ?? '#' }}"><i class="bi bi-chevron-left"></i></a>
-              @for ($i = 1; $i <= $archivedRecords->lastPage(); $i++)
-                <a href="{{ $archivedRecords->url($i) }}" class="{{ $archivedRecords->currentPage() === $i ? 'active' : '' }}">{{ $i }}</a>
-              @endfor
-              <a href="{{ $archivedRecords->nextPageUrl() ?? '#' }}"><i class="bi bi-chevron-right"></i></a>
-            </div>
-          </div>
-
-          <div class="modal-footer border-0 pt-0">
-            <button type="button" class="btn btn-ghost" data-bs-dismiss="modal">Close</button>
-          </div>
-
-        </div>
-      </div>
-    </div>
-  </div>
 
   @include('partials.admin-notif-modal')
 

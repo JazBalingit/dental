@@ -4,6 +4,7 @@
 namespace App\Http\Controllers;
 
 use App\Mail\OtpMail;
+use App\Models\ActivityLog;
 use App\Models\UserAccount;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
@@ -48,6 +49,13 @@ class LoginController extends Controller
             'account_type' => $user->AccountType === 'Staff' ? 'staff' : 'user',
         ]);
 
+        $activityLog = ActivityLog::create([
+            'UserID' => $user->UserID,
+            'ActivityType' => 'Login',
+            'LoggedInTime' => now(),
+        ]);
+        session(['activity_log_id' => $activityLog->ActivityLogsID]);
+
         return $user->AccountRole === 'admin'
             ? redirect()->route('dashboard')
             : redirect()->route('landingPage');
@@ -55,7 +63,12 @@ class LoginController extends Controller
 
     public function logout(Request $request)
     {
-        $request->session()->forget(['user_id', 'user_role', 'user_email', 'account_type']);
+        if ($request->session()->has('activity_log_id')) {
+            ActivityLog::where('ActivityLogsID', $request->session()->get('activity_log_id'))
+                ->update(['LoggedOutTime' => now()]);
+        }
+
+        $request->session()->forget(['user_id', 'user_role', 'user_email', 'account_type', 'activity_log_id']);
         $request->session()->regenerate();
 
         return redirect()->route('login');

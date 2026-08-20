@@ -17,6 +17,7 @@ use App\Http\Controllers\UserAccountController;
 use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\AppointmentsController;
 use App\Http\Controllers\PatientRecordsController;
+use App\Http\Controllers\ConfigurationController;
 
 Route::get('/', function () {
     return view('welcome');
@@ -31,7 +32,6 @@ Route::get('dashboard', [AdminController::class, 'showDashboard'])->name('dashbo
 Route::get('staff-accounts', [AdminController::class, 'showStaffAcc'])->name('staffAcc');
 Route::get('dentist-schedule', [AdminController::class, 'showDentistSchedule'])->name('dentistSchedule');
 Route::get('walk-in', [AdminController::class, 'showWalkIn'])->name('walkIn');
-Route::get('configuration', [AdminController::class, 'showConfiguration'])->name('configuration');
 
 // show all user side front end
 Route::get('landing-page', [UserController::class, 'showLandingPage'])->name('landingPage');
@@ -106,6 +106,18 @@ Route::get('/patient-records', [PatientRecordsController::class, 'index'])->name
 Route::post('/patient-records/{id}/update', [PatientRecordsController::class, 'updateNotes'])->name('patientRecords.update');
 Route::post('/patient-records/{id}/archive', [PatientRecordsController::class, 'archive'])->name('patientRecords.archive');
 Route::post('/patient-records/{id}/unarchive', [PatientRecordsController::class, 'unarchive'])->name('patientRecords.unarchive');
+
+// configuration (admin): branding logo, services, activity logs, audit logs
+Route::get('/configuration', [ConfigurationController::class, 'index'])->name('configuration');
+Route::post('/configuration/logo', [ConfigurationController::class, 'updateLogo'])->name('configuration.logo');
+Route::post('/configuration/services', [ConfigurationController::class, 'storeService'])->name('configuration.services.store');
+Route::post('/configuration/services/{id}/update', [ConfigurationController::class, 'updateService'])->name('configuration.services.update');
+Route::post('/configuration/services/{id}/archive', [ConfigurationController::class, 'archiveService'])->name('configuration.services.archive');
+Route::post('/configuration/services/{id}/unarchive', [ConfigurationController::class, 'unarchiveService'])->name('configuration.services.unarchive');
+Route::post('/configuration/activity-logs/{id}/archive', [ConfigurationController::class, 'archiveActivityLog'])->name('configuration.activityLogs.archive');
+Route::post('/configuration/activity-logs/{id}/unarchive', [ConfigurationController::class, 'unarchiveActivityLog'])->name('configuration.activityLogs.unarchive');
+Route::post('/configuration/audit-logs/{id}/archive', [ConfigurationController::class, 'archiveAuditLog'])->name('configuration.auditLogs.archive');
+Route::post('/configuration/audit-logs/{id}/unarchive', [ConfigurationController::class, 'unarchiveAuditLog'])->name('configuration.auditLogs.unarchive');
 
 // staff user profile (staff self-service: view info, verify email, change password)
 Route::get('/staff-profile', [StaffProfileController::class, 'edit'])->name('staffProfile');

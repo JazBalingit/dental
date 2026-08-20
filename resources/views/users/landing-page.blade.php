@@ -284,21 +284,22 @@
           <div class="schedule-toolbar">
             <div>
               <h4>Doctor Schedule</h4>
+              <div class="small text-muted-2">{{ $bookCurrent->format('F Y') }}</div>
             </div>
-            <div class="d-flex align-items-center gap-2">
-              <a class="icon-btn border-0"
-                href="{{ route('landingPage') }}?bookMonth={{ $bookCurrent->copy()->subMonth()->format('Y-m') }}#appointment">
-                <i class="bi bi-chevron-left"></i>
-              </a>
-              <div>
-                <div class="fw-semibold">{{ $bookCurrent->format('F Y') }}</div>
-                <div class="small text-muted-2">Monthly overview</div>
-              </div>
-              <a class="icon-btn border-0"
-                href="{{ route('landingPage') }}?bookMonth={{ $bookCurrent->copy()->addMonth()->format('Y-m') }}#appointment">
-                <i class="bi bi-chevron-right"></i>
-              </a>
-            </div>
+            <form method="GET" action="{{ route('landingPage') }}#appointment" id="bookMonthForm"
+              class="d-flex align-items-center gap-2">
+              <select name="bookMonthNum" id="bookMonthNum" class="form-select form-select-sm" style="width: 140px;">
+                @foreach (range(1, 12) as $m)
+                  <option value="{{ $m }}" {{ $bookCurrent->month === $m ? 'selected' : '' }}>
+                    {{ \Carbon\Carbon::create()->month($m)->format('F') }}
+                  </option>
+                @endforeach
+              </select>
+              <input type="number" name="bookYear" id="bookYear" class="form-control form-control-sm"
+                style="width: 100px;" min="2000" max="2100" value="{{ $bookCurrent->year }}">
+              <input type="hidden" name="bookMonth" id="bookMonth" value="{{ $bookCurrent->format('Y-m') }}">
+              <button type="submit" class="btn btn-brand btn-sm">Go</button>
+            </form>
           </div>
 
           <div class="month-grid p-3">
@@ -599,6 +600,13 @@
   </div>
 
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js"></script>
+  <script>
+    document.getElementById('bookMonthForm')?.addEventListener('submit', function () {
+      var month = document.getElementById('bookMonthNum').value.padStart(2, '0');
+      var year = document.getElementById('bookYear').value;
+      document.getElementById('bookMonth').value = year + '-' + month;
+    });
+  </script>
 </body>
 
 </html>

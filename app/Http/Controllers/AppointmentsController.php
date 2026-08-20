@@ -5,12 +5,13 @@ namespace App\Http\Controllers;
 use App\Models\Appointment;
 use App\Models\DentistSchedule;
 use App\Models\PatientRecord;
+use App\Services\AuditLogService;
 use App\Services\NotificationService;
 use Illuminate\Http\Request;
 
 class AppointmentsController extends Controller
 {
-    public function __construct(protected NotificationService $notifications)
+    public function __construct(protected NotificationService $notifications, protected AuditLogService $auditLog)
     {
     }
 
@@ -35,6 +36,8 @@ class AppointmentsController extends Controller
         $search = $request->query('search');
 
         $query = Appointment::with(['patientInfo', 'service'])
+            ->orderByRaw('ApprovedAt IS NULL')
+            ->orderByDesc('ApprovedAt')
             ->orderByDesc('AppointmentDate')
             ->orderBy('AppointmentTime');
 
@@ -113,6 +116,8 @@ class AppointmentsController extends Controller
             'Completed'
         );
 
+        $this->auditLog->log('Complete', "Marked {$patientName}'s appointment as completed.");
+
         return redirect()->route('appointments')->with('success', 'Appointment marked as completed.');
     }
 
@@ -157,6 +162,8 @@ class AppointmentsController extends Controller
             $appointment->AppointmentID,
             'Cancelled'
         );
+
+        $this->auditLog->log('Cancel', "Cancelled {$patientName}'s appointment. Reason: {$data['reason']}");
 
         return redirect()->route('appointments')->with('success', 'Appointment cancelled.');
     }

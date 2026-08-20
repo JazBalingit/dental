@@ -3,10 +3,15 @@
 namespace App\Http\Controllers;
 
 use App\Models\PatientRecord;
+use App\Services\AuditLogService;
 use Illuminate\Http\Request;
 
 class PatientRecordsController extends Controller
 {
+    public function __construct(protected AuditLogService $auditLog)
+    {
+    }
+
     protected function guard()
     {
         if (!session('user_id') || session('user_role') !== 'admin') {
@@ -39,10 +44,13 @@ class PatientRecordsController extends Controller
             $archivedQuery->where($filter);
         }
 
+        $tab = $request->query('tab') === 'archived' ? 'archived' : 'active';
+
         return view('superAdmin.patient-records', [
-            'records' => $activeQuery->orderByDesc('VisitDate')->orderByDesc('VisitTime')->paginate(10, ['*'], 'page')->withQueryString(),
-            'archivedRecords' => $archivedQuery->orderByDesc('VisitDate')->orderByDesc('VisitTime')->paginate(10, ['*'], 'archived_page')->withQueryString(),
+            'records' => $activeQuery->orderByDesc('created_at')->paginate(10, ['*'], 'page')->withQueryString(),
+            'archivedRecords' => $archivedQuery->orderByDesc('created_at')->paginate(10, ['*'], 'archived_page')->withQueryString(),
             'search' => $search,
+            'tab' => $tab,
         ]);
     }
 
@@ -56,7 +64,11 @@ class PatientRecordsController extends Controller
             'notes' => 'nullable|string|max:2000',
         ]);
 
-        PatientRecord::findOrFail($id)->update(['Notes' => $data['notes'] ?? null]);
+        $record = PatientRecord::with('patientInfo')->findOrFail($id);
+        $record->update(['Notes' => $data['notes'] ?? null]);
+
+        $name = $record->patientInfo ? trim($record->patientInfo->FirstName . ' ' . $record->patientInfo->LastName) : "record #{$id}";
+        $this->auditLog->log('Edit', "Edited patient record notes for {$name}.");
 
         return redirect()->route('patientRecords')->with('success', 'Patient record updated.');
     }
@@ -67,7 +79,11 @@ class PatientRecordsController extends Controller
             return $redirect;
         }
 
-        PatientRecord::findOrFail($id)->update(['IsArchived' => true]);
+        $record = PatientRecord::with('patientInfo')->findOrFail($id);
+        $record->update(['IsArchived' => true]);
+
+        $name = $record->patientInfo ? trim($record->patientInfo->FirstName . ' ' . $record->patientInfo->LastName) : "record #{$id}";
+        $this->auditLog->log('Archive', "Archived patient record for {$name}.");
 
         return redirect()->route('patientRecords')->with('success', 'Record archived.');
     }
@@ -78,7 +94,11 @@ class PatientRecordsController extends Controller
             return $redirect;
         }
 
-        PatientRecord::findOrFail($id)->update(['IsArchived' => false]);
+        $record = PatientRecord::with('patientInfo')->findOrFail($id);
+        $record->update(['IsArchived' => false]);
+
+        $name = $record->patientInfo ? trim($record->patientInfo->FirstName . ' ' . $record->patientInfo->LastName) : "record #{$id}";
+        $this->auditLog->log('Unarchive', "Unarchived patient record for {$name}.");
 
         return redirect()->route('patientRecords')->with('success', 'Record restored.');
     }

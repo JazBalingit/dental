@@ -177,6 +177,7 @@
                                     <th>Patient</th>
                                     <th>Service</th>
                                     <th>Date &amp; Time</th>
+                                    <th>Booked At</th>
                                     <th>Status</th>
                                     <th class="text-end">Action</th>
                                 </tr>
@@ -198,6 +199,7 @@
                                                     alt=""></span>{{ $p->FirstName }} {{ $p->LastName }}</td>
                                         <td>{{ $appt->service->ServiceName ?? '—' }}</td>
                                         <td>{{ $appt->AppointmentDate->format('F j, Y') }} &bull; {{ $timeLabel }}</td>
+                                        <td>{{ $appt->created_at->format('M j, Y g:i A') }}</td>
                                         <td><span class="pill {{ $pillClass }}">{{ $appt->Status === 'Approved' ? 'Booked' : $appt->Status }}</span></td>
                                         <td class="text-end">
                                             <button class="btn btn-pill btn-pill-edit me-1" data-bs-toggle="modal"
@@ -212,7 +214,7 @@
                                     </tr>
                                 @empty
                                     <tr>
-                                        <td colspan="5" class="text-center text-muted-2 py-4">No appointments found.</td>
+                                        <td colspan="6" class="text-center text-muted-2 py-4">No appointments found.</td>
                                     </tr>
                                 @endforelse
                             </tbody>

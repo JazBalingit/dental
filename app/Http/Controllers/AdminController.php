@@ -46,10 +46,4 @@ class AdminController extends Controller
     {
         return view('superAdmin.patient-records');
     }
-    // show config front end
-    public function showConfiguration()
-    {
-        return view('superAdmin.configuration');
-    }
-
 }

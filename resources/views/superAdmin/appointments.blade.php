@@ -177,6 +177,7 @@
                                     <th>Date &amp; Time</th>
                                     <th>Patient</th>
                                     <th>Treatment</th>
+                                    <th>Approved At</th>
                                     <th>Status</th>
                                     <th class="text-end">Action</th>
                                 </tr>
@@ -197,6 +198,7 @@
                                         <td><span class="fw-semibold">{{ $appt->AppointmentDate->format('M j, Y') }} &bull; {{ $timeLabel }}</span></td>
                                         <td><span><img class="avatar-initials" src="{{ $p->photo_url ?? asset('images/default.png') }}" alt=""></span>{{ $p->FirstName ?? '' }} {{ $p->LastName ?? '' }}</td>
                                         <td>{{ $appt->service->ServiceName ?? $appt->TypeOfAppointment }}</td>
+                                        <td>{{ $appt->ApprovedAt ? $appt->ApprovedAt->format('M j, Y g:i A') : '—' }}</td>
                                         <td><span class="pill {{ $pillClass }}">{{ $appt->Status }}</span></td>
                                         <td class="text-end">
                                             @if ($appt->Status === 'Approved')
@@ -213,7 +215,7 @@
                                     </tr>
                                 @empty
                                     <tr>
-                                        <td colspan="5" class="text-center text-muted-2 py-4">No appointments found.</td>
+                                        <td colspan="6" class="text-center text-muted-2 py-4">No appointments found.</td>
                                     </tr>
                                 @endforelse
                             </tbody>

@@ -20,7 +20,7 @@
     <div class="app">
         <aside class="sidebar">
             <div class="brand">
-                <div><img class="logo" src="/images/adams_logo2.png" alt=""></div>
+                <div><img class="logo" src="/images/puspus_logo.png" alt=""></div>
                 <div>
                     <div class="name">PUS-PUS BRITANICO</div>
                     <div class="sub">Dental Clinic</div>

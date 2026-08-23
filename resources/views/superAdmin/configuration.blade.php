@@ -61,8 +61,10 @@
               <i class="bi bi-chevron-down ms-1 text-muted-2"></i>
             </button>
             <ul class="dropdown-menu dropdown-menu-end shadow-sm">
-              <li><a class="dropdown-item small" href="{{ route('staffProfile') }}"><i class="bi bi-person me-2"></i>My Profile</a></li>
-              <li><hr class="dropdown-divider"></li>
+              @if (session('account_type') === 'staff')
+                <li><a class="dropdown-item small" href="{{ route('staffProfile') }}"><i class="bi bi-person me-2"></i>My Profile</a></li>
+                <li><hr class="dropdown-divider"></li>
+              @endif
               <li>
                 <form method="POST" action="{{ route('logout') }}" class="m-0">
                   @csrf
@@ -82,18 +84,7 @@
           </div>
         </div>
 
-        @if (session('success'))
-          <div class="alert alert-success py-2">{{ session('success') }}</div>
-        @endif
-        @if ($errors->any())
-          <div class="alert alert-danger">
-            <ul class="mb-0 ps-3">
-              @foreach ($errors->all() as $error)
-                <li>{{ $error }}</li>
-              @endforeach
-            </ul>
-          </div>
-        @endif
+        @include('partials.flash-toasts')
 
         <!-- LOGO -->
         <div class="card-soft mb-4">
@@ -175,7 +166,6 @@
                       <tr>
                         <th>Service</th>
                         <th>Description</th>
-                        <th>Price</th>
                         <th class="text-end">Actions</th>
                       </tr>
                     </thead>
@@ -184,7 +174,6 @@
                         <tr>
                           <td class="fw-semibold">{{ $service->ServiceName }}</td>
                           <td>{{ $service->Description ?: '—' }}</td>
-                          <td>{{ $service->Price !== null ? '₱' . number_format($service->Price, 2) : '—' }}</td>
                           <td class="text-end">
                             <button type="button" class="btn btn-pill btn-pill-edit me-1" data-bs-toggle="modal"
                               data-bs-target="#editServiceModal{{ $service->ServiceID }}"><i class="bi bi-pencil-square"></i> Edit</button>
@@ -195,7 +184,7 @@
                           </td>
                         </tr>
                       @empty
-                        <tr><td colspan="4" class="text-center text-muted-2 py-4">No services yet.</td></tr>
+                        <tr><td colspan="3" class="text-center text-muted-2 py-4">No services yet.</td></tr>
                       @endforelse
                     </tbody>
                   </table>
@@ -219,7 +208,6 @@
                       <tr>
                         <th>Service</th>
                         <th>Description</th>
-                        <th>Price</th>
                         <th class="text-end">Actions</th>
                       </tr>
                     </thead>
@@ -228,7 +216,6 @@
                         <tr>
                           <td class="fw-semibold">{{ $service->ServiceName }}</td>
                           <td>{{ $service->Description ?: '—' }}</td>
-                          <td>{{ $service->Price !== null ? '₱' . number_format($service->Price, 2) : '—' }}</td>
                           <td class="text-end">
                             <button type="button" class="btn btn-pill btn-pill-edit me-1" data-bs-toggle="modal"
                               data-bs-target="#editServiceModal{{ $service->ServiceID }}"><i class="bi bi-pencil-square"></i> Edit</button>
@@ -239,7 +226,7 @@
                           </td>
                         </tr>
                       @empty
-                        <tr><td colspan="4" class="text-center text-muted-2 py-4">No archived services.</td></tr>
+                        <tr><td colspan="3" class="text-center text-muted-2 py-4">No archived services.</td></tr>
                       @endforelse
                     </tbody>
                   </table>
@@ -562,11 +549,6 @@
               <label class="form-label">Description</label>
               <textarea name="description" class="form-control" rows="3" placeholder="Optional description"></textarea>
             </div>
-            <div class="mb-3">
-              <label class="form-label">Price</label>
-              <div class="input-icon"><i class="bi bi-cash"></i><input type="number" name="price" class="form-control"
-                  step="0.01" min="0" placeholder="0.00"></div>
-            </div>
           </div>
           <div class="modal-footer border-0 pt-0">
             <button type="button" class="btn btn-ghost" data-bs-dismiss="modal">Cancel</button>
@@ -600,11 +582,6 @@
               <div class="mb-3">
                 <label class="form-label">Description</label>
                 <textarea name="description" class="form-control" rows="3">{{ $service->Description }}</textarea>
-              </div>
-              <div class="mb-3">
-                <label class="form-label">Price</label>
-                <div class="input-icon"><i class="bi bi-cash"></i><input type="number" name="price" class="form-control"
-                    step="0.01" min="0" value="{{ $service->Price }}"></div>
               </div>
             </div>
             <div class="modal-footer border-0 pt-0">

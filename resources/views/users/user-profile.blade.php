@@ -114,18 +114,7 @@
     <!-- CONTENT -->
     <div class="content-wrap">
 
-        @if (session('profile_updated'))
-            <div class="alert alert-success">Your profile has been updated.</div>
-        @endif
-        @if ($errors->any())
-            <div class="alert alert-danger">
-                <ul class="mb-0 ps-3">
-                    @foreach ($errors->all() as $error)
-                        <li>{{ $error }}</li>
-                    @endforeach
-                </ul>
-            </div>
-        @endif
+        @include('partials.flash-toasts', ['topOffset' => '100px'])
 
         <form method="POST" action="{{ route('userProfile.update') }}" enctype="multipart/form-data">
             @csrf

@@ -129,13 +129,11 @@ class ConfigurationController extends Controller
         $data = $request->validate([
             'service_name' => 'required|string|max:150',
             'description' => 'nullable|string|max:1000',
-            'price' => 'nullable|numeric|min:0',
         ]);
 
         Service::create([
             'ServiceName' => $data['service_name'],
             'Description' => $data['description'] ?? null,
-            'Price' => $data['price'] ?? null,
             'IsArchived' => false,
         ]);
 
@@ -153,14 +151,12 @@ class ConfigurationController extends Controller
         $data = $request->validate([
             'service_name' => 'required|string|max:150',
             'description' => 'nullable|string|max:1000',
-            'price' => 'nullable|numeric|min:0',
         ]);
 
         $service = Service::findOrFail($id);
         $service->update([
             'ServiceName' => $data['service_name'],
             'Description' => $data['description'] ?? null,
-            'Price' => $data['price'] ?? null,
         ]);
 
         $this->auditLog->log('Edit', "Edited service: {$data['service_name']}.");

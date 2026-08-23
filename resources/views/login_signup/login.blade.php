@@ -63,16 +63,7 @@
             <p class="auth-subtitle mb-0">Sign in to your Dental Clinic account</p>
           </div>
 
-          @if (session('registered'))
-            <div class="alert alert-success py-2 small">Account successfully created! You can now log in.</div>
-          @endif
-          @if (session('password_reset'))
-            <div class="alert alert-success py-2 small">Password reset successful! You can now log in with your new
-              password.</div>
-          @endif
-          @if (session('login_error'))
-            <div class="alert alert-danger py-2 small">{{ session('login_error') }}</div>
-          @endif
+          @include('partials.flash-toasts', ['topOffset' => '20px'])
 
           <form method="POST" action="{{ route('login.store') }}">
             @csrf

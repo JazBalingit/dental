@@ -1,0 +1,228 @@
+<?php
+// Place in: app/Http/Controllers/WalkInController.php
+
+namespace App\Http\Controllers;
+
+use App\Http\Controllers\Concerns\BuildsBookingCalendar;
+use App\Models\Appointment;
+use App\Models\DentistSchedule;
+use App\Models\PatientInfo;
+use App\Models\Service;
+use App\Models\UserAccount;
+use App\Services\AuditLogService;
+use App\Services\NotificationService;
+use Carbon\Carbon;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Str;
+
+class WalkInController extends Controller
+{
+    use BuildsBookingCalendar;
+
+    public function __construct(protected NotificationService $notifications, protected AuditLogService $auditLog)
+    {
+    }
+
+    protected function guard()
+    {
+        if (!session('user_id') || !in_array(session('user_role'), ['admin', 'staff'], true)) {
+            return redirect()->route('login')->with('login_error', 'Please log in to continue.');
+        }
+
+        return null;
+    }
+
+    public function index(Request $request)
+    {
+        if ($redirect = $this->guard()) {
+            return $redirect;
+        }
+
+        return view('superAdmin.walk-in', $this->calendarData($request));
+    }
+
+    /**
+     * Read-only patient lookup used by Step 1's "Load Patient" search —
+     * the app's only AJAX endpoint, kept deliberately small and scoped
+     * so the wizard doesn't have to reload the page (which would lose
+     * whatever the receptionist already typed).
+     */
+    public function searchPatient(Request $request)
+    {
+        if ($redirect = $this->guard()) {
+            return response()->json(['message' => 'Unauthorized'], 401);
+        }
+
+        $q = trim((string) $request->query('q', ''));
+
+        if ($q === '') {
+            return response()->json([]);
+        }
+
+        $patients = PatientInfo::with('userAccount')
+            ->where(function ($query) use ($q) {
+                $query->where('FirstName', 'like', "%{$q}%")
+                    ->orWhere('LastName', 'like', "%{$q}%")
+                    ->orWhereRaw("CONCAT(FirstName, ' ', LastName) LIKE ?", ["%{$q}%"]);
+
+                if (is_numeric($q)) {
+                    $query->orWhere('PatientID', (int) $q);
+                }
+            })
+            ->orderBy('LastName')
+            ->limit(10)
+            ->get();
+
+        return response()->json($patients->map(fn ($p) => [
+            'PatientID' => $p->PatientID,
+            'FirstName' => $p->FirstName,
+            'LastName' => $p->LastName,
+            'MiddleName' => $p->MiddleName,
+            'DateOfBirth' => optional($p->DateOfBirth)->format('Y-m-d'),
+            'Age' => optional($p->DateOfBirth)->age,
+            'Gender' => $p->Gender,
+            'Address' => $p->Address,
+            'PhoneNumber' => $p->PhoneNumber,
+            'Email' => $p->userAccount->Email ?? null,
+        ]));
+    }
+
+    public function store(Request $request)
+    {
+        if ($redirect = $this->guard()) {
+            return $redirect;
+        }
+
+        $data = $request->validate([
+            'patient_source' => 'required|in:existing,new',
+            'patient_id' => 'required_if:patient_source,existing|nullable|integer|exists:tbl_patientInfo,PatientID',
+            'last_name' => 'required_if:patient_source,new|nullable|string|max:100',
+            'first_name' => 'required_if:patient_source,new|nullable|string|max:100',
+            'middle_name' => 'nullable|string|max:100',
+            'birthdate' => 'required_if:patient_source,new|nullable|date|before:today',
+            'gender' => 'required_if:patient_source,new|nullable|string',
+            'address' => 'required_if:patient_source,new|nullable|string|max:255',
+            'email' => 'nullable|email|unique:tbl_useraccount,Email',
+            'phone' => 'required_if:patient_source,new|nullable|string|max:20',
+            'service_id' => 'required|exists:tbl_services,ServiceID',
+            'date' => 'required|date',
+            'time' => 'required|string',
+        ]);
+
+        $date = Carbon::parse($data['date']);
+
+        if ($date->isSunday() || $date->lt(today())) {
+            return back()->withInput()->with('error', 'That date is not available for booking.');
+        }
+
+        $user = null;
+        $patientInfo = null;
+        $isNewPatient = false;
+        $hasEmail = false;
+
+        try {
+            DB::beginTransaction();
+
+            if ($data['patient_source'] === 'existing') {
+                $patientInfo = PatientInfo::with('userAccount')->findOrFail($data['patient_id']);
+                $user = $patientInfo->userAccount;
+            } else {
+                $hasEmail = filled($data['email'] ?? null);
+                $email = $hasEmail ? $data['email'] : 'walkin_' . Str::uuid() . '@placeholder.local';
+
+                $user = UserAccount::create([
+                    'Email' => $email,
+                    'Password' => Hash::make(Str::random(40)),
+                    'AccountRole' => 'patient',
+                    'DateCreated' => now(),
+                ]);
+
+                $patientInfo = PatientInfo::create([
+                    'UserID' => $user->UserID,
+                    'LastName' => $data['last_name'],
+                    'FirstName' => $data['first_name'],
+                    'MiddleName' => $data['middle_name'] ?? null,
+                    'PhoneNumber' => $data['phone'],
+                    'DateOfBirth' => $data['birthdate'],
+                    'Age' => Carbon::parse($data['birthdate'])->age,
+                    'Gender' => $data['gender'],
+                    'Address' => $data['address'],
+                    'Nationality' => 'Filipino',
+                ]);
+
+                $isNewPatient = true;
+            }
+
+            // Race-condition guard, identical pattern to AppointmentBookingController::store().
+            $schedule = DentistSchedule::firstOrCreate(
+                ['Date' => $data['date'], 'Time' => $data['time']],
+                ['Status' => 'Available']
+            );
+
+            if ($schedule->Status !== 'Available') {
+                throw new \RuntimeException('Sorry, that slot was just taken. Please pick another time.');
+            }
+
+            $schedule->Status = 'Not Available';
+            $schedule->save();
+
+            $service = Service::find($data['service_id']);
+
+            $appointment = Appointment::create([
+                'PatientID' => $patientInfo->PatientID,
+                'ScheduleID' => $schedule->ScheduleID,
+                'ServiceID' => $data['service_id'],
+                'AppointmentDate' => $data['date'],
+                'AppointmentTime' => $data['time'],
+                'TypeOfAppointment' => $service->ServiceName ?? null,
+                'Source' => 'Walk-in',
+                'Status' => 'Pending',
+            ]);
+
+            DB::commit();
+        } catch (\Throwable $e) {
+            DB::rollBack();
+
+            return back()->withInput()->with('error', $e->getMessage() ?: 'Could not create the walk-in appointment.');
+        }
+
+        $timeLabel = Carbon::createFromFormat('H:i', $data['time'])->format('g:i A');
+        $dateLabel = $date->format('F j, Y');
+        $patientName = trim($patientInfo->FirstName . ' ' . $patientInfo->LastName);
+
+        if ($user) {
+            $this->notifications->notifyUser(
+                $user,
+                'Walk-in Appointment Recorded',
+                "A walk-in appointment for {$appointment->TypeOfAppointment} was recorded on {$dateLabel} at {$timeLabel}.",
+                'info',
+                $appointment->AppointmentID,
+                'Pending',
+                null,
+                $isNewPatient ? $hasEmail : true
+            );
+        }
+
+        $this->notifications->notifyAdmins(
+            'New Walk-in Appointment',
+            "{$patientName} was walked in for {$appointment->TypeOfAppointment}.",
+            'info',
+            $appointment->AppointmentID,
+            'Pending'
+        );
+
+        $performer = UserAccount::with('staffInfo')->find(session('user_id'));
+        $performerName = $performer?->staffInfo
+            ? trim($performer->staffInfo->FirstName . ' ' . $performer->staffInfo->LastName)
+            : ($performer->Email ?? 'Staff');
+
+        $this->auditLog->log(
+            'Create',
+            "{$performerName} recorded a walk-in appointment for {$patientName} (" . ($isNewPatient ? 'new patient' : "Patient ID {$patientInfo->PatientID}") . ") — {$dateLabel} at {$timeLabel}."
+        );
+
+        return redirect()->route('appointmentApproval')->with('success', "Walk-in appointment recorded for {$patientName} — {$dateLabel} at {$timeLabel}. It's now pending approval.");
+    }
+}

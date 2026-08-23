@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Appointment;
 use App\Models\DentistSchedule;
+use App\Services\AppointmentExpiryService;
 use App\Services\AuditLogService;
 use App\Services\NotificationService;
 use Carbon\Carbon;
@@ -12,8 +13,11 @@ use Illuminate\Http\Request;
 
 class AppointmentApprovalController extends Controller
 {
-    public function __construct(protected NotificationService $notifications, protected AuditLogService $auditLog)
-    {
+    public function __construct(
+        protected NotificationService $notifications,
+        protected AuditLogService $auditLog,
+        protected AppointmentExpiryService $appointmentExpiry
+    ) {
     }
 
     // Same ordered slot list used by the Dentist Schedule calendar —
@@ -35,6 +39,8 @@ class AppointmentApprovalController extends Controller
         if ($redirect = $this->guard()) {
             return $redirect;
         }
+
+        $this->appointmentExpiry->expireStalePending();
 
         $status = $request->query('status');
         $search = $request->query('search');

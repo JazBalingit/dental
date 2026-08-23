@@ -116,21 +116,7 @@
     <!-- CONTENT -->
     <div class="content-wrap">
 
-        @if (session('password_updated'))
-            <div class="alert alert-success">Your password has been updated.</div>
-        @endif
-        @if (session('password_error'))
-            <div class="alert alert-danger">{{ session('password_error') }}</div>
-        @endif
-        @if ($errors->any())
-            <div class="alert alert-danger">
-                <ul class="mb-0 ps-3">
-                    @foreach ($errors->all() as $error)
-                        <li>{{ $error }}</li>
-                    @endforeach
-                </ul>
-            </div>
-        @endif
+        @include('partials.flash-toasts', ['topOffset' => '100px'])
 
         <!-- Tips -->
         <div class="tip-box">

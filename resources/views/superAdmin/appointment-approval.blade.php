@@ -65,8 +65,10 @@
                             <i class="bi bi-chevron-down ms-1 text-muted-2"></i>
                         </button>
                         <ul class="dropdown-menu dropdown-menu-end shadow-sm">
-                            <li><a class="dropdown-item small" href="{{ route('staffProfile') }}"><i class="bi bi-person me-2"></i>My Profile</a></li>
-                            <li><hr class="dropdown-divider"></li>
+                            @if (session('account_type') === 'staff')
+                                <li><a class="dropdown-item small" href="{{ route('staffProfile') }}"><i class="bi bi-person me-2"></i>My Profile</a></li>
+                                <li><hr class="dropdown-divider"></li>
+                            @endif
                             <li>
                                 <form method="POST" action="{{ route('logout') }}" class="m-0">
                                     @csrf
@@ -86,18 +88,7 @@
                     </div>
                 </div>
 
-                @if (session('success'))
-                    <div class="alert alert-success">{{ session('success') }}</div>
-                @endif
-                @if ($errors->any())
-                    <div class="alert alert-danger">
-                        <ul class="mb-0 ps-3">
-                            @foreach ($errors->all() as $error)
-                                <li>{{ $error }}</li>
-                            @endforeach
-                        </ul>
-                    </div>
-                @endif
+                @include('partials.flash-toasts')
 
                 <!-- mini stats -->
                 <div class="row g-3 mb-3">
@@ -296,8 +287,8 @@
                             </div>
                             <div class="col-md-6">
                                 <label class="form-label">Age</label>
-                                <div class="input-icon"><i class="bi bi-calendar3"></i><input type="number"
-                                        class="form-control" value="{{ $p->Age }}" disabled /></div>
+                                <div class="input-icon"><i class="bi bi-calendar3"></i><input type="text"
+                                        class="form-control" value="{{ optional($p->DateOfBirth)->age }}" disabled /></div>
                             </div>
 
                             <div class="col-md-6">

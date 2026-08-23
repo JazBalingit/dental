@@ -63,15 +63,7 @@
             <p class="auth-subtitle mb-0">Join the Dental Clinic patient portal</p>
           </div>
 
-          @if ($errors->any())
-            <div class="alert alert-danger">
-              <ul class="mb-0 ps-3">
-                @foreach ($errors->all() as $error)
-                  <li>{{ $error }}</li>
-                @endforeach
-              </ul>
-            </div>
-          @endif
+          @include('partials.flash-toasts', ['topOffset' => '20px'])
 
           <form method="POST" action="{{ route('register.store') }}">
             @csrf

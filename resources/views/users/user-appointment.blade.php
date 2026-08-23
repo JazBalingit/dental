@@ -116,7 +116,7 @@
     <!-- CONTENT -->
     <div class="content-wrap">
 
-        @if (session('success'))<div class="alert alert-success">{{ session('success') }}</div>@endif
+        @include('partials.flash-toasts', ['topOffset' => '100px'])
         <!-- Stats -->
         <div class="stats-row">
             <div class="stat-box">

@@ -5,14 +5,18 @@ namespace App\Http\Controllers;
 use App\Models\Appointment;
 use App\Models\DentistSchedule;
 use App\Models\PatientRecord;
+use App\Services\AppointmentExpiryService;
 use App\Services\AuditLogService;
 use App\Services\NotificationService;
 use Illuminate\Http\Request;
 
 class AppointmentsController extends Controller
 {
-    public function __construct(protected NotificationService $notifications, protected AuditLogService $auditLog)
-    {
+    public function __construct(
+        protected NotificationService $notifications,
+        protected AuditLogService $auditLog,
+        protected AppointmentExpiryService $appointmentExpiry
+    ) {
     }
 
     protected array $slotOrder = ['09:00', '10:00', '11:00', '13:00', '14:00', '15:00', '16:00', '17:00', '18:00'];
@@ -31,6 +35,8 @@ class AppointmentsController extends Controller
         if ($redirect = $this->guard()) {
             return $redirect;
         }
+
+        $this->appointmentExpiry->expireStalePending();
 
         $status = $request->query('status');
         $search = $request->query('search');

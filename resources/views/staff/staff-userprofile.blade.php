@@ -86,24 +86,7 @@
                     </div>
                 </div>
 
-                @if (session('success'))
-                    <div class="alert alert-success">{{ session('success') }}</div>
-                @endif
-                @if (session('error'))
-                    <div class="alert alert-danger">{{ session('error') }}</div>
-                @endif
-                @if (session('verify_sent'))
-                    <div class="alert alert-success">Verification code sent! Check your inbox (and spam folder).</div>
-                @endif
-                @if ($errors->any())
-                    <div class="alert alert-danger">
-                        <ul class="mb-0 ps-3">
-                            @foreach ($errors->all() as $error)
-                                <li>{{ $error }}</li>
-                            @endforeach
-                        </ul>
-                    </div>
-                @endif
+                @include('partials.flash-toasts')
 
                 <!-- Account Information -->
                 <div class="card-soft p-3 p-md-4 mb-3">
@@ -158,7 +141,7 @@
                         </div>
                         <div class="col-md-6">
                             <label class="form-label">Age</label>
-                            <div class="input-icon"><i class="bi bi-calendar3"></i><input type="text" class="form-control" value="{{ $si->Age ?? '' }}" disabled></div>
+                            <div class="input-icon"><i class="bi bi-calendar3"></i><input type="text" class="form-control" value="{{ optional($si->DateOfBirth ?? null)->age ?? '' }}" disabled></div>
                         </div>
                         <div class="col-md-6">
                             <label class="form-label">Gender</label>

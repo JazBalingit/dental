@@ -18,6 +18,8 @@ use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\AppointmentsController;
 use App\Http\Controllers\PatientRecordsController;
 use App\Http\Controllers\ConfigurationController;
+use App\Http\Controllers\WalkInController;
+use App\Http\Controllers\ReportController;
 
 Route::get('/', function () {
     return view('welcome');
@@ -31,7 +33,10 @@ Route::get('signup', [AuthController::class, 'showSignup'])->name('signup');
 Route::get('dashboard', [AdminController::class, 'showDashboard'])->name('dashboard');
 Route::get('staff-accounts', [AdminController::class, 'showStaffAcc'])->name('staffAcc');
 Route::get('dentist-schedule', [AdminController::class, 'showDentistSchedule'])->name('dentistSchedule');
-Route::get('walk-in', [AdminController::class, 'showWalkIn'])->name('walkIn');
+Route::get('/reports/generate', [ReportController::class, 'generate'])->name('reports.generate');
+Route::get('walk-in', [WalkInController::class, 'index'])->name('walkIn');
+Route::get('/walk-in/search-patient', [WalkInController::class, 'searchPatient'])->name('walkIn.search');
+Route::post('/walk-in', [WalkInController::class, 'store'])->name('walkIn.store');
 
 // show all user side front end
 Route::get('landing-page', [UserController::class, 'showLandingPage'])->name('landingPage');

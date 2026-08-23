@@ -63,8 +63,10 @@
                             <i class="bi bi-chevron-down ms-1 text-muted-2"></i>
                         </button>
                         <ul class="dropdown-menu dropdown-menu-end shadow-sm">
-                            <li><a class="dropdown-item small" href="{{ route('staffProfile') }}"><i class="bi bi-person me-2"></i>My Profile</a></li>
-                            <li><hr class="dropdown-divider"></li>
+                            @if (session('account_type') === 'staff')
+                                <li><a class="dropdown-item small" href="{{ route('staffProfile') }}"><i class="bi bi-person me-2"></i>My Profile</a></li>
+                                <li><hr class="dropdown-divider"></li>
+                            @endif
                             <li>
                                 <form method="POST" action="{{ route('logout') }}" class="m-0">
                                     @csrf
@@ -84,12 +86,7 @@
                     </div>
                 </div>
 
-                <!-- @if (session('success'))
-                    <div class="alert alert-success py-2">{{ session('success') }}</div>
-                @endif
-                @if (session('error'))
-                    <div class="alert alert-danger py-2">{{ session('error') }}</div>
-                @endif -->
+                @include('partials.flash-toasts')
 
                 {{-- ===================== MONTH VIEW ===================== --}}
                 <div class="schedule-wrap">

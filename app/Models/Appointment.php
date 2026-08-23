@@ -17,6 +17,7 @@ class Appointment extends Model
         'AppointmentDate',
         'AppointmentTime',
         'TypeOfAppointment',
+        'Source',
         'Status',
         'DurationHours',
         'DeclineReason',

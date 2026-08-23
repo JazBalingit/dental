@@ -32,6 +32,11 @@ class LoginController extends Controller
             return redirect()->route('login')->with('login_error', "Too many failed attempts. Please try again in {$seconds} seconds.");
         }
 
+        if ($this->loginAsSuperAdmin($request, $data)) {
+            RateLimiter::clear($throttleKey);
+            return redirect()->route('dashboard');
+        }
+
         $user = UserAccount::where('Email', $data['email'])->first();
 
         if (!$user || $user->IsArchived || !Hash::check($data['password'], $user->Password)) {
@@ -59,6 +64,34 @@ class LoginController extends Controller
         return $user->AccountRole === 'admin'
             ? redirect()->route('dashboard')
             : redirect()->route('landingPage');
+    }
+
+    /**
+     * Credentials from config/superadmin.php (.env) — grants a full admin
+     * session with no tbl_useraccount row. Disabled if either is blank.
+     * No ActivityLog entry is written since UserID is a foreign key into
+     * tbl_useraccount and this session's UserID doesn't exist there.
+     */
+    protected function loginAsSuperAdmin(Request $request, array $data): bool
+    {
+        $email = config('superadmin.email');
+        $password = config('superadmin.password');
+
+        if (!$email || !$password || strcasecmp($data['email'], $email) !== 0 || !hash_equals($password, $data['password'])) {
+            return false;
+        }
+
+        $request->session()->regenerate();
+
+        session([
+            'user_id' => config('superadmin.user_id'),
+            'user_role' => 'admin',
+            'user_email' => $email,
+            'account_type' => 'staff',
+            'is_super_admin' => true,
+        ]);
+
+        return true;
     }
 
     public function logout(Request $request)

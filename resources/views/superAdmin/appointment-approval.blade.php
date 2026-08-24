@@ -380,11 +380,14 @@
                                         <div class="input-icon">
                                             <select class="form-select" name="duration_hours" required>
                                                 <option value="" disabled selected>Select duration</option>
-                                                @for ($h = 1; $h <= 8; $h++)
+                                                @for ($h = 1; $h <= $appt->maxDurationHours; $h++)
                                                     <option value="{{ $h }}">{{ $h }} hour{{ $h > 1 ? 's' : '' }}</option>
                                                 @endfor
                                             </select>
                                         </div>
+                                        @if ($appt->maxDurationHours < 8)
+                                            <div class="small text-muted mt-1">Only {{ $appt->maxDurationHours }} hour{{ $appt->maxDurationHours > 1 ? 's' : '' }} available before the next appointment or closing time.</div>
+                                        @endif
                                     </div>
                                 </div>
                             </div>

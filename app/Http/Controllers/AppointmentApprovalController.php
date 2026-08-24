@@ -65,6 +65,13 @@ class AppointmentApprovalController extends Controller
 
         $appointments = $query->paginate(10)->withQueryString();
 
+        // Pending rows get a duration cap so admins can't approve a longer
+        // block than the day actually has room for — see maxDurationForAppointment().
+        $appointments->getCollection()->transform(function ($appt) {
+            $appt->maxDurationHours = $appt->Status === 'Pending' ? $this->maxDurationForAppointment($appt) : null;
+            return $appt;
+        });
+
         $today = now()->format('Y-m-d');
 
         $stats = [
@@ -94,15 +101,20 @@ class AppointmentApprovalController extends Controller
 
         $appointment = Appointment::with(['patientInfo.userAccount'])->findOrFail($id);
 
+        // Re-check against the current state of the day (not just what the
+        // admin's page had loaded) so a stale value can't overlap a slot
+        // another appointment has since claimed.
+        $durationHours = min((int) $data['duration_hours'], $this->maxDurationForAppointment($appointment));
+
         $appointment->Status = 'Approved';
-        $appointment->DurationHours = $data['duration_hours'];
+        $appointment->DurationHours = $durationHours;
         $appointment->ApprovedAt = now();
         $appointment->save();
 
         $this->blockSubsequentSlots(
             $appointment->AppointmentDate->format('Y-m-d'),
             $appointment->AppointmentTime,
-            (int) $data['duration_hours']
+            $durationHours
         );
 
         $this->notifyPatient($appointment, 'Appointment Approved', 'Your appointment has been approved.', 'success');
@@ -147,6 +159,33 @@ class AppointmentApprovalController extends Controller
         $this->auditLog->log('Decline', "Declined {$patientName}'s appointment. Reason: {$data['reason']}");
 
         return redirect()->route('appointmentApproval')->with('success', 'Appointment declined.');
+    }
+
+    /**
+     * How many consecutive hours this appointment may be approved for —
+     * capped by the clinic closing at 6:00 PM and by whichever other
+     * Pending/Approved appointment starts next that same day, whichever
+     * leaves less room. Never above the 8-hour ceiling the dropdown allows.
+     */
+    protected function maxDurationForAppointment(Appointment $appointment): int
+    {
+        $closingHour = 18; // 6:00 PM
+        $adminDurationCap = 8;
+        $startHour = (int) substr($appointment->AppointmentTime, 0, 2);
+        $maxByClosing = max(1, $closingHour - $startHour);
+
+        $nextHour = Appointment::whereDate('AppointmentDate', $appointment->AppointmentDate)
+            ->whereIn('Status', ['Pending', 'Approved'])
+            ->whereKeyNot($appointment->AppointmentID)
+            ->get()
+            ->map(fn ($a) => (int) substr($a->AppointmentTime, 0, 2))
+            ->filter(fn ($h) => $h > $startHour)
+            ->sort()
+            ->first();
+
+        $maxByNextAppointment = $nextHour !== null ? max(1, $nextHour - $startHour) : $adminDurationCap;
+
+        return min($maxByClosing, $maxByNextAppointment, $adminDurationCap);
     }
 
     /**

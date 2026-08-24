@@ -16,6 +16,7 @@ class AdminNotificationComposer
             $view->with([
                 'adminNotifications' => collect(),
                 'adminUnreadCount' => 0,
+                'adminLatestNotifications' => collect(),
                 'adminAllNotifications' => collect(),
                 'adminNotifDate' => null,
             ]);
@@ -31,6 +32,8 @@ class AdminNotificationComposer
         $view->with([
             'adminNotifications' => (clone $base)->orderByDesc('created_at')->limit(8)->get(),
             'adminUnreadCount' => (clone $base)->where('IsRead', false)->count(),
+            // "Latest" tab in the all-notifications modal — the 10 most recent, no filter.
+            'adminLatestNotifications' => (clone $base)->orderByDesc('created_at')->limit(10)->get(),
             'adminAllNotifications' => (clone $base)
                 ->when($notifDate, fn ($q) => $q->whereDate('created_at', $notifDate))
                 ->orderByDesc('created_at')

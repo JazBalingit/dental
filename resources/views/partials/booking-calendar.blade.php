@@ -72,9 +72,12 @@
                         $takenSlots = collect($bookSlots)->filter(function ($label, $time) use ($daySlots, $dateStr, $bookOccupiedSlots) {
                             return isset($bookOccupiedSlots[$dateStr . '_' . $time]) || (($daySlots[$time]->Status ?? 'Available') === 'Not Available');
                         });
+                        // Every slot that day is either held by an appointment or manually
+                        // disabled by the dentist — treat the whole day as closed, same as Sunday.
+                        $isFullyClosed = $takenSlots->count() === count($bookSlots);
                     @endphp
 
-                    @if ($inMonth && !$isSunday)
+                    @if ($inMonth && !$isSunday && !$isFullyClosed)
                         <button type="button"
                             class="day-cell border-0 text-start p-0 w-100 d-block {{ $dateStr === $bookToday ? 'today' : '' }}"
                             data-bs-toggle="modal" data-bs-target="#bookDay{{ $d->format('Ymd') }}{{ $calendarMode === 'select' ? 'Wi' : '' }}">
@@ -84,14 +87,26 @@
                                     $apptKey = $dateStr . '_' . $time;
                                     $apptForSlot = $bookOccupiedSlots[$apptKey] ?? null;
                                     $isMine = $apptForSlot && $apptForSlot->PatientID === $bookCurrentPatientId;
-                                    $label = $isMine ? ($apptForSlot->Status === 'Approved' ? 'Booked by you' : 'Appointment Pending') : ($apptForSlot && $apptForSlot->Status === 'Approved' ? 'Booked' : 'Appointment Pending for other patient');
+                                    if ($apptForSlot && $apptForSlot->Status === 'Completed') {
+                                        $label = 'Completed';
+                                        $evClass = 'ev-completed';
+                                    } elseif ($isMine) {
+                                        $label = $apptForSlot->Status === 'Approved' ? 'Booked by you' : 'Appointment Pending';
+                                        $evClass = $apptForSlot->Status === 'Approved' ? 'ev-booked' : 'ev-pending';
+                                    } elseif ($apptForSlot) {
+                                        $label = $apptForSlot->Status === 'Approved' ? 'Booked' : 'Appointment Pending for other patient';
+                                        $evClass = $apptForSlot->Status === 'Approved' ? 'ev-booked' : 'ev-pending';
+                                    } else {
+                                        $label = 'Not available';
+                                        $evClass = 'ev-unavailable';
+                                    }
                                 @endphp
                                 <span
-                                    class="ev {{ $label === 'Booked' ? 'ev-unavailable' : 'ev-pending' }}">{{ \Carbon\Carbon::createFromFormat('H:i', $time)->format('g:i A') }}
+                                    class="ev {{ $evClass }}">{{ \Carbon\Carbon::createFromFormat('H:i', $time)->format('g:i A') }}
                                     · {{ $label }}</span>
                             @endforeach
                         </button>
-                    @elseif ($inMonth && $isSunday)
+                    @elseif ($inMonth && ($isSunday || $isFullyClosed))
                         <button type="button" class="day-cell day-off border-0 text-start p-0 w-100 d-block" disabled>
                             <div class="n" style="margin-left: 8px;">{{ $d->day }}</div>
                             <span class="ev ev-unavailable">Closed</span>
@@ -153,7 +168,20 @@
                                         $isAvailable = !$apptForSlot && (!$row || $row->Status === 'Available');
                                         $isMine = $apptForSlot && $apptForSlot->PatientID === $bookCurrentPatientId;
                                         $isStartSlot = $apptForSlot && $apptForSlot->AppointmentTime === $time;
-                                        $statusLabel = $isMine ? ($apptForSlot->Status === 'Approved' ? 'Booked by you' : 'Appointment Pending') : ($apptForSlot && $apptForSlot->Status === 'Approved' ? 'Booked by another patient' : 'Appointment Pending for other patient');
+
+                                        if ($apptForSlot && $apptForSlot->Status === 'Completed') {
+                                            $statusLabel = 'Completed';
+                                            $statusClass = 'booking-status-completed';
+                                        } elseif ($isMine) {
+                                            $statusLabel = $apptForSlot->Status === 'Approved' ? 'Booked by you' : 'Appointment Pending';
+                                            $statusClass = $apptForSlot->Status === 'Approved' ? 'booking-status-booked' : 'booking-status-pending';
+                                        } elseif ($apptForSlot) {
+                                            $statusLabel = $apptForSlot->Status === 'Approved' ? 'Booked by another patient' : 'Appointment Pending for other patient';
+                                            $statusClass = $apptForSlot->Status === 'Approved' ? 'booking-status-booked' : 'booking-status-pending';
+                                        } else {
+                                            $statusLabel = 'This schedule is not available';
+                                            $statusClass = 'booking-status-unavailable';
+                                        }
                                     @endphp
 
                                     <div class="time">{{ $label }}</div>
@@ -200,12 +228,18 @@
                                                 <a href="{{ route('login') }}" class="slot-btn is-available text-center">Log in to book this slot</a>
                                             @endif
                                         @else
-                                            <div class="slot-btn booking-status {{ $apptForSlot && $apptForSlot->Status === 'Approved' ? 'booking-status-booked' : 'booking-status-pending' }} text-center">
+                                            <div class="slot-btn booking-status {{ $statusClass }} text-center">
                                                 <div>{{ $statusLabel }}@if($isMine && $apptForSlot->Status === 'Approved') · {{ $apptForSlot->service?->ServiceName ?? $apptForSlot->TypeOfAppointment }} · {{ $apptForSlot->DurationHours ?? 1 }} hour(s)@endif</div>
-                                                @if($calendarMode === 'post' && $isMine && $isStartSlot)
+                                                @if($calendarMode === 'post' && $isMine && $isStartSlot && $apptForSlot->Status !== 'Completed')
                                                     <div class="d-flex justify-content-center gap-2 mt-2">
-                                                        <form method="POST" action="{{ route('userAppointment.remove', $apptForSlot) }}">@csrf<input type="hidden" name="action" value="reschedule"><button class="btn btn-sm text-white" style="background: var(--brand-700); border-color: var(--brand-700);">Reschedule</button></form>
-                                                        <form method="POST" action="{{ route('userAppointment.remove', $apptForSlot) }}">@csrf<input type="hidden" name="action" value="cancel"><button class="btn btn-sm btn-outline-danger">Cancel</button></form>
+                                                        <button type="button" class="btn btn-sm text-white" style="background: var(--brand-700); border-color: var(--brand-700);"
+                                                            data-bs-toggle="modal" data-bs-target="#landingRescheduleModal"
+                                                            data-remove-url="{{ route('userAppointment.remove', $apptForSlot) }}">Reschedule</button>
+                                                        <button type="button" class="btn btn-sm btn-outline-danger"
+                                                            data-bs-toggle="modal" data-bs-target="#landingCancelModal"
+                                                            data-remove-url="{{ route('userAppointment.remove', $apptForSlot) }}"
+                                                            data-appt-date="{{ $d->format('M j') }}"
+                                                            data-appt-service="{{ $apptForSlot->service->ServiceName ?? $apptForSlot->TypeOfAppointment }}">Cancel</button>
                                                     </div>
                                                 @endif
                                             </div>

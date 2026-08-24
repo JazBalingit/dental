@@ -148,8 +148,22 @@
                                         <div class="n" style="margin-left: 8px;">{{ $d->day }}</div>
                                         <span class="{{ $countClass }}">{{ $availableCount }}</span>
                                         @foreach ($lockedTimes->take(3) as $time => $label)
-                                            @php $slotAppointment = $occupiedSlots[$dateStr . '_' . $time] ?? null; @endphp
-                                            <span class="ev ev-unavailable">{{ \Carbon\Carbon::createFromFormat('H:i', $time)->format('g:i A') }}{{ $slotAppointment ? ' · ' . ($slotAppointment->Status === 'Approved' ? 'Booked' : 'Pending') : '' }}</span>
+                                            @php
+                                                $slotAppointment = $occupiedSlots[$dateStr . '_' . $time] ?? null;
+                                                $evLabel = match (true) {
+                                                    $slotAppointment && $slotAppointment->Status === 'Completed' => 'Completed',
+                                                    $slotAppointment && $slotAppointment->Status === 'Approved' => 'Booked',
+                                                    $slotAppointment !== null => 'Pending',
+                                                    default => 'Not available',
+                                                };
+                                                $evClass = match (true) {
+                                                    $slotAppointment && $slotAppointment->Status === 'Completed' => 'ev-completed',
+                                                    $slotAppointment && $slotAppointment->Status === 'Approved' => 'ev-booked',
+                                                    $slotAppointment !== null => 'ev-pending',
+                                                    default => 'ev-unavailable',
+                                                };
+                                            @endphp
+                                            <span class="ev {{ $evClass }}">{{ \Carbon\Carbon::createFromFormat('H:i', $time)->format('g:i A') }} · {{ $evLabel }}</span>
                                         @endforeach
                                     </button>
                                 @elseif ($inMonth && $isSunday)
@@ -194,6 +208,13 @@
                 $isPast = $d->lt(\Carbon\Carbon::parse($today));
             @endphp
 
+            @php
+                $slotTimesForDay = array_keys($slots);
+                $heldTimesForDay = collect($slotTimesForDay)->filter(fn ($t) => isset($occupiedSlots[$dateStr . '_' . $t]));
+                $editableTimesForDay = collect($slotTimesForDay)->diff($heldTimesForDay);
+                $dayFullyClosed = $editableTimesForDay->isNotEmpty()
+                    && $editableTimesForDay->every(fn ($t) => (($daySlots[$t]->Status ?? 'Available') === 'Not Available'));
+            @endphp
             <div class="modal fade" id="{{ $modalId }}" tabindex="-1" aria-hidden="true">
                 <div class="modal-dialog modal-dialog-centered modal-xl">
                     <div class="modal-content">
@@ -201,6 +222,19 @@
                             <div>
                                 <h5 class="modal-title fw-semibold">{{ $d->format('l, F j, Y') }}</h5>
                             </div>
+                            @if (!$isPast && $editableTimesForDay->isNotEmpty())
+                                <form method="POST" action="{{ route('dentistSchedule.toggleDay') }}"
+                                    class="d-flex align-items-center gap-2 m-0 ms-auto me-3">
+                                    @csrf
+                                    <input type="hidden" name="date" value="{{ $dateStr }}">
+                                    <input type="hidden" name="month" value="{{ $current->format('Y-m') }}">
+                                    <label class="form-check form-switch d-flex align-items-center gap-2 m-0" style="cursor:pointer;">
+                                        <input class="form-check-input" type="checkbox" role="switch" style="cursor:pointer;"
+                                            {{ !$dayFullyClosed ? 'checked' : '' }} onchange="this.closest('form').requestSubmit()">
+                                        <span class="small text-muted-2">{{ $dayFullyClosed ? 'Day closed' : 'Day open' }}</span>
+                                    </label>
+                                </form>
+                            @endif
                             <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                         </div>
 
@@ -215,16 +249,24 @@
                                             $row = $daySlots[$time] ?? null;
                                             $appointmentForSlot = $occupiedSlots[$dateStr . '_' . $time] ?? null;
                                             $isHeld = $appointmentForSlot !== null;
-                                            $status = $isHeld ? ($appointmentForSlot->Status === 'Approved' ? 'Booked' : 'Pending') : ($row->Status ?? 'Available');
+                                            $status = $isHeld
+                                                ? ($appointmentForSlot->Status === 'Completed' ? 'Completed' : ($appointmentForSlot->Status === 'Approved' ? 'Booked' : 'Pending'))
+                                                : ($row->Status ?? 'Available');
                                             $isUnavailable = $status === 'Not Available' || $isHeld;
                                             $patientName = $isHeld ? trim(($appointmentForSlot->patientInfo->FirstName ?? '') . ' ' . ($appointmentForSlot->patientInfo->LastName ?? '')) : '';
+                                            $heldClass = match ($status) {
+                                                'Booked' => 'is-booked',
+                                                'Pending' => 'is-pending',
+                                                'Completed' => 'is-completed',
+                                                default => 'is-unavailable',
+                                            };
                                         @endphp
                                         <div class="time">{{ $label }}</div>
                                         <div class="slot">
                                             @if ($isHeld)
-                                                <div class="slot-btn w-100 is-unavailable text-start px-3 py-2" title="Appointment slots cannot be edited">
+                                                <div class="slot-btn w-100 {{ $heldClass }} text-start px-3 py-2" title="Appointment slots cannot be edited">
                                                     <div class="fw-semibold">{{ $status }}</div>
-                                                    <small>{{ $status === 'Booked' ? 'Booked by:' : 'Pending:' }} {{ $patientName ?: 'Patient' }}</small>
+                                                    <small>{{ $status === 'Booked' ? 'Booked by:' : ($status === 'Completed' ? 'Patient:' : 'Pending:') }} {{ $patientName ?: 'Patient' }}</small>
                                                 </div>
                                             @else
                                                 <form method="POST" action="{{ route('dentistSchedule.toggle') }}" class="w-100">

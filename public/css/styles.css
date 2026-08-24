@@ -627,19 +627,9 @@ h6 {
 .chart-ph {
   height: 240px;
   border-radius: var(--radius-md);
-  background:
-    linear-gradient(180deg, rgba(33, 118, 13, 0.18), rgba(74, 163, 232, 0) 80%),
-    repeating-linear-gradient(90deg, transparent 0 49px, rgba(15, 23, 42, .05) 49px 50px);
+  background: #fbfdfb;
   position: relative;
   overflow: hidden;
-}
-
-.chart-ph::after {
-  content: "";
-  position: absolute;
-  inset: 0;
-  background:
-    linear-gradient(180deg, transparent 60%, rgba(26, 137, 47, 0.08) 100%);
 }
 
 .chart-ph svg {
@@ -2252,6 +2242,24 @@ h6 {
   background: #fbd7d7;
 }
 
+.slot-btn.is-booked {
+  background: #e8f9ec;
+  border-color: #1a7f37;
+  color: #1a7f37;
+}
+
+.slot-btn.is-pending {
+  background: #fff8e6;
+  border-color: #d4a017;
+  color: #8a6100;
+}
+
+.slot-btn.is-completed {
+  background: #eef2ff;
+  border-color: #6366f1;
+  color: #3730a3;
+}
+
 .slot-btn:disabled {
   opacity: .5;
   cursor: not-allowed;
@@ -2277,6 +2285,58 @@ h6 {
 
 /* the small time chips — now specifically shown for BLOCKED times */
 .day-cell .ev.ev-unavailable {
+  background: #fdecec;
+  color: #b02a37;
+  border: 1px solid #f3b7bb;
+}
+
+.day-cell .ev.ev-pending {
+  background: #fff8e6;
+  color: #8a6100;
+  border: 1px solid #f0d78c;
+}
+
+.day-cell .ev.ev-completed {
+  background: #eef2ff;
+  color: #3730a3;
+  border: 1px solid #c7d2fe;
+}
+
+.day-cell .ev.ev-booked {
+  background: #e8f9ec;
+  color: #1a7f37;
+  border: 1px solid #a7e8bb;
+}
+
+/* Walk-in booking calendar's day-modal slot cards (Booked / Pending /
+   Completed / manually-disabled), same palette as the .ev chips above. */
+.booking-status {
+  display: block;
+  width: 100%;
+  padding: .7rem 1rem;
+  border-radius: 8px;
+  font-weight: 700;
+}
+
+.booking-status-booked {
+  background: #e8f9ec;
+  color: #1a7f37;
+  border: 1px solid #a7e8bb;
+}
+
+.booking-status-pending {
+  background: #fff8e6;
+  color: #8a6100;
+  border: 1px solid #f0d78c;
+}
+
+.booking-status-completed {
+  background: #eef2ff;
+  color: #3730a3;
+  border: 1px solid #c7d2fe;
+}
+
+.booking-status-unavailable {
   background: #fdecec;
   color: #b02a37;
   border: 1px solid #f3b7bb;

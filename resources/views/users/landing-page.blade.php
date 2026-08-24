@@ -21,7 +21,7 @@
 <body data-bs-spy="scroll" data-bs-target="#navbarSupportedContent" data-bs-offset="90" tabindex="0">
   <!-- NAVBAR -->
   <nav class="navbar navbar-expand-lg navbar-light fixed-top mask-custom shadow-sm">
-    <div class="container">
+    <div class="container-fluid px-3 px-lg-5">
       <a class="navbar-brand d-flex align-items-center" href="#home">
         <img class="logo" src="/images/puspus_logo.png" alt="Pus-Pus Britanico logo">
         <span class="navt ms-1" style="color:#0f7a2d;">PUS-PUS</span>
@@ -46,16 +46,19 @@
             <div class="d-flex justify-content-between">
               @include('partials.user-notif-dropdown')
               @if (session('user_email'))
-                <div class="dropdown">
-                  <button class="nav-link navh d-flex align-items-center gap-2 border-0 bg-transparent dropdown-toggle"
-                    type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                <div class="dropdown d-flex align-items-center">
+                  <a href="{{ route('settings', ['tab' => 'profile']) }}"
+                    class="nav-link navh d-flex align-items-center gap-2" style="padding-right:8px;">
                     <i class="bi bi-person-circle"></i>
                     <span>{{ session('user_email') }}</span>
-                  </button>
+                  </a>
+                  <button class="nav-link navh border-0 bg-transparent dropdown-toggle"
+                    type="button" data-bs-toggle="dropdown" aria-expanded="false"
+                    aria-label="Account menu" style="padding-left:6px;padding-right:10px;margin-left:-4px;"></button>
                   <ul class="dropdown-menu dropdown-menu-end shadow-sm">
                     <li>
-                      <a class="dropdown-item small" href="{{ route('userProfile') }}">
-                        <i class="bi bi-person me-2"></i>User Profile
+                      <a class="dropdown-item small" href="{{ route('userAppointment') }}">
+                        <i class="bi bi-calendar-check me-2"></i>User Appointments
                       </a>
                     </li>
                     <li>
@@ -393,6 +396,54 @@
 
   @include('partials.user-notif-modal')
 
+  @if (session('user_id'))
+    <!-- RESCHEDULE CONFIRMATION MODAL -->
+    <div class="modal fade confirm-modal" id="landingRescheduleModal" tabindex="-1" aria-hidden="true">
+      <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title"><i class="fas fa-calendar-alt me-2" style="color:#0f7a33"></i>Reschedule Appointment</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+          </div>
+          <div class="modal-body p-4">
+            <p class="mb-0" style="font-size:14px;line-height:1.7">Rescheduling removes this appointment and releases its time. You can then choose a new available time from the booking calendar.</p>
+          </div>
+          <div class="modal-footer gap-2">
+            <button type="button" class="confirm-btn-sec" data-bs-dismiss="modal">Discard</button>
+            <form method="POST" id="landingRescheduleForm">
+              @csrf
+              <input type="hidden" name="action" value="reschedule">
+              <button class="confirm-btn-prim"><i class="fas fa-calendar-alt me-1"></i> Reschedule</button>
+            </form>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- CANCEL CONFIRMATION MODAL -->
+    <div class="modal fade confirm-modal" id="landingCancelModal" tabindex="-1" aria-hidden="true">
+      <div class="modal-dialog modal-dialog-centered modal-sm">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title"><i class="fas fa-exclamation-triangle me-2" style="color:#ef4444"></i>Cancel Appointment</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+          </div>
+          <div class="modal-body p-4">
+            <p style="font-size:14px;line-height:1.7">Are you sure you want to cancel your <strong id="landingCancelLabel" style="color:#0f4c7a"></strong> appointment? This cannot be undone.</p>
+          </div>
+          <div class="modal-footer gap-2">
+            <button type="button" class="confirm-btn-sec" data-bs-dismiss="modal">Keep It</button>
+            <form method="POST" id="landingCancelForm">
+              @csrf
+              <input type="hidden" name="action" value="cancel">
+              <button class="confirm-btn-prim" style="background:linear-gradient(135deg,#b91c1c,#ef4444);box-shadow:0 4px 12px rgba(239,68,68,0.3)"><i class="fas fa-times me-1"></i> Yes, Cancel</button>
+            </form>
+          </div>
+        </div>
+      </div>
+    </div>
+  @endif
+
   <div class="modal fade" id="modalOpenDay" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered modal-xl">
       <div class="modal-content">
@@ -499,6 +550,24 @@
     document.addEventListener('change', function (e) {
       if (e.target.matches('.book-slot-service')) {
         e.target.classList.remove('is-invalid');
+      }
+    });
+
+    // ---------- Wire the Reschedule / Cancel confirmation modals to whichever slot triggered them ----------
+    document.addEventListener('show.bs.modal', function (e) {
+      var trigger = e.relatedTarget;
+      if (!trigger) return;
+
+      if (e.target.id === 'landingRescheduleModal') {
+        var rescheduleForm = document.getElementById('landingRescheduleForm');
+        if (rescheduleForm) rescheduleForm.action = trigger.dataset.removeUrl || '';
+      }
+
+      if (e.target.id === 'landingCancelModal') {
+        var cancelForm = document.getElementById('landingCancelForm');
+        if (cancelForm) cancelForm.action = trigger.dataset.removeUrl || '';
+        var label = document.getElementById('landingCancelLabel');
+        if (label) label.textContent = [trigger.dataset.apptDate, trigger.dataset.apptService].filter(Boolean).join(' – ');
       }
     });
   </script>

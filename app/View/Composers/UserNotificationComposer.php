@@ -16,6 +16,7 @@ class UserNotificationComposer
             $view->with([
                 'userNotifications' => collect(),
                 'userUnreadCount' => 0,
+                'userLatestNotifications' => collect(),
                 'userAllNotifications' => collect(),
                 'userNotifDate' => null,
             ]);
@@ -30,6 +31,8 @@ class UserNotificationComposer
         $view->with([
             'userNotifications' => (clone $base)->orderByDesc('created_at')->limit(8)->get(),
             'userUnreadCount' => (clone $base)->where('IsRead', false)->count(),
+            // "Latest" tab in the all-notifications modal — the 10 most recent, no filter.
+            'userLatestNotifications' => (clone $base)->orderByDesc('created_at')->limit(10)->get(),
             'userAllNotifications' => (clone $base)
                 ->when($notifDate, fn ($q) => $q->whereDate('created_at', $notifDate))
                 ->orderByDesc('created_at')

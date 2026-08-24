@@ -20,7 +20,7 @@
 
     <!-- NAVBAR -->
     <nav class="navbar navbar-expand-lg navbar-light fixed-top mask-custom shadow-sm">
-        <div class="container">
+        <div class="container-fluid px-3 px-lg-5">
             <a class="navbar-brand d-flex align-items-center" href="#home">
                 <img class="logo" src="/images/puspus_logo.png" alt="Pus-Pus Britanico logo">
                 <span class="navt ms-1" style="color:#0f7a2d;">PUS-PUS</span>
@@ -48,17 +48,19 @@
                         <div class="d-flex justify-content-between">
                             @include('partials.user-notif-dropdown')
                             @if (session('user_email'))
-                                <div class="dropdown">
-                                    <button
-                                        class="nav-link navh d-flex align-items-center gap-2 border-0 bg-transparent dropdown-toggle"
-                                        type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                <div class="dropdown d-flex align-items-center">
+                                    <a href="{{ route('settings', ['tab' => 'profile']) }}"
+                                        class="nav-link navh d-flex align-items-center gap-2" style="padding-right:8px;">
                                         <i class="bi bi-person-circle"></i>
                                         <span>{{ session('user_email') }}</span>
-                                    </button>
+                                    </a>
+                                    <button class="nav-link navh border-0 bg-transparent dropdown-toggle"
+                                        type="button" data-bs-toggle="dropdown" aria-expanded="false"
+                                        aria-label="Account menu" style="padding-left:6px;padding-right:10px;margin-left:-4px;"></button>
                                     <ul class="dropdown-menu dropdown-menu-end shadow-sm">
                                         <li>
-                                            <a class="dropdown-item small" href="{{ route('userProfile') }}">
-                                                <i class="bi bi-person me-2"></i>User Profile
+                                            <a class="dropdown-item small" href="{{ route('userAppointment') }}">
+                                                <i class="bi bi-calendar-check me-2"></i>User Appointments
                                             </a>
                                         </li>
                                         <li>
@@ -93,10 +95,8 @@
     <!-- PAGE HERO -->
     <div class="page-hero">
         <div class="container px-4">
-            <nav aria-label="breadcrumb" style="margin-bottom:12px">
-            </nav>
-            <h1><i class="fas fa-calendar-check me-2" style="opacity:0.8"></i>Appointments</h1>
-            <p>View, manage and book your dental visit schedule</p>
+            <h1>USER PROFILE</h1>
+            <p class="page-hero-sub">Appointments</p>
         </div>
     </div>
 
@@ -104,11 +104,10 @@
     <div class="subnav">
         <div class="container px-4">
             <div class="subnav-inner">
-                <a href="{{ route('userProfile') }}" class="subnav-link"><i class="fas fa-user"></i> Personal Info</a>
                 <a href="{{ route('userAppointment') }}" class="subnav-link active"><i
                         class="fas fa-calendar-check"></i>Appointments</a>
-                <a href="{{ route('settings') }}" class="subnav-link"><i class="fas fa-lock"></i> Change
-                    Password</a>
+                <a href="{{ route('settings') }}" class="subnav-link"><i class="fas fa-gear"></i>
+                    Settings</a>
             </div>
         </div>
     </div>
@@ -221,7 +220,18 @@
                     </tbody>
                 </table>
             </div>
-            <div class="history-footer"><small>Showing <strong>{{ $history->count() }}</strong> of <strong>{{ $history->total() }}</strong> appointments</small><div>{{ $history->links() }}</div></div>
+            <div class="history-footer">
+                <small>Showing <strong>{{ $history->count() }}</strong> of <strong>{{ $history->total() }}</strong> appointments</small>
+                @if ($history->lastPage() > 1)
+                    <div class="pages">
+                        <a href="{{ $history->previousPageUrl() ?? '#' }}"><i class="bi bi-chevron-left"></i></a>
+                        @for ($i = 1; $i <= $history->lastPage(); $i++)
+                            <a href="{{ $history->url($i) }}" class="{{ $history->currentPage() === $i ? 'active' : '' }}">{{ $i }}</a>
+                        @endfor
+                        <a href="{{ $history->nextPageUrl() ?? '#' }}"><i class="bi bi-chevron-right"></i></a>
+                    </div>
+                @endif
+            </div>
         </div>
     </div>
 
@@ -255,9 +265,9 @@
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body p-4">
-                    <p style="font-size:14px;line-height:1.7">Are you sure you want to cancel your <strong
-                            style="color:#0f4c7a">June 28 – General Cleaning</strong> appointment? This cannot be
-                        undone.</p>
+                    <p style="font-size:14px;line-height:1.7">Are you sure you want to cancel your
+                        @if($current)<strong style="color:#0f4c7a">{{ $current->AppointmentDate->format('M j') }} – {{ $current->service->ServiceName ?? $current->TypeOfAppointment }}</strong>@endif
+                        appointment? This cannot be undone.</p>
                 </div>
                 <div class="modal-footer gap-2">
                     <button class="btn-sec" data-bs-dismiss="modal">Keep It</button>

@@ -61,7 +61,7 @@ class DentistScheduleController extends Controller
 
         $appointments = Appointment::with('patientInfo')
             ->whereBetween('AppointmentDate', [$startDay->format('Y-m-d'), $endDay->format('Y-m-d')])
-            ->whereIn('Status', ['Pending', 'Approved'])
+            ->whereIn('Status', ['Pending', 'Approved', 'Completed'])
             ->get();
         $occupiedSlots = $this->occupiedSlots($appointments);
 
@@ -151,7 +151,9 @@ class DentistScheduleController extends Controller
         foreach ($appointments as $appointment) {
             $start = array_search($appointment->AppointmentTime, $times, true);
             if ($start === false) continue;
-            $duration = $appointment->Status === 'Approved' ? max(1, (int) ($appointment->DurationHours ?? 1)) : 1;
+            $duration = in_array($appointment->Status, ['Approved', 'Completed'], true)
+                ? max(1, (int) ($appointment->DurationHours ?? 1))
+                : 1;
             for ($offset = 0; $offset < $duration && isset($times[$start + $offset]); $offset++) {
                 $occupied[$appointment->AppointmentDate->format('Y-m-d') . '_' . $times[$start + $offset]] = $appointment;
             }
@@ -162,7 +164,63 @@ class DentistScheduleController extends Controller
     protected function isAppointmentSlot(string $date, string $time): bool
     {
         return isset($this->occupiedSlots(
-            Appointment::whereDate('AppointmentDate', $date)->whereIn('Status', ['Pending', 'Approved'])->get()
+            Appointment::whereDate('AppointmentDate', $date)->whereIn('Status', ['Pending', 'Approved', 'Completed'])->get()
         )[$date . '_' . $time]);
+    }
+
+    /**
+     * Turns every slot on a date that isn't held by an appointment to
+     * Not Available (or back to Available if the day is already fully
+     * closed) in one click, instead of toggling each of the 9 slots by hand.
+     */
+    public function toggleDay(Request $request)
+    {
+        $request->validate([
+            'date' => 'required|date',
+            'month' => 'nullable|string',
+        ]);
+
+        $date = Carbon::parse($request->date);
+
+        if ($date->isSunday()) {
+            return redirect()
+                ->route('dentistSchedule', ['month' => $request->input('month', now()->format('Y-m'))])
+                ->with('error', 'Sundays are not available for scheduling.');
+        }
+
+        $heldAppointments = Appointment::whereDate('AppointmentDate', $request->date)
+            ->whereIn('Status', ['Pending', 'Approved', 'Completed'])
+            ->get();
+        $heldTimes = collect($this->occupiedSlots($heldAppointments))
+            ->keys()
+            ->map(fn ($key) => explode('_', $key, 2)[1])
+            ->all();
+
+        $editableTimes = array_diff(array_keys($this->slots), $heldTimes);
+
+        if (empty($editableTimes)) {
+            return redirect()
+                ->route('dentistSchedule', ['month' => $request->input('month', now()->format('Y-m'))])
+                ->with('error', 'Every slot that day is already held by an appointment.');
+        }
+
+        $rows = DentistSchedule::where('Date', $request->date)->whereIn('Time', $editableTimes)->get()->keyBy('Time');
+        $allClosed = collect($editableTimes)->every(fn ($time) => ($rows[$time]->Status ?? 'Available') === 'Not Available');
+        $newStatus = $allClosed ? 'Available' : 'Not Available';
+
+        foreach ($editableTimes as $time) {
+            $slot = DentistSchedule::firstOrCreate(
+                ['Date' => $request->date, 'Time' => $time],
+                ['Status' => 'Available']
+            );
+            $slot->Status = $newStatus;
+            $slot->save();
+        }
+
+        $this->auditLog->log('Edit', "Set all open slots on {$request->date} to {$newStatus}.");
+
+        return redirect()
+            ->route('dentistSchedule', ['month' => $request->input('month', now()->format('Y-m'))])
+            ->with('success', $newStatus === 'Not Available' ? 'Day marked as closed.' : 'Day reopened.');
     }
 }

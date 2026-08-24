@@ -10,21 +10,6 @@ use Illuminate\Support\Carbon;
 
 class ProfileController extends Controller
 {
-    public function edit()
-    {
-        if (!session('user_id')) {
-            return redirect()->route('login');
-        }
-
-        $user = UserAccount::findOrFail(session('user_id'));
-        $patientInfo = PatientInfo::where('UserID', $user->UserID)->firstOrFail();
-
-        return view('users.user-profile', [
-            'user' => $user,
-            'patientInfo' => $patientInfo,
-        ]);
-    }
-
     public function update(Request $request)
     {
         if (!session('user_id')) {
@@ -81,6 +66,6 @@ class ProfileController extends Controller
 
         $patientInfo->update($updates);
 
-        return redirect()->route('userProfile')->with('profile_updated', true);
+        return redirect()->route('settings', ['tab' => 'profile'])->with('profile_updated', true);
     }
 }

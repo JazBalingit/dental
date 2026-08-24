@@ -192,6 +192,14 @@
             margin: 0;
         }
 
+        .page-hero-sub {
+            color: rgba(255, 255, 255, 0.92) !important;
+            font-family: 'Poppins', sans-serif;
+            font-size: 1.05rem;
+            font-weight: 600;
+            margin: 2px 0 0;
+        }
+
         .breadcrumb-item+.breadcrumb-item::before {
             color: rgba(255, 255, 255, 0.4);
         }
@@ -587,20 +595,24 @@
         }
 
         .btn-sec {
-            background: white;
-            color: #4a5f7f;
-            border: 1.5px solid rgba(59, 217, 101, 0.15);
+            background: #eef1f6;
+            color: #334155;
+            border: 1.5px solid #cbd5e1;
             padding: 10px 20px;
-            border-radius: 8px;
+            border-radius: 20px;
             font-size: 13px;
-            font-weight: 600;
+            font-weight: 700;
             cursor: pointer;
             font-family: 'Poppins', sans-serif;
-            transition: background 0.2s;
+            transition: all 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
         }
 
         .btn-sec:hover {
-            background: #f8fafc;
+            background: #e2e8f0;
+            border-color: #94a3b8;
+            color: #1e293b;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 10px rgba(15, 76, 122, 0.12);
         }
 
         /* MODAL */
@@ -763,11 +775,12 @@
         }
 
         .navh {
-            padding: 8px 16px !important;
-            margin: 4px;
+            padding: 8px 14px !important;
+            margin: 4px 2px;
             border-radius: 20px;
             font-weight: 500;
             font-size: 0.95rem;
+            white-space: nowrap;
             transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
             color: var(--text-muted) !important;
         }
@@ -1014,6 +1027,24 @@
             border-radius: 4px;
         }
 
+        /* ---------- Notification tabs (Latest / All), styled like the admin side's nav-pills ---------- */
+        .notif-tabs.nav-pills .nav-link {
+            color: #0f7a33;
+            font-weight: 600;
+            border-radius: 999px;
+            padding: .45rem 1.1rem;
+        }
+
+        .notif-tabs.nav-pills .nav-link:hover {
+            color: #0a5c26;
+            background: #f1fcf0;
+        }
+
+        .notif-tabs.nav-pills .nav-link.active {
+            background: #0f7a33;
+            color: #fff;
+        }
+
         /* CSS-only date filter using :has() — works in current Chrome/Edge/Safari */
         .notif-filter-bar:has(#filterJul2:checked)~.notif-list li:not([data-date="jul2"]),
         .notif-filter-bar:has(#filterJul3:checked)~.notif-list li:not([data-date="jul3"]),
@@ -1162,9 +1193,39 @@
             border-top: 1px solid #edf2f7;
         }
 
-        .history-footer .pagination { margin: 0; gap: 4px; }
-        .history-footer .page-link { border: 1px solid #dce7f0; color: #168744; border-radius: 7px; padding: 5px 10px; }
-        .history-footer .active .page-link { background: #1aa94d; border-color: #1aa94d; color: #fff; }
+        /* Pagination — matches the admin side's .pagination-soft design */
+        .history-footer .pages {
+            display: flex;
+            align-items: center;
+            gap: .25rem;
+        }
+
+        .history-footer .pages a {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 36px;
+            height: 36px;
+            border-radius: 10px;
+            border: 1px solid #f1f5f9;
+            background: #fff;
+            color: #334155;
+            font-weight: 600;
+            text-decoration: none;
+            transition: all .15s ease;
+        }
+
+        .history-footer .pages a:hover {
+            border-color: var(--brand-500);
+            color: var(--brand-700);
+            background: var(--brand-50);
+        }
+
+        .history-footer .pages a.active {
+            background: var(--brand-700);
+            color: #fff;
+            border-color: var(--brand-700);
+        }
 
         @media (max-width: 720px) {
             .card-hd { align-items: flex-start; gap: 16px; flex-direction: column; }

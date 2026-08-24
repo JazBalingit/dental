@@ -4,6 +4,7 @@
 namespace App\Http\Controllers;
 
 use App\Mail\OtpMail;
+use App\Models\PatientInfo;
 use App\Models\UserAccount;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
@@ -11,17 +12,30 @@ use Illuminate\Support\Facades\Mail;
 
 class SettingsController extends Controller
 {
-    public function edit()
+    /**
+     * Renders the merged Settings page: "User Information" (formerly the
+     * standalone Profile page) and "Security" (change password) live here
+     * as tabs. $activeTab picks which one is shown on load.
+     */
+    public function edit(Request $request)
     {
         if (!session('user_id')) {
             return redirect()->route('login');
         }
 
-        return view('users.settings');
+        $user = UserAccount::findOrFail(session('user_id'));
+        $patientInfo = PatientInfo::where('UserID', $user->UserID)->firstOrFail();
+        $activeTab = $request->query('tab') === 'security' ? 'security' : 'profile';
+
+        return view('users.settings', [
+            'user' => $user,
+            'patientInfo' => $patientInfo,
+            'activeTab' => $activeTab,
+        ]);
     }
 
     /**
-     * Standard "Update Password" card — requires the current password,
+     * Standard "Update Password" card â€” requires the current password,
      * no email/OTP involved since they're already logged in.
      */
     public function updatePassword(Request $request)
@@ -38,13 +52,13 @@ class SettingsController extends Controller
         $user = UserAccount::findOrFail(session('user_id'));
 
         if (!Hash::check($data['current_password'], $user->Password)) {
-            return redirect()->route('settings')->with('password_error', 'Your current password is incorrect.');
+            return redirect()->route('settings', ['tab' => 'security'])->with('password_error', 'Your current password is incorrect.');
         }
 
         $user->Password = Hash::make($data['password']);
         $user->save();
 
-        return redirect()->route('settings')->with('password_updated', true);
+        return redirect()->route('settings', ['tab' => 'security'])->with('password_updated', true);
     }
 
     // ============ "Forgot Password" card, same OTP pattern as login ============
@@ -66,7 +80,7 @@ class SettingsController extends Controller
 
         Mail::to(session('user_email'))->send(new OtpMail($code));
 
-        return redirect()->route('settings')->with('settings_reset_sent', true);
+        return redirect()->route('settings', ['tab' => 'security'])->with('settings_reset_sent', true);
     }
 
     public function resendResetCode(Request $request)
@@ -82,7 +96,7 @@ class SettingsController extends Controller
 
         Mail::to(session('user_email'))->send(new OtpMail($code));
 
-        return redirect()->route('settings')->with('settings_reset_resent', true);
+        return redirect()->route('settings', ['tab' => 'security'])->with('settings_reset_resent', true);
     }
 
     public function verifyAndReset(Request $request)
@@ -97,11 +111,11 @@ class SettingsController extends Controller
         ]);
 
         if (!session()->has('settings_reset_code')) {
-            return redirect()->route('settings')->with('settings_reset_expired', true);
+            return redirect()->route('settings', ['tab' => 'security'])->with('settings_reset_expired', true);
         }
 
         if ($request->code !== session('settings_reset_code')) {
-            return redirect()->route('settings')
+            return redirect()->route('settings', ['tab' => 'security'])
                 ->with('show_settings_reset_modal', true)
                 ->with('settings_reset_error', 'Incorrect code. Please try again.');
         }
@@ -112,7 +126,7 @@ class SettingsController extends Controller
 
         session()->forget(['settings_reset_code', 'show_settings_reset_modal']);
 
-        return redirect()->route('settings')->with('password_updated', true);
+        return redirect()->route('settings', ['tab' => 'security'])->with('password_updated', true);
     }
 
     /**
@@ -122,6 +136,6 @@ class SettingsController extends Controller
     {
         session()->forget(['settings_reset_code', 'show_settings_reset_modal']);
 
-        return redirect()->route('settings');
+        return redirect()->route('settings', ['tab' => 'security']);
     }
 }

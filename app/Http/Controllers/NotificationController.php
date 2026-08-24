@@ -21,6 +21,14 @@ class NotificationController extends Controller
             ->where('UserID', session('user_id'))
             ->update(['IsRead' => true]);
 
+        $isPatient = session('account_type') !== 'staff' && session('user_role') !== 'admin';
+
+        // Patient-side notifications are always about an appointment, so send
+        // them straight to their appointments page instead of just refreshing.
+        if ($isPatient) {
+            return redirect()->route('userAppointment');
+        }
+
         return redirect()->back();
     }
 }

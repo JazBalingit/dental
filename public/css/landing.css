@@ -175,11 +175,12 @@ p {
 }
 
 .navh {
-    padding: 8px 16px !important;
-    margin: 4px;
+    padding: 8px 14px !important;
+    margin: 4px 2px;
     border-radius: 20px;
     font-weight: 500;
     font-size: 0.95rem;
+    white-space: nowrap;
     transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
     color: var(--primary) !important;
 }
@@ -991,6 +992,24 @@ footer .footer-link {
     border-radius: 4px;
 }
 
+/* ---------- Notification tabs (Latest / All), styled like the admin side's nav-pills ---------- */
+.notif-tabs.nav-pills .nav-link {
+    color: #0f7a33;
+    font-weight: 600;
+    border-radius: 999px;
+    padding: .45rem 1.1rem;
+}
+
+.notif-tabs.nav-pills .nav-link:hover {
+    color: #0a5c26;
+    background: #f1fcf0;
+}
+
+.notif-tabs.nav-pills .nav-link.active {
+    background: #0f7a33;
+    color: #fff;
+}
+
 /* CSS-only date filter using :has() — works in current Chrome/Edge/Safari */
 .notif-filter-bar:has(#filterJul2:checked)~.notif-list li:not([data-date="jul2"]),
 .notif-filter-bar:has(#filterJul3:checked)~.notif-list li:not([data-date="jul3"]),
@@ -1497,6 +1516,75 @@ footer .footer-link {
     background: #d8f8dc;
     color: var(--brand-900);
 }
+
+/* ---------- Reschedule / Cancel confirmation modals (matches the Appointments page) ---------- */
+.confirm-modal .modal-content {
+    border: none;
+    border-radius: 14px;
+    box-shadow: 0 20px 60px rgba(15, 76, 122, 0.15);
+}
+
+.confirm-modal .modal-header {
+    border-bottom: 1px solid rgba(59, 217, 101, 0.1);
+    padding: 20px 26px;
+}
+
+.confirm-modal .modal-footer {
+    border-top: 1px solid rgba(59, 217, 101, 0.1);
+    padding: 16px 26px;
+}
+
+.confirm-modal .modal-title {
+    font-family: 'Lora', serif;
+    font-weight: 700;
+    color: #0f7a33;
+    font-size: 1.15rem;
+}
+
+.confirm-btn-prim {
+    background: linear-gradient(135deg, #3bd965 0%, #2aad44 100%);
+    color: white;
+    border: none;
+    padding: 8px 18px;
+    border-radius: 20px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+    box-shadow: 0 4px 12px rgba(59, 217, 101, 0.25);
+    font-family: 'Poppins', sans-serif;
+    text-decoration: none;
+}
+
+.confirm-btn-prim:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 20px rgba(59, 217, 101, 0.35);
+    color: white;
+}
+
+.confirm-btn-sec {
+    background: #eef1f6;
+    color: #334155;
+    border: 1.5px solid #cbd5e1;
+    padding: 10px 20px;
+    border-radius: 20px;
+    font-size: 13px;
+    font-weight: 700;
+    cursor: pointer;
+    font-family: 'Poppins', sans-serif;
+    transition: all 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.confirm-btn-sec:hover {
+    background: #e2e8f0;
+    border-color: #94a3b8;
+    color: #1e293b;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 10px rgba(15, 76, 122, 0.12);
+}
  
 .day-cell .ev.ev-pending {
     background: #fff8e6;
@@ -1504,11 +1592,33 @@ footer .footer-link {
     border: 1px solid #f0d78c;
 }
 
-/* Patient booking calendar: red is reserved for confirmed bookings. */
+.day-cell .ev.ev-completed {
+    background: #eef2ff;
+    color: #3730a3;
+    border: 1px solid #c7d2fe;
+}
+
+.day-cell .ev.ev-booked {
+    background: #e8f9ec;
+    color: #1a7f37;
+    border: 1px solid #a7e8bb;
+}
+
+/* Red marks anything you can't book: a fully closed day and a slot the
+   dentist manually disabled both land here. */
 .booking-calendar .day-cell .ev.ev-unavailable {
     background: #fff0f1;
     color: #c93645;
     border: 1px solid #f2aeb6;
+}
+
+/* Closed/Day-off cells always read as neutral text, never red or green,
+   regardless of which .ev-* class happens to be reused for the label. */
+.day-cell.day-off .ev {
+    background: transparent;
+    border: none;
+    color: #9aa39c;
+    font-style: italic;
 }
 
 .booking-calendar .legend .dot {
@@ -1526,13 +1636,25 @@ footer .footer-link {
 }
 
 .booking-status-booked {
-    background: #fff0f1;
-    color: #c93645;
-    border: 1px solid #f2aeb6;
+    background: #e8f9ec;
+    color: #1a7f37;
+    border: 1px solid #a7e8bb;
 }
 
 .booking-status-pending {
     background: #fff8e6;
     color: #8a6100;
     border: 1px solid #f0d78c;
+}
+
+.booking-status-completed {
+    background: #eef2ff;
+    color: #3730a3;
+    border: 1px solid #c7d2fe;
+}
+
+.booking-status-unavailable {
+    background: #fff0f1;
+    color: #c93645;
+    border: 1px solid #f2aeb6;
 }

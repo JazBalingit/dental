@@ -40,13 +40,13 @@ Route::post('/walk-in', [WalkInController::class, 'store'])->name('walkIn.store'
 
 // show all user side front end
 Route::get('landing-page', [UserController::class, 'showLandingPage'])->name('landingPage');
-Route::get('settings', [UserController::class, 'showSettings'])->name('settings');
 Route::get('user-appointment', [UserController::class, 'showUserAppointment'])->name('userAppointment');
 Route::post('/user-appointment/{appointment}/remove', [UserController::class, 'removeAppointment'])->name('userAppointment.remove');
 
 // dentist schedule backend route
 Route::get('/dentist-schedule', [DentistScheduleController::class, 'index'])->name('dentistSchedule');
 Route::post('/dentist-schedule/toggle', [DentistScheduleController::class, 'toggle'])->name('dentistSchedule.toggle');
+Route::post('/dentist-schedule/toggle-day', [DentistScheduleController::class, 'toggleDay'])->name('dentistSchedule.toggleDay');
 
 // ---- Signup + OTP verification ----
 Route::get('/signup', [RegisterController::class, 'create'])->name('signup');
@@ -67,7 +67,8 @@ Route::post('/reset-password', [LoginController::class, 'resetPassword'])->name(
 Route::post('/forgot-password/cancel', [LoginController::class, 'cancelReset'])->name('password.cancel');
 
 // ---- Profile (patient edits their own info; UserID/DateCreated/Email are never editable) ----
-Route::get('/profile', [ProfileController::class, 'edit'])->name('userProfile');
+// The profile page itself was merged into Settings (users.settings, "User Information" tab) —
+// only the update endpoint remains here.
 Route::post('/profile', [ProfileController::class, 'update'])->name('userProfile.update');
 
 // ---- Settings / Change Password ----

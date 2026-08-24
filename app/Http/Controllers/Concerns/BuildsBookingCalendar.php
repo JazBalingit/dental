@@ -62,16 +62,16 @@ trait BuildsBookingCalendar
             ->map(fn($rows) => $rows->keyBy('Time'));
 
         // Pull appointments in range so we can label taken slots as
-        // Booked (Approved) vs Pending instead of just "Not Available".
+        // Booked (Approved), Pending, or Completed instead of just "Not Available".
         $appointments = Appointment::with('service')->whereBetween('AppointmentDate', [
             $startDay->format('Y-m-d'),
             $endDay->format('Y-m-d'),
         ])
-            ->whereIn('Status', ['Pending', 'Approved'])
+            ->whereIn('Status', ['Pending', 'Approved', 'Completed'])
             ->get();
 
-        // An approved appointment occupies every slot in its approved duration.
-        // A pending request holds only its requested starting slot.
+        // An approved or completed appointment occupies every slot in its
+        // approved duration. A pending request holds only its starting slot.
         $occupiedSlots = [];
         $slotTimes = array_keys($this->slots);
         foreach ($appointments as $appointment) {
@@ -80,7 +80,7 @@ trait BuildsBookingCalendar
                 continue;
             }
 
-            $duration = $appointment->Status === 'Approved'
+            $duration = in_array($appointment->Status, ['Approved', 'Completed'], true)
                 ? max(1, (int) ($appointment->DurationHours ?? 1))
                 : 1;
 

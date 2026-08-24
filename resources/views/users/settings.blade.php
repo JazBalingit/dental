@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Change Password — Pus-Pus Britanico</title>
+    <title>Settings — Pus-Pus Britanico</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/7.0.1/css/all.min.css"
@@ -23,7 +23,7 @@
 
     <!-- NAVBAR -->
     <nav class="navbar navbar-expand-lg navbar-light fixed-top mask-custom shadow-sm">
-        <div class="container">
+        <div class="container-fluid px-3 px-lg-5">
             <a class="navbar-brand d-flex align-items-center" href="#home">
                 <img class="logo" src="/images/puspus_logo.png" alt="Pus-Pus Britanico logo">
                 <span class="navt ms-1" style="color:#0f7a2d;">PUS-PUS</span>
@@ -49,18 +49,21 @@
                 <ul class="navbar-nav ms-lg-3">
                     <li class="nav-item">
                         <div class="d-flex justify-content-between">
+                            @include('partials.user-notif-dropdown')
                             @if (session('user_email'))
-                                <div class="dropdown">
-                                    <button
-                                        class="nav-link navh d-flex align-items-center gap-2 border-0 bg-transparent dropdown-toggle"
-                                        type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                <div class="dropdown d-flex align-items-center">
+                                    <a href="{{ route('settings', ['tab' => 'profile']) }}"
+                                        class="nav-link navh d-flex align-items-center gap-2" style="padding-right:8px;">
                                         <i class="bi bi-person-circle"></i>
                                         <span>{{ session('user_email') }}</span>
-                                    </button>
+                                    </a>
+                                    <button class="nav-link navh border-0 bg-transparent dropdown-toggle"
+                                        type="button" data-bs-toggle="dropdown" aria-expanded="false"
+                                        aria-label="Account menu" style="padding-left:6px;padding-right:10px;margin-left:-4px;"></button>
                                     <ul class="dropdown-menu dropdown-menu-end shadow-sm">
                                         <li>
-                                            <a class="dropdown-item small" href="{{ route('userProfile') }}">
-                                                <i class="bi bi-person me-2"></i>User Profile
+                                            <a class="dropdown-item small" href="{{ route('userAppointment') }}">
+                                                <i class="bi bi-calendar-check me-2"></i>User Appointments
                                             </a>
                                         </li>
                                         <li>
@@ -95,8 +98,8 @@
     <!-- PAGE HERO -->
     <div class="page-hero">
         <div class="container px-4">
-            <h1><i class="fas fa-shield-alt me-2" style="opacity:0.8"></i>Change Password</h1>
-            <p>Keep your account secure with a strong, unique password</p>
+            <h1>USER PROFILE</h1>
+            <p class="page-hero-sub">Settings</p>
         </div>
     </div>
 
@@ -104,11 +107,10 @@
     <div class="subnav">
         <div class="container px-4">
             <div class="subnav-inner">
-                <a href="{{ route('userProfile') }}" class="subnav-link"><i class="fas fa-user"></i> Personal Info</a>
-                <a href="{{ route('userAppointment') }}" class="subnav-link"><i
-                        class="fas fa-calendar-check"></i>Appointments</a>
-                <a href="{{ route('settings') }}" class="subnav-link active"><i class="fas fa-lock"></i> Change
-                    Password</a>
+                <a href="{{ route('userAppointment') }}" class="subnav-link"><i class="fas fa-calendar-check"></i>
+                    Appointments</a>
+                <a href="{{ route('settings') }}" class="subnav-link active"><i class="fas fa-gear"></i>
+                    Settings</a>
             </div>
         </div>
     </div>
@@ -118,111 +120,256 @@
 
         @include('partials.flash-toasts', ['topOffset' => '100px'])
 
-        <!-- Tips -->
-        <div class="tip-box">
-            <h5><i class="fas fa-lightbulb" style="color:#3bd94d"></i> Security Tips</h5>
-            <ul>
-                <li><i class="fas fa-check-circle"></i> Use a mix of uppercase, lowercase, numbers and symbols</li>
-                <li><i class="fas fa-check-circle"></i> Never reuse a password from another site</li>
-                <li><i class="fas fa-check-circle"></i> Your password should be at least 8 characters long</li>
-                <li><i class="fas fa-check-circle"></i> Avoid using your name or birthday in your password</li>
-            </ul>
-        </div>
-
-        <!-- Change Password -->
-        <form method="POST" action="{{ route('settings.password.update') }}">
-            @csrf
-            <div class="section-card">
-                <div class="card-hd">
-                    <div class="card-hd-icon"><i class="fas fa-key"></i></div>
-                    <div>
-                        <h4>Update Password</h4>
-                        <p>Enter your current password then set a new one</p>
-                    </div>
-                </div>
-                <div class="card-bd">
-
-                    <div class="mb-3">
-                        <label class="fl">Current Password</label>
-                        <div class="pw-field">
-                            <input type="checkbox" class="pw-toggle-checkbox" id="pwCheckCur">
-                            <div class="fw">
-                                <input type="text" class="fc pw-mask" name="current_password"
-                                    placeholder="Enter your current password" required>
-                                <label for="pwCheckCur" class="eye-btn">
-                                    <i class="fas fa-eye"></i><i class="fas fa-eye-slash"></i>
-                                </label>
-                            </div>
-                        </div>
-                        <p class="field-hint"><i class="fas fa-info-circle"></i> This is the password you use to log
-                            in.</p>
-                    </div>
-
-                    <div class="divider"></div>
-
-                    <div class="mb-3">
-                        <label class="fl">New Password</label>
-                        <div class="pw-field">
-                            <input type="checkbox" class="pw-toggle-checkbox" id="pwCheckNew">
-                            <div class="fw">
-                                <input type="text" class="fc pw-mask" name="password"
-                                    placeholder="Create a strong new password" required minlength="8">
-                                <label for="pwCheckNew" class="eye-btn">
-                                    <i class="fas fa-eye"></i><i class="fas fa-eye-slash"></i>
-                                </label>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="mb-3">
-                        <label class="fl">Confirm New Password</label>
-                        <div class="pw-field">
-                            <input type="checkbox" class="pw-toggle-checkbox" id="pwCheckConfirm">
-                            <div class="fw">
-                                <input type="text" class="fc pw-mask" name="password_confirmation"
-                                    placeholder="Re-enter your new password" required>
-                                <label for="pwCheckConfirm" class="eye-btn">
-                                    <i class="fas fa-eye"></i><i class="fas fa-eye-slash"></i>
-                                </label>
-                            </div>
-                        </div>
-                        <p class="field-hint"><i class="fas fa-lock"></i> Make sure both passwords match exactly.</p>
-                    </div>
-
-                    <div class="divider"></div>
-
-                    <div class="row g-3">
-                        <div class="col-md-12">
-                            <button type="submit" class="btn-prim"><i class="fas fa-shield-alt"></i> Update
-                                Password</button>
-                        </div>
-                    </div>
-
-                </div>
-            </div>
-        </form>
-
-        <!-- Forgot / Reset -->
-        <div class="section-card" style="border-color:rgba(239,68,68,0.14)">
-            <div class="card-hd" style="border-color:rgba(239,68,68,0.1)">
-                <div class="card-hd-icon" style="background:rgba(239,68,68,0.08);color:#ef4444"><i
-                        class="fas fa-question-circle"></i></div>
-                <div>
-                    <h4 style="color:#b91c1c">Forgot Your Password?</h4>
-                    <p>We can send a reset code to your registered email</p>
-                </div>
-            </div>
-            <div class="card-bd">
-                <p style="font-size:14px;margin-bottom:16px">If you've forgotten your current password, you can
-                    request a reset code sent to
-                    <strong style="color:#0f7a23">{{ session('user_email') }}</strong>.
-                </p>
-                <form method="POST" action="{{ route('settings.reset.send') }}">
-                    @csrf
-                    <button type="submit" class="btn-outline-sm">
-                        <i class="fas fa-envelope"></i> Send Reset Code
+        <div class="settings-layout">
+            <!-- TABS -->
+            <aside class="settings-tabs-card">
+                <div class="settings-tabs-label">Settings</div>
+                <nav class="settings-tabs">
+                    <button type="button" class="settings-tab-btn {{ $activeTab === 'profile' ? 'active' : '' }}"
+                        data-tab="profile">
+                        <i class="fas fa-user"></i> User Information
                     </button>
-                </form>
+                    <button type="button" class="settings-tab-btn {{ $activeTab === 'security' ? 'active' : '' }}"
+                        data-tab="security">
+                        <i class="fas fa-shield-halved"></i> Security
+                    </button>
+                </nav>
+            </aside>
+
+            <div class="settings-content">
+
+                {{-- ===================== USER INFORMATION ===================== --}}
+                <div class="settings-pane" id="pane-profile" @if($activeTab !== 'profile') hidden @endif>
+                    <form method="POST" action="{{ route('userProfile.update') }}" enctype="multipart/form-data">
+                        @csrf
+
+                        <!-- Photo + locked account info -->
+                        <div class="section-card">
+                            <div class="card-hd">
+                                <div class="card-hd-icon"><i class="fas fa-id-card"></i></div>
+                                <div>
+                                    <h4>Account Information</h4>
+                                    <p>Your photo and login details</p>
+                                </div>
+                            </div>
+                            <div class="card-bd d-flex gap-4 align-items-center flex-wrap">
+                                <div class="text-center">
+                                    <img src="{{ $patientInfo->photo_url }}" alt="Profile photo"
+                                         style="width:96px;height:96px;border-radius:50%;object-fit:cover;border:3px solid #e9f7ea;">
+                                    <div class="mt-2">
+                                        <label class="btn-edit" style="cursor:pointer;">
+                                            <i class="fas fa-camera"></i> Change Photo
+                                            <input type="file" name="photo" accept=".jpg,.jpeg,.png" class="d-none">
+                                        </label>
+                                    </div>
+                                    <div class="small text-muted mt-1">JPG or PNG, max 2MB</div>
+                                </div>
+
+                                <div class="flex-grow-1" style="min-width:220px">
+                                    <div class="mb-3">
+                                        <label class="fl">Email address</label>
+                                        <input type="text" class="fc fc-plain" value="{{ $user->Email }}" disabled>
+                                        <div class="small text-muted mt-1">Email can't be changed here. Contact the clinic if you need to update it.</div>
+                                    </div>
+                                    <div>
+                                        <label class="fl">Member since</label>
+                                        <input type="text" class="fc fc-plain" value="{{ \Carbon\Carbon::parse($user->DateCreated)->format('F j, Y') }}" disabled>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Editable patient information -->
+                        <div class="section-card">
+                            <div class="card-hd">
+                                <div class="card-hd-icon"><i class="fas fa-user-edit"></i></div>
+                                <div>
+                                    <h4>Personal Information</h4>
+                                    <p>Everything here can be edited</p>
+                                </div>
+                            </div>
+                            <div class="card-bd">
+                                <div class="row g-3 mb-2">
+                                    <div class="col-md-4">
+                                        <label class="fl">Last name</label>
+                                        <input class="fc fc-plain" name="last_name" value="{{ old('last_name', $patientInfo->LastName) }}" required>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <label class="fl">First name</label>
+                                        <input class="fc fc-plain" name="first_name" value="{{ old('first_name', $patientInfo->FirstName) }}" required>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <label class="fl">Middle name</label>
+                                        <input class="fc fc-plain" name="middle_name" value="{{ old('middle_name', $patientInfo->MiddleName) }}">
+                                    </div>
+
+                                    <div class="col-md-6">
+                                        <label class="fl">Birthdate</label>
+                                        <input type="date" class="fc fc-plain" name="birthdate"
+                                               value="{{ old('birthdate', optional($patientInfo->DateOfBirth)->format('Y-m-d')) }}" required>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label class="fl">Gender</label>
+                                        <select class="fc fc-plain" name="gender" required>
+                                            <option value="male" {{ old('gender', $patientInfo->Gender) === 'male' ? 'selected' : '' }}>Male</option>
+                                            <option value="female" {{ old('gender', $patientInfo->Gender) === 'female' ? 'selected' : '' }}>Female</option>
+                                            <option value="other" {{ old('gender', $patientInfo->Gender) === 'other' ? 'selected' : '' }}>Other</option>
+                                        </select>
+                                    </div>
+
+                                    <div class="col-md-6">
+                                        <label class="fl">Religion</label>
+                                        <input class="fc fc-plain" name="religion" value="{{ old('religion', $patientInfo->Religion) }}">
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label class="fl">Nationality</label>
+                                        <input class="fc fc-plain" name="nationality" value="{{ old('nationality', $patientInfo->Nationality) }}" required>
+                                    </div>
+
+                                    <div class="col-md-6">
+                                        <label class="fl">Occupation</label>
+                                        <input class="fc fc-plain" name="occupation" value="{{ old('occupation', $patientInfo->Occupation) }}">
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label class="fl">Cell/Mobile number</label>
+                                        <input class="fc fc-plain" name="phone" value="{{ old('phone', $patientInfo->PhoneNumber) }}" required>
+                                    </div>
+
+                                    <div class="col-12">
+                                        <label class="fl">Home address</label>
+                                        <input class="fc fc-plain" name="address" value="{{ old('address', $patientInfo->Address) }}" required>
+                                    </div>
+
+                                    <div class="col-md-6">
+                                        <label class="fl">Parent/Guardian's name</label>
+                                        <input class="fc fc-plain" name="guardian_name" value="{{ old('guardian_name', $patientInfo->ParentsName) }}">
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label class="fl">Parent/Guardian's occupation</label>
+                                        <input class="fc fc-plain" name="guardian_occupation" value="{{ old('guardian_occupation', $patientInfo->ParentsOccupation) }}">
+                                    </div>
+                                </div>
+
+                                <div class="d-flex justify-content-end mt-3">
+                                    <button type="submit" class="btn-prim" style="width:auto;padding-left:26px;padding-right:26px;"><i class="fas fa-save"></i> Save Changes</button>
+                                </div>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+
+                {{-- ===================== SECURITY ===================== --}}
+                <div class="settings-pane" id="pane-security" @if($activeTab !== 'security') hidden @endif>
+
+                    <!-- Tips -->
+                    <div class="tip-box">
+                        <h5><i class="fas fa-lightbulb" style="color:#3bd94d"></i> Security Tips</h5>
+                        <ul>
+                            <li><i class="fas fa-check-circle"></i> Use a mix of uppercase, lowercase, numbers and symbols</li>
+                            <li><i class="fas fa-check-circle"></i> Never reuse a password from another site</li>
+                            <li><i class="fas fa-check-circle"></i> Your password should be at least 8 characters long</li>
+                            <li><i class="fas fa-check-circle"></i> Avoid using your name or birthday in your password</li>
+                        </ul>
+                    </div>
+
+                    <!-- Change Password -->
+                    <form method="POST" action="{{ route('settings.password.update') }}">
+                        @csrf
+                        <div class="section-card">
+                            <div class="card-hd">
+                                <div class="card-hd-icon"><i class="fas fa-key"></i></div>
+                                <div>
+                                    <h4>Update Password</h4>
+                                    <p>Enter your current password then set a new one</p>
+                                </div>
+                            </div>
+                            <div class="card-bd">
+
+                                <div class="mb-3">
+                                    <label class="fl">Current Password</label>
+                                    <div class="pw-field">
+                                        <input type="checkbox" class="pw-toggle-checkbox" id="pwCheckCur">
+                                        <div class="fw">
+                                            <input type="text" class="fc pw-mask" name="current_password"
+                                                placeholder="Enter your current password" required>
+                                            <label for="pwCheckCur" class="eye-btn">
+                                                <i class="fas fa-eye"></i><i class="fas fa-eye-slash"></i>
+                                            </label>
+                                        </div>
+                                    </div>
+                                    <p class="field-hint"><i class="fas fa-info-circle"></i> This is the password you use to log
+                                        in.</p>
+                                </div>
+
+                                <div class="divider"></div>
+
+                                <div class="mb-3">
+                                    <label class="fl">New Password</label>
+                                    <div class="pw-field">
+                                        <input type="checkbox" class="pw-toggle-checkbox" id="pwCheckNew">
+                                        <div class="fw">
+                                            <input type="text" class="fc pw-mask" name="password"
+                                                placeholder="Create a strong new password" required minlength="8">
+                                            <label for="pwCheckNew" class="eye-btn">
+                                                <i class="fas fa-eye"></i><i class="fas fa-eye-slash"></i>
+                                            </label>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="mb-3">
+                                    <label class="fl">Confirm New Password</label>
+                                    <div class="pw-field">
+                                        <input type="checkbox" class="pw-toggle-checkbox" id="pwCheckConfirm">
+                                        <div class="fw">
+                                            <input type="text" class="fc pw-mask" name="password_confirmation"
+                                                placeholder="Re-enter your new password" required>
+                                            <label for="pwCheckConfirm" class="eye-btn">
+                                                <i class="fas fa-eye"></i><i class="fas fa-eye-slash"></i>
+                                            </label>
+                                        </div>
+                                    </div>
+                                    <p class="field-hint"><i class="fas fa-lock"></i> Make sure both passwords match exactly.</p>
+                                </div>
+
+                                <div class="divider"></div>
+
+                                <div class="row g-3">
+                                    <div class="col-md-12">
+                                        <button type="submit" class="btn-prim"><i class="fas fa-shield-alt"></i> Update
+                                            Password</button>
+                                    </div>
+                                </div>
+
+                            </div>
+                        </div>
+                    </form>
+
+                    <!-- Forgot / Reset -->
+                    <div class="section-card" style="border-color:rgba(239,68,68,0.14)">
+                        <div class="card-hd" style="border-color:rgba(239,68,68,0.1)">
+                            <div class="card-hd-icon" style="background:rgba(239,68,68,0.08);color:#ef4444"><i
+                                    class="fas fa-question-circle"></i></div>
+                            <div>
+                                <h4 style="color:#b91c1c">Forgot Your Password?</h4>
+                                <p>We can send a reset code to your registered email</p>
+                            </div>
+                        </div>
+                        <div class="card-bd">
+                            <p style="font-size:14px;margin-bottom:16px">If you've forgotten your current password, you can
+                                request a reset code sent to
+                                <strong style="color:#0f7a23">{{ session('user_email') }}</strong>.
+                            </p>
+                            <form method="POST" action="{{ route('settings.reset.send') }}">
+                                @csrf
+                                <button type="submit" class="btn-outline-sm">
+                                    <i class="fas fa-envelope"></i> Send Reset Code
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+
             </div>
         </div>
 
@@ -260,6 +407,8 @@
             </div>
         </div>
     </footer>
+
+    @include('partials.user-notif-modal')
 
     {{-- ===================== FORGOT PASSWORD MODAL (same pattern as login) ===================== --}}
     @if ($showResetModal)
@@ -350,6 +499,24 @@
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        document.querySelectorAll('.settings-tab-btn').forEach(function (btn) {
+            btn.addEventListener('click', function () {
+                var tab = btn.dataset.tab;
+
+                document.querySelectorAll('.settings-tab-btn').forEach(function (b) {
+                    b.classList.toggle('active', b === btn);
+                });
+                document.querySelectorAll('.settings-pane').forEach(function (pane) {
+                    pane.hidden = pane.id !== 'pane-' + tab;
+                });
+
+                var url = new URL(window.location.href);
+                url.searchParams.set('tab', tab);
+                window.history.replaceState({}, '', url);
+            });
+        });
+    </script>
 </body>
 
 </html>

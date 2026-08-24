@@ -23,11 +23,6 @@ class UserController extends Controller
 
         return view('users.landing-page', $bookingData);
     }
-    // show settings front end
-    public function showSettings()
-    {
-        return view('users.settings');
-    }
     // show user appointment front end
     public function showUserAppointment(Request $request)
     {
@@ -105,7 +100,17 @@ class UserController extends Controller
         }
 
         $action = $isReschedule ? 'rescheduled' : 'cancelled';
-        return redirect()->route('userAppointment')->with('success', "Appointment {$action}. The time slot is available again.");
+        $message = "Appointment {$action}. The time slot is available again.";
+
+        // Rescheduling is meant to drop the patient right back on the booking
+        // calendar so they can immediately pick a new slot, regardless of
+        // whether they started the reschedule from the landing page or the
+        // appointments page.
+        if ($isReschedule) {
+            return redirect(route('landingPage') . '#appointment')->with('success', $message);
+        }
+
+        return redirect()->route('userAppointment')->with('success', $message);
     }
 
     protected function releaseAppointmentSlots(Appointment $appointment): void
@@ -125,10 +130,5 @@ class UserController extends Controller
                 });
             if (!$stillHeld) DentistSchedule::where('Date', $appointment->AppointmentDate->format('Y-m-d'))->where('Time', $time)->update(['Status' => 'Available']);
         }
-    }
-    // show user profile front end
-    public function showUserProfile()
-    {
-        return view('users.user-profile');
     }
 }

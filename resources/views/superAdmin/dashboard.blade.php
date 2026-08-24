@@ -135,7 +135,7 @@
       <div class="content">
         <div class="page-head">
           <div>
-            <h2>Welcome back, Admin 👋</h2>
+            <h2>Welcome back, {{ $adminName }} 👋</h2>
             <div class="crumbs">Here's what's happening at the clinic today.</div>
           </div>
           <div class="d-flex gap-2">
@@ -203,24 +203,35 @@
                   <svg viewBox="0 0 600 240" preserveAspectRatio="none">
                     <defs>
                       <linearGradient id="g1" x1="0" x2="0" y1="0" y2="1">
-                        <stop offset="0%" stop-color="#167d1d" stop-opacity=".55" />
+                        <stop offset="0%" stop-color="#167d1d" stop-opacity=".32" />
                         <stop offset="100%" stop-color="#167d1d" stop-opacity="0" />
                       </linearGradient>
                     </defs>
+
+                    @foreach ($overviewChart['gridLines'] as $gy)
+                      <line x1="0" y1="{{ $gy }}" x2="600" y2="{{ $gy }}" stroke="#eef1ee" stroke-width="1" />
+                    @endforeach
+
                     <path d="{{ $overviewChart['areaPath'] }}" fill="url(#g1)" />
-                    <path d="{{ $overviewChart['linePath'] }}" fill="none" stroke="#167d1d" stroke-width="3" />
+                    <path d="{{ $overviewChart['linePath'] }}" fill="none" stroke="#167d1d" stroke-width="3"
+                      stroke-linecap="round" stroke-linejoin="round" />
+
                     @foreach ($overviewChart['points'] as $point)
+                      @if ($point['count'] > 0)
+                        <rect x="{{ $point['pillX'] }}" y="{{ max($point['y'] - 30, 4) }}"
+                          width="{{ $point['pillWidth'] }}" height="18" rx="9" fill="#0f172a" pointer-events="none" />
+                        <text x="{{ $point['x'] }}" y="{{ max($point['y'] - 30, 4) + 13 }}" text-anchor="middle"
+                          font-size="11" font-weight="700" fill="#fff" font-family="Inter"
+                          pointer-events="none">{{ $point['count'] }}</text>
+                      @endif
                       <circle cx="{{ $point['x'] }}" cy="{{ $point['y'] }}" r="10" fill="#167d1d" fill-opacity="0.001"
                         pointer-events="all" class="chart-tip-target" style="cursor:pointer;"
                         data-tip-color="#167d1d" data-tip-label="{{ $point['label'] }}"
                         data-tip-value="{{ $point['count'] }} appointment{{ $point['count'] === 1 ? '' : 's' }}"></circle>
-                      <circle cx="{{ $point['x'] }}" cy="{{ $point['y'] }}" r="4" fill="#167d1d" pointer-events="none" class="chart-dot" />
-                      <text x="{{ $point['x'] }}" y="{{ max($point['y'] - 14, 14) }}"
-                        text-anchor="{{ $loop->first ? 'start' : ($loop->last ? 'end' : 'middle') }}"
-                        font-size="13" font-weight="600" fill="#0f172a" font-family="Inter"
-                        pointer-events="none">{{ $point['count'] }}</text>
-                      <text x="{{ $point['x'] }}" y="232"
-                        text-anchor="{{ $loop->first ? 'start' : ($loop->last ? 'end' : 'middle') }}"
+                      <circle cx="{{ $point['x'] }}" cy="{{ $point['y'] }}" r="5" fill="#fff" stroke="#167d1d"
+                        stroke-width="2.5" pointer-events="none" class="chart-dot" />
+                      <text x="{{ $point['x'] }}" y="{{ $overviewChart['baselineY'] + 24 }}"
+                        text-anchor="{{ $point['anchor'] }}"
                         font-size="12" fill="#64748b" font-family="Inter" pointer-events="none">{{ $point['day'] }}</text>
                     @endforeach
                   </svg>

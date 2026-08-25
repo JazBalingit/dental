@@ -12,10 +12,12 @@ class PatientInfo extends Model
 
     protected $fillable = [
         'UserID',
+        'IsWalkIn',
         'LastName',
         'FirstName',
         'MiddleName',
         'PhoneNumber',
+        'Email',
         'DateOfBirth',
         'Nationality',
         'Address',
@@ -30,6 +32,7 @@ class PatientInfo extends Model
 
     protected $casts = [
         'DateOfBirth' => 'date:Y-m-d',
+        'IsWalkIn' => 'boolean',
     ];
 
     // Usage in Blade: $patientInfo->photo_url

@@ -18,7 +18,7 @@
 
 <body>
     <div class="app">
-        <aside class="sidebar">
+        <aside class="sidebar offcanvas position-sticky" tabindex="-1" id="sidebarOffcanvas">
             <div class="brand">
                 <div><img class="logo" src="/images/puspus_logo.png" alt=""></div>
                 <div>
@@ -46,7 +46,10 @@
         <main>
             <div class="topbar">
                 <div class="left">
-                    <button class="toggle"><i class="bi bi-list"></i></button>
+                    <button class="toggle d-lg-none" type="button" data-bs-toggle="offcanvas" data-bs-target="#sidebarOffcanvas"
+                        aria-controls="sidebarOffcanvas">
+                        <i class="bi bi-list"></i>
+                    </button>
                 </div>
                 <div class="right">
                     @include('partials.admin-notif-dropdown')
@@ -547,15 +550,11 @@
 
                             <div class="section-label mt-2">Credentials</div>
                             <div class="row g-3 mb-3">
-                                <div class="col-md-6">
-                                    <label class="form-label">New password <span class="text-muted">(optional)</span></label>
-                                    <div class="input-icon"><i class="bi bi-lock"></i><input type="password" name="password"
-                                            class="form-control" placeholder="Leave blank to keep current" minlength="8" /></div>
-                                </div>
-                                <div class="col-md-6">
-                                    <label class="form-label">Confirm new password</label>
-                                    <div class="input-icon"><i class="bi bi-shield-lock"></i><input type="password"
-                                            name="password_confirmation" class="form-control" placeholder="••••••••" /></div>
+                                <div class="col-12">
+                                    <button type="button" class="btn btn-pill btn-pill-edit" data-bs-dismiss="modal"
+                                        data-bs-toggle="modal" data-bs-target="#changePasswordModal{{ $acc->UserID }}">
+                                        <i class="bi bi-shield-lock"></i> Change Password
+                                    </button>
                                 </div>
                             </div>
 
@@ -563,6 +562,55 @@
                         <div class="modal-footer border-0 pt-0">
                             <button type="button" class="btn btn-ghost" data-bs-dismiss="modal">Cancel</button>
                             <button type="submit" class="btn btn-brand">Save Changes</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    @endforeach
+
+    {{-- ===================== CHANGE PASSWORD MODAL PER STAFF MEMBER ===================== --}}
+    {{-- Purely client-side (opened only by the button above) so Bootstrap
+    fully owns the show/hide/backdrop lifecycle — unlike the other modals on
+    this page, this one is never server-rendered as already-open, so there's
+    no stale backdrop left behind for the close button to fight with. Any
+    validation or "current password is incorrect" error surfaces via the
+    page's usual flash-toast instead of an inline alert here. --}}
+    @foreach ($staff->merge($archivedStaff) as $acc)
+        <div class="modal fade" id="changePasswordModal{{ $acc->UserID }}" tabindex="-1" aria-hidden="true">
+            <div class="modal-dialog modal-dialog-centered">
+                <div class="modal-content">
+                    <div class="modal-header border-0 pb-0">
+                        <div>
+                            <h5 class="modal-title fw-semibold">Change Password</h5>
+                            <div class="small text-muted">{{ trim(($acc->staffInfo->FirstName ?? '') . ' ' . ($acc->staffInfo->LastName ?? '')) ?: $acc->Email }}</div>
+                        </div>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <form method="POST" action="{{ route('staffAcc.password.update', $acc->UserID) }}">
+                        <div class="modal-body pt-2">
+                            @csrf
+                            <div class="mb-3">
+                                <label class="form-label">Current password</label>
+                                <div class="input-icon"><i class="bi bi-lock"></i><input type="password"
+                                        name="current_password" class="form-control" required></div>
+                            </div>
+                            <div class="row g-3">
+                                <div class="col-md-6">
+                                    <label class="form-label">New password</label>
+                                    <div class="input-icon"><i class="bi bi-key"></i><input type="password" name="password"
+                                            class="form-control" minlength="8" required></div>
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label">Confirm new password</label>
+                                    <div class="input-icon"><i class="bi bi-shield-lock"></i><input type="password"
+                                            name="password_confirmation" class="form-control" required></div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="modal-footer border-0 pt-0">
+                            <button type="button" class="btn btn-ghost" data-bs-dismiss="modal">Cancel</button>
+                            <button type="submit" class="btn btn-brand">Update Password</button>
                         </div>
                     </form>
                 </div>

@@ -7,10 +7,11 @@ use Carbon\Carbon;
 use App\Models\DentistSchedule;
 use App\Models\Appointment;
 use App\Services\AuditLogService;
+use App\Services\NotificationService;
 
 class DentistScheduleController extends Controller
 {
-    public function __construct(protected AuditLogService $auditLog)
+    public function __construct(protected AuditLogService $auditLog, protected NotificationService $notifications)
     {
     }
 
@@ -27,8 +28,21 @@ class DentistScheduleController extends Controller
         '18:00' => '6:00',
     ];
 
+    protected function guard()
+    {
+        if (!session('user_id') || session('user_role') !== 'admin') {
+            return redirect()->route('login')->with('login_error', 'Please log in as an administrator to continue.');
+        }
+
+        return null;
+    }
+
     public function index(Request $request)
     {
+        if ($redirect = $this->guard()) {
+            return $redirect;
+        }
+
         // Accept either ?month=Y-m (used by prev/next arrows)
         // or ?year=YYYY&monthNum=M (used by the year/month picker form)
         if ($request->filled('year') && $request->filled('monthNum')) {
@@ -107,6 +121,10 @@ class DentistScheduleController extends Controller
 
     public function toggle(Request $request)
     {
+        if ($redirect = $this->guard()) {
+            return $redirect;
+        }
+
         $request->validate([
             'date' => 'required|date',
             'time' => 'required|string',
@@ -169,12 +187,18 @@ class DentistScheduleController extends Controller
     }
 
     /**
-     * Turns every slot on a date that isn't held by an appointment to
-     * Not Available (or back to Available if the day is already fully
-     * closed) in one click, instead of toggling each of the 9 slots by hand.
+     * Turns every slot on a date to Not Available (or back to Available if
+     * the day is already fully closed) in one click, instead of toggling
+     * each of the 9 slots by hand. Closing the day cancels any Pending or
+     * Approved appointments still on it and emails each patient — a
+     * Completed appointment already happened, so its slot is left alone.
      */
     public function toggleDay(Request $request)
     {
+        if ($redirect = $this->guard()) {
+            return $redirect;
+        }
+
         $request->validate([
             'date' => 'required|date',
             'month' => 'nullable|string',
@@ -188,20 +212,20 @@ class DentistScheduleController extends Controller
                 ->with('error', 'Sundays are not available for scheduling.');
         }
 
-        $heldAppointments = Appointment::whereDate('AppointmentDate', $request->date)
-            ->whereIn('Status', ['Pending', 'Approved', 'Completed'])
+        $completedAppointments = Appointment::whereDate('AppointmentDate', $request->date)
+            ->where('Status', 'Completed')
             ->get();
-        $heldTimes = collect($this->occupiedSlots($heldAppointments))
+        $completedTimes = collect($this->occupiedSlots($completedAppointments))
             ->keys()
             ->map(fn ($key) => explode('_', $key, 2)[1])
             ->all();
 
-        $editableTimes = array_diff(array_keys($this->slots), $heldTimes);
+        $editableTimes = array_diff(array_keys($this->slots), $completedTimes);
 
         if (empty($editableTimes)) {
             return redirect()
                 ->route('dentistSchedule', ['month' => $request->input('month', now()->format('Y-m'))])
-                ->with('error', 'Every slot that day is already held by an appointment.');
+                ->with('error', 'Every slot that day is already held by a completed appointment.');
         }
 
         $rows = DentistSchedule::where('Date', $request->date)->whereIn('Time', $editableTimes)->get()->keyBy('Time');
@@ -217,10 +241,58 @@ class DentistScheduleController extends Controller
             $slot->save();
         }
 
-        $this->auditLog->log('Edit', "Set all open slots on {$request->date} to {$newStatus}.");
+        $cancelledCount = 0;
+
+        if ($newStatus === 'Not Available') {
+            $affectedAppointments = Appointment::with('patientInfo.userAccount')
+                ->whereDate('AppointmentDate', $request->date)
+                ->whereIn('Status', ['Pending', 'Approved'])
+                ->get();
+
+            $dateLabel = $date->format('F j, Y');
+
+            foreach ($affectedAppointments as $appointment) {
+                $appointment->Status = 'Cancelled';
+                $appointment->DeclineReason = 'The clinic is closed on this date.';
+                $appointment->save();
+                $cancelledCount++;
+
+                $timeLabel = Carbon::createFromFormat('H:i', $appointment->AppointmentTime)->format('g:i A');
+                $user = $appointment->patientInfo->userAccount ?? null;
+
+                if ($user) {
+                    $this->notifications->notifyUser(
+                        $user,
+                        'Appointment Cancelled — Clinic Closed',
+                        "We're sorry, but your appointment on {$dateLabel} at {$timeLabel} has been cancelled because the clinic will be closed that day. Please feel free to book another available date.",
+                        'danger',
+                        $appointment->AppointmentID,
+                        'Cancelled'
+                    );
+                }
+            }
+
+            if ($cancelledCount > 0) {
+                $this->notifications->notifyAdmins(
+                    'Appointments Cancelled — Clinic Closed',
+                    "{$cancelledCount} appointment(s) on {$dateLabel} were cancelled because the day was marked closed.",
+                    'warning'
+                );
+            }
+        }
+
+        $this->auditLog->log(
+            'Edit',
+            "Set all slots on {$request->date} to {$newStatus}."
+                . ($cancelledCount > 0 ? " Cancelled {$cancelledCount} appointment(s) due to closure." : '')
+        );
+
+        $successMessage = $newStatus === 'Not Available'
+            ? ('Day marked as closed.' . ($cancelledCount > 0 ? " {$cancelledCount} appointment(s) were cancelled and the patient(s) notified." : ''))
+            : 'Day reopened.';
 
         return redirect()
             ->route('dentistSchedule', ['month' => $request->input('month', now()->format('Y-m'))])
-            ->with('success', $newStatus === 'Not Available' ? 'Day marked as closed.' : 'Day reopened.');
+            ->with('success', $successMessage);
     }
 }

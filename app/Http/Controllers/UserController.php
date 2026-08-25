@@ -21,7 +21,10 @@ class UserController extends Controller
         // The appointment calendar is private to signed-in patients.
         $bookingData = session('user_id') ? $booking->calendarData($request) : [];
 
-        return view('users.landing-page', $bookingData);
+        // Lets the Contact form skip asking for name/email when we already know them.
+        $currentPatient = session('user_id') ? UserAccount::with('patientInfo')->find(session('user_id')) : null;
+
+        return view('users.landing-page', array_merge($bookingData, ['currentPatient' => $currentPatient]));
     }
     // show user appointment front end
     public function showUserAppointment(Request $request)

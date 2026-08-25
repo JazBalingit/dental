@@ -140,7 +140,7 @@
                       <td>{{ optional($a->AppointmentDate)->format('M j, Y') }}</td>
                       <td>{{ $a->AppointmentTime }}</td>
                       <td>{{ trim(($a->patientInfo->FirstName ?? '') . ' ' . ($a->patientInfo->LastName ?? '')) ?: '—' }}</td>
-                      <td>{{ $a->patientInfo->PhoneNumber ?? $a->patientInfo->userAccount->Email ?? '—' }}</td>
+                      <td>{{ $a->patientInfo->PhoneNumber ?? $a->patientInfo->userAccount?->Email ?? $a->patientInfo->Email ?? '—' }}</td>
                       <td>{{ $a->service->ServiceName ?? '—' }}</td>
                       <td><span class="pill-mini {{ $statusPill($a->Status) }}">{{ $a->Status }}</span></td>
                     </tr>

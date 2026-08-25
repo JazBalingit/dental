@@ -31,8 +31,6 @@ Route::get('signup', [AuthController::class, 'showSignup'])->name('signup');
 
 // show all super admin front end
 Route::get('dashboard', [AdminController::class, 'showDashboard'])->name('dashboard');
-Route::get('staff-accounts', [AdminController::class, 'showStaffAcc'])->name('staffAcc');
-Route::get('dentist-schedule', [AdminController::class, 'showDentistSchedule'])->name('dentistSchedule');
 Route::get('/reports/generate', [ReportController::class, 'generate'])->name('reports.generate');
 Route::get('walk-in', [WalkInController::class, 'index'])->name('walkIn');
 Route::get('/walk-in/search-patient', [WalkInController::class, 'searchPatient'])->name('walkIn.search');
@@ -92,6 +90,7 @@ Route::post('/staff-accounts', [StaffAccountController::class, 'store'])->name('
 Route::post('/staff-accounts/{id}/update', [StaffAccountController::class, 'update'])->name('staffAcc.update');
 Route::post('/staff-accounts/{id}/archive', [StaffAccountController::class, 'archive'])->name('staffAcc.archive');
 Route::post('/staff-accounts/{id}/unarchive', [StaffAccountController::class, 'unarchive'])->name('staffAcc.unarchive');
+Route::post('/staff-accounts/{id}/password/update', [StaffAccountController::class, 'updatePassword'])->name('staffAcc.password.update');
 
 // user accounts backend route (patients only — no create here, they sign up themselves)
 Route::get('/user-accounts', [UserAccountController::class, 'index'])->name('userAcc');

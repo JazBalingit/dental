@@ -14,8 +14,6 @@ use App\Services\NotificationService;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Hash;
-use Illuminate\Support\Str;
 
 class WalkInController extends Controller
 {
@@ -85,7 +83,7 @@ class WalkInController extends Controller
             'Gender' => $p->Gender,
             'Address' => $p->Address,
             'PhoneNumber' => $p->PhoneNumber,
-            'Email' => $p->userAccount->Email ?? null,
+            'Email' => $p->userAccount?->Email ?? $p->Email,
         ]));
     }
 
@@ -104,7 +102,7 @@ class WalkInController extends Controller
             'birthdate' => 'required_if:patient_source,new|nullable|date|before:today',
             'gender' => 'required_if:patient_source,new|nullable|string',
             'address' => 'required_if:patient_source,new|nullable|string|max:255',
-            'email' => 'nullable|email|unique:tbl_useraccount,Email',
+            'email' => 'nullable|email|max:255',
             'phone' => 'required_if:patient_source,new|nullable|string|max:20',
             'service_id' => 'required|exists:tbl_services,ServiceID',
             'date' => 'required|date',
@@ -129,22 +127,20 @@ class WalkInController extends Controller
                 $patientInfo = PatientInfo::with('userAccount')->findOrFail($data['patient_id']);
                 $user = $patientInfo->userAccount;
             } else {
+                // Walk-ins are recorded by staff, not the patient themselves —
+                // no tbl_useraccount row is created for them. Creating one here
+                // used to squat on the patient's real email, which then blocked
+                // them from ever signing up for a real account with it.
                 $hasEmail = filled($data['email'] ?? null);
-                $email = $hasEmail ? $data['email'] : 'walkin_' . Str::uuid() . '@placeholder.local';
-
-                $user = UserAccount::create([
-                    'Email' => $email,
-                    'Password' => Hash::make(Str::random(40)),
-                    'AccountRole' => 'patient',
-                    'DateCreated' => now(),
-                ]);
 
                 $patientInfo = PatientInfo::create([
-                    'UserID' => $user->UserID,
+                    'UserID' => null,
+                    'IsWalkIn' => true,
                     'LastName' => $data['last_name'],
                     'FirstName' => $data['first_name'],
                     'MiddleName' => $data['middle_name'] ?? null,
                     'PhoneNumber' => $data['phone'],
+                    'Email' => $hasEmail ? $data['email'] : null,
                     'DateOfBirth' => $data['birthdate'],
                     'Age' => Carbon::parse($data['birthdate'])->age,
                     'Gender' => $data['gender'],

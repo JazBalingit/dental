@@ -146,15 +146,11 @@ class StaffAccountController extends Controller
             'address' => 'required|string|max:255',
             'email' => 'required|email|unique:tbl_useraccount,Email,' . $account->UserID . ',UserID',
             'phone' => 'required|string|max:20',
-            'password' => 'nullable|string|min:8|confirmed',
             'photo' => 'nullable|image|mimes:jpg,jpeg,png|max:2048',
         ]);
 
         $account->Email = $data['email'];
         $account->Position = $data['role'];
-        if (!empty($data['password'])) {
-            $account->Password = Hash::make($data['password']);
-        }
         $account->save();
 
         $updates = [
@@ -212,5 +208,38 @@ class StaffAccountController extends Controller
         $this->auditLog->log('Unarchive', "Unarchived staff account: {$name}.");
 
         return redirect()->route('staffAcc')->with('success', 'Account restored. This staff member can log in again.');
+    }
+
+    /**
+     * Changing another person's password is a sensitive action, so it's
+     * kept as its own step separate from the general edit form — same
+     * current/new/confirm shape as StaffProfileController's self-service
+     * password change, just checked against the target staff account's
+     * current password instead of the acting admin's own.
+     */
+    public function updatePassword(Request $request, $id)
+    {
+        if ($redirect = $this->guard()) {
+            return $redirect;
+        }
+
+        $account = UserAccount::where('AccountType', 'Staff')->findOrFail($id);
+
+        $data = $request->validate([
+            'current_password' => 'required|string',
+            'password' => 'required|string|min:8|confirmed',
+        ]);
+
+        if (!Hash::check($data['current_password'], $account->Password)) {
+            return redirect()->route('staffAcc')->with('error', 'Current password is incorrect.');
+        }
+
+        $account->Password = Hash::make($data['password']);
+        $account->save();
+
+        $name = $account->staffInfo ? trim($account->staffInfo->FirstName . ' ' . $account->staffInfo->LastName) : $account->Email;
+        $this->auditLog->log('Edit', "Changed the password for staff account: {$name}.");
+
+        return redirect()->route('staffAcc')->with('success', 'Password updated successfully.');
     }
 }

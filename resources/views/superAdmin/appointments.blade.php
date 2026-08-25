@@ -187,7 +187,11 @@
                                     @endphp
                                     <tr>
                                         <td><span class="fw-semibold">{{ $appt->AppointmentDate->format('M j, Y') }} &bull; {{ $timeLabel }}</span></td>
-                                        <td><span><img class="avatar-initials" src="{{ $p->photo_url ?? asset('images/default.png') }}" alt=""></span>{{ $p->FirstName ?? '' }} {{ $p->LastName ?? '' }}</td>
+                                        <td><span><img class="avatar-initials" src="{{ $p->photo_url ?? asset('images/default.png') }}" alt=""></span>{{ $p->FirstName ?? '' }} {{ $p->LastName ?? '' }}
+                                            @if ($appt->Source === 'Walk-in')
+                                                <span class="pill pill-muted">Walk-in</span>
+                                            @endif
+                                        </td>
                                         <td>{{ $appt->service->ServiceName ?? $appt->TypeOfAppointment }}</td>
                                         <td>{{ $appt->ApprovedAt ? $appt->ApprovedAt->format('M j, Y g:i A') : '—' }}</td>
                                         <td><span class="pill {{ $pillClass }}">{{ $appt->Status }}</span></td>

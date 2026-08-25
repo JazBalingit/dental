@@ -146,9 +146,12 @@
                                 <div class="d-flex align-items-center gap-2">
                                     <span><img class="avatar-initials" src="{{ $p->photo_url ?? asset('images/default.png') }}" alt=""></span>
                                     <span class="fw-semibold">{{ $p->FirstName ?? '' }} {{ $p->LastName ?? '' }}</span>
+                                    @if ($p->IsWalkIn ?? false)
+                                        <span class="pill pill-muted">Walk-in</span>
+                                    @endif
                                 </div>
                             </td>
-                            <td>{{ $p->userAccount->Email ?? '—' }}</td>
+                            <td>{{ $p->userAccount?->Email ?? $p->Email ?? '—' }}</td>
                             <td>{{ $record->VisitDate->format('M j, Y') }} &bull; {{ \Carbon\Carbon::createFromFormat('H:i', $record->VisitTime)->format('g:i A') }}</td>
                             <td>{{ $record->Service }}</td>
                             <td>{{ $record->created_at->format('M j, Y g:i A') }}</td>
@@ -207,9 +210,12 @@
                                 <div class="d-flex align-items-center gap-2">
                                     <span><img class="avatar-initials" src="{{ $p->photo_url ?? asset('images/default.png') }}" alt=""></span>
                                     <span class="fw-semibold">{{ $p->FirstName ?? '' }} {{ $p->LastName ?? '' }}</span>
+                                    @if ($p->IsWalkIn ?? false)
+                                        <span class="pill pill-muted">Walk-in</span>
+                                    @endif
                                 </div>
                             </td>
-                            <td>{{ $p->userAccount->Email ?? '—' }}</td>
+                            <td>{{ $p->userAccount?->Email ?? $p->Email ?? '—' }}</td>
                             <td>{{ $record->VisitDate->format('M j, Y') }} &bull; {{ \Carbon\Carbon::createFromFormat('H:i', $record->VisitTime)->format('g:i A') }}</td>
                             <td>{{ $record->Service }}</td>
                             <td>{{ $record->created_at->format('M j, Y g:i A') }}</td>
@@ -290,6 +296,9 @@
                 <div class="hero-badges">
                   <span class="pill pill-success"><i class="bi bi-check-circle"></i> {{ $record->Status }}</span>
                   <span class="pill pill-muted"><i class="bi bi-tooth"></i> {{ $record->Service }}</span>
+                  @if ($p->IsWalkIn ?? false)
+                    <span class="pill pill-muted"><i class="bi bi-person-walking"></i> Walk-in</span>
+                  @endif
                 </div>
               </div>
             </div>
@@ -327,7 +336,7 @@
               </div>
               <div class="field-group">
                 <label class="field-label"><i class="bi bi-envelope"></i> Email</label>
-                <input type="email" class="field-input" value="{{ $p->userAccount->Email ?? '' }}" disabled />
+                <input type="email" class="field-input" value="{{ $p->userAccount?->Email ?? $p->Email ?? '' }}" disabled />
               </div>
               <div class="field-group">
                 <label class="field-label"><i class="bi bi-calendar-date"></i> Date of Birth</label>

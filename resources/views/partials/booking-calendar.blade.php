@@ -75,6 +75,8 @@
                         // Every slot that day is either held by an appointment or manually
                         // disabled by the dentist — treat the whole day as closed, same as Sunday.
                         $isFullyClosed = $takenSlots->count() === count($bookSlots);
+                        $availableCount = count($bookSlots) - $takenSlots->count();
+                        $isPast = $d->lt(\Carbon\Carbon::parse($bookToday));
                     @endphp
 
                     @if ($inMonth && !$isSunday && !$isFullyClosed)
@@ -82,29 +84,41 @@
                             class="day-cell border-0 text-start p-0 w-100 d-block {{ $dateStr === $bookToday ? 'today' : '' }}"
                             data-bs-toggle="modal" data-bs-target="#bookDay{{ $d->format('Ymd') }}{{ $calendarMode === 'select' ? 'Wi' : '' }}">
                             <div class="n" style="margin-left: 8px;">{{ $d->day }}</div>
-                            @foreach ($takenSlots->take(3) as $time => $label)
-                                @php
-                                    $apptKey = $dateStr . '_' . $time;
-                                    $apptForSlot = $bookOccupiedSlots[$apptKey] ?? null;
-                                    $isMine = $apptForSlot && $apptForSlot->PatientID === $bookCurrentPatientId;
-                                    if ($apptForSlot && $apptForSlot->Status === 'Completed') {
-                                        $label = 'Completed';
-                                        $evClass = 'ev-completed';
-                                    } elseif ($isMine) {
-                                        $label = $apptForSlot->Status === 'Approved' ? 'Booked by you' : 'Appointment Pending';
-                                        $evClass = $apptForSlot->Status === 'Approved' ? 'ev-booked' : 'ev-pending';
-                                    } elseif ($apptForSlot) {
-                                        $label = $apptForSlot->Status === 'Approved' ? 'Booked' : 'Appointment Pending for other patient';
-                                        $evClass = $apptForSlot->Status === 'Approved' ? 'ev-booked' : 'ev-pending';
-                                    } else {
-                                        $label = 'Not available';
-                                        $evClass = 'ev-unavailable';
-                                    }
-                                @endphp
-                                <span
-                                    class="ev {{ $evClass }}">{{ \Carbon\Carbon::createFromFormat('H:i', $time)->format('g:i A') }}
-                                    · {{ $label }}</span>
-                            @endforeach
+                            @if ($calendarMode === 'post' && $isPast)
+                                {{-- A day that's already passed can't be booked, so an available-slot
+                                     count would be meaningless — say plainly why there's nothing to book. --}}
+                                <span class="ev ev-unavailable">Date has passed</span>
+                            @elseif ($calendarMode === 'post')
+                                {{-- Patients just need to know how much room is left that day —
+                                     a per-slot Completed/Pending/Booked list is admin-side detail. --}}
+                                <span class="ev {{ $takenSlots->count() > 0 ? 'ev-pending' : 'ev-booked' }}">
+                                    {{ $availableCount }} slot{{ $availableCount === 1 ? '' : 's' }} available
+                                </span>
+                            @else
+                                @foreach ($takenSlots->take(3) as $time => $label)
+                                    @php
+                                        $apptKey = $dateStr . '_' . $time;
+                                        $apptForSlot = $bookOccupiedSlots[$apptKey] ?? null;
+                                        $isMine = $apptForSlot && $apptForSlot->PatientID === $bookCurrentPatientId;
+                                        if ($apptForSlot && $apptForSlot->Status === 'Completed') {
+                                            $label = 'Completed';
+                                            $evClass = 'ev-completed';
+                                        } elseif ($isMine) {
+                                            $label = $apptForSlot->Status === 'Approved' ? 'Booked by you' : 'Appointment Pending';
+                                            $evClass = $apptForSlot->Status === 'Approved' ? 'ev-booked' : 'ev-pending';
+                                        } elseif ($apptForSlot) {
+                                            $label = $apptForSlot->Status === 'Approved' ? 'Booked' : 'Appointment Pending for other patient';
+                                            $evClass = $apptForSlot->Status === 'Approved' ? 'ev-booked' : 'ev-pending';
+                                        } else {
+                                            $label = 'Not available';
+                                            $evClass = 'ev-unavailable';
+                                        }
+                                    @endphp
+                                    <span
+                                        class="ev {{ $evClass }}">{{ \Carbon\Carbon::createFromFormat('H:i', $time)->format('g:i A') }}
+                                        · {{ $label }}</span>
+                                @endforeach
+                            @endif
                         </button>
                     @elseif ($inMonth && ($isSunday || $isFullyClosed))
                         <button type="button" class="day-cell day-off border-0 text-start p-0 w-100 d-block" disabled>

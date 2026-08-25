@@ -187,7 +187,11 @@
                                     <tr>
                                         <td><span><img class="avatar-initials"
                                                     src="{{ $p->photo_url ?? asset('images/default.png') }}"
-                                                    alt=""></span>{{ $p->FirstName }} {{ $p->LastName }}</td>
+                                                    alt=""></span>{{ $p->FirstName }} {{ $p->LastName }}
+                                            @if ($appt->Source === 'Walk-in')
+                                                <span class="pill pill-muted">Walk-in</span>
+                                            @endif
+                                        </td>
                                         <td>{{ $appt->service->ServiceName ?? '—' }}</td>
                                         <td>{{ $appt->AppointmentDate->format('F j, Y') }} &bull; {{ $timeLabel }}</td>
                                         <td>{{ $appt->created_at->format('M j, Y g:i A') }}</td>
@@ -255,7 +259,11 @@
                             <img class="avatar-initials" src="{{ $p->photo_url ?? asset('images/default.png') }}" alt=""
                                 style="width:64px;height:64px;">
                             <div>
-                                <div class="fw-semibold">{{ $p->FirstName }} {{ $p->LastName }}</div>
+                                <div class="fw-semibold">{{ $p->FirstName }} {{ $p->LastName }}
+                                    @if ($appt->Source === 'Walk-in')
+                                        <span class="pill pill-muted">Walk-in</span>
+                                    @endif
+                                </div>
                                 <div class="small text-muted-2">Patient ID:
                                     PT-{{ str_pad($p->PatientID, 4, '0', STR_PAD_LEFT) }}</div>
                             </div>
@@ -325,7 +333,7 @@
                             <div class="col-md-6">
                                 <label class="form-label">Email address</label>
                                 <div class="input-icon"><i class="bi bi-envelope"></i><input type="email"
-                                        class="form-control" value="{{ $p->userAccount->Email ?? '' }}" disabled /></div>
+                                        class="form-control" value="{{ $p->userAccount?->Email ?? $p->Email ?? '' }}" disabled /></div>
                             </div>
                             <div class="col-md-6">
                                 <label class="form-label">Cell/Mobile number</label>

@@ -23,7 +23,7 @@
         $showVerifyForm = session('show_staff_verify', false);
     @endphp
     <div class="app">
-        <aside class="sidebar">
+        <aside class="sidebar offcanvas position-sticky" tabindex="-1" id="sidebarOffcanvas">
             <div class="brand">
                 <div><img class="logo" src="/images/adams_logo2.png" alt=""></div>
                 <div>
@@ -51,7 +51,10 @@
         <main>
             <div class="topbar">
                 <div class="left">
-                    <button class="toggle"><i class="bi bi-list"></i></button>
+                    <button class="toggle d-lg-none" type="button" data-bs-toggle="offcanvas" data-bs-target="#sidebarOffcanvas"
+                        aria-controls="sidebarOffcanvas">
+                        <i class="bi bi-list"></i>
+                    </button>
                 </div>
                 <div class="right">
                     <div class="dropdown">

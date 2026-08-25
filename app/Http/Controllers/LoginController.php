@@ -10,6 +10,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\RateLimiter;
+use Illuminate\Support\Str;
 
 class LoginController extends Controller
 {
@@ -47,6 +48,13 @@ class LoginController extends Controller
         RateLimiter::clear($throttleKey);
         $request->session()->regenerate();
 
+        // regenerate() rotates the session ID but keeps existing session data,
+        // so a leftover is_super_admin flag from an earlier super-admin login
+        // in this same browser session would otherwise survive into this
+        // completely unrelated account's session and bypass every guard that
+        // checks it (EnsureStaffIsVerified, AuditLogService).
+        session()->forget('is_super_admin');
+
         session([
             'user_id' => $user->UserID,
             'user_role' => $user->AccountRole,
@@ -67,10 +75,14 @@ class LoginController extends Controller
     }
 
     /**
-     * Credentials from config/superadmin.php (.env) — grants a full admin
-     * session with no tbl_useraccount row. Disabled if either is blank.
-     * No ActivityLog entry is written since UserID is a foreign key into
-     * tbl_useraccount and this session's UserID doesn't exist there.
+     * Credentials from config/superadmin.php (.env). Disabled if either is
+     * blank. Auth itself still runs against the .env values, never the DB —
+     * but the super admin gets (or reuses) a real tbl_useraccount row so
+     * that everything keyed to a real UserID — audit logs, activity logs,
+     * admin notifications — works for them the same as any other admin
+     * instead of being silently skipped. The row's Password is never used
+     * to authenticate: whoever holds the .env credentials logs in regardless
+     * of what's stored there.
      */
     protected function loginAsSuperAdmin(Request $request, array $data): bool
     {
@@ -81,15 +93,34 @@ class LoginController extends Controller
             return false;
         }
 
+        $account = UserAccount::firstOrCreate(
+            ['Email' => $email],
+            [
+                'Password' => Hash::make(Str::random(40)),
+                'AccountRole' => 'admin',
+                'AccountType' => 'User',
+                'DateCreated' => now(),
+                'EmailVerifiedAt' => now(),
+                'IsArchived' => false,
+            ]
+        );
+
         $request->session()->regenerate();
 
         session([
-            'user_id' => config('superadmin.user_id'),
+            'user_id' => $account->UserID,
             'user_role' => 'admin',
             'user_email' => $email,
-            'account_type' => 'staff',
+            'account_type' => 'user',
             'is_super_admin' => true,
         ]);
+
+        $activityLog = ActivityLog::create([
+            'UserID' => $account->UserID,
+            'ActivityType' => 'Login',
+            'LoggedInTime' => now(),
+        ]);
+        session(['activity_log_id' => $activityLog->ActivityLogsID]);
 
         return true;
     }
@@ -101,7 +132,7 @@ class LoginController extends Controller
                 ->update(['LoggedOutTime' => now()]);
         }
 
-        $request->session()->forget(['user_id', 'user_role', 'user_email', 'account_type', 'activity_log_id']);
+        $request->session()->forget(['user_id', 'user_role', 'user_email', 'account_type', 'activity_log_id', 'is_super_admin']);
         $request->session()->regenerate();
 
         return redirect()->route('login');

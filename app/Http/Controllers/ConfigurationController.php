@@ -200,6 +200,8 @@ class ConfigurationController extends Controller
 
         ActivityLog::findOrFail($id)->update(['IsArchived' => true]);
 
+        $this->auditLog->log('Archive', "Archived activity log entry #{$id}.");
+
         return redirect()->route('configuration')->with('success', 'Activity log archived.');
     }
 
@@ -210,6 +212,8 @@ class ConfigurationController extends Controller
         }
 
         ActivityLog::findOrFail($id)->update(['IsArchived' => false]);
+
+        $this->auditLog->log('Unarchive', "Restored activity log entry #{$id}.");
 
         return redirect()->route('configuration')->with('success', 'Activity log restored.');
     }
@@ -222,6 +226,8 @@ class ConfigurationController extends Controller
 
         AuditLog::findOrFail($id)->update(['IsArchived' => true]);
 
+        $this->auditLog->log('Archive', "Archived audit log entry #{$id}.");
+
         return redirect()->route('configuration')->with('success', 'Audit log archived.');
     }
 
@@ -232,6 +238,8 @@ class ConfigurationController extends Controller
         }
 
         AuditLog::findOrFail($id)->update(['IsArchived' => false]);
+
+        $this->auditLog->log('Unarchive', "Restored audit log entry #{$id}.");
 
         return redirect()->route('configuration')->with('success', 'Audit log restored.');
     }

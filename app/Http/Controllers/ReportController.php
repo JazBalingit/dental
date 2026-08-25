@@ -12,8 +12,21 @@ class ReportController extends Controller
 {
     protected const TYPES = ['appointments', 'patients', 'schedule', 'summary'];
 
+    protected function guard()
+    {
+        if (!session('user_id') || session('user_role') !== 'admin') {
+            return redirect()->route('login')->with('login_error', 'Please log in as an administrator to continue.');
+        }
+
+        return null;
+    }
+
     public function generate(Request $request)
     {
+        if ($redirect = $this->guard()) {
+            return $redirect;
+        }
+
         $type = in_array($request->query('type'), self::TYPES, true) ? $request->query('type') : 'appointments';
         $range = $request->query('range', 'week');
         [$start, $end, $rangeLabel] = $this->resolveRange($range, $request->query('from'), $request->query('to'));

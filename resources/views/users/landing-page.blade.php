@@ -52,9 +52,9 @@
                     <i class="bi bi-person-circle"></i>
                     <span>{{ session('user_email') }}</span>
                   </a>
-                  <button class="nav-link navh border-0 bg-transparent dropdown-toggle"
-                    type="button" data-bs-toggle="dropdown" aria-expanded="false"
-                    aria-label="Account menu" style="padding-left:6px;padding-right:10px;margin-left:-4px;"></button>
+                  <button class="nav-link navh border-0 bg-transparent dropdown-toggle" type="button"
+                    data-bs-toggle="dropdown" aria-expanded="false" aria-label="Account menu"
+                    style="padding-left:6px;padding-right:10px;margin-left:-4px;"></button>
                   <ul class="dropdown-menu dropdown-menu-end shadow-sm">
                     <li>
                       <a class="dropdown-item small" href="{{ route('userAppointment') }}">
@@ -101,7 +101,8 @@
         <p>Your smile is our priority. Experience compassionate, professional dental care in a welcoming environment.
         </p>
         <div class="hero-cta">
-          <a href="{{ session('user_id') ? '#appointment' : route('login') }}" class="book"><i class="fa-regular fa-calendar-check me-2"></i>{{ session('user_id') ? 'Book Appointment' : 'Sign in to Book' }}</a>
+          <a href="{{ session('user_id') ? '#appointment' : route('login') }}" class="book"><i
+              class="fa-regular fa-calendar-check me-2"></i>{{ session('user_id') ? 'Book Appointment' : 'Sign in to Book' }}</a>
           <a href="#how" class="book-ghost">How It Works</a>
         </div>
       </div>
@@ -182,49 +183,57 @@
           <div class="soft-card step-card">
             <span class="step-badge">1</span>
             <div class="step-icon"><i class="fa-solid fa-user-plus"></i></div>
-            <h5>Create an Account</h5>
-            <p>Sign up with your basic details to get started with online booking.</p>
-            <a href="#" class="step-cta"><i class="fa-solid fa-user-plus me-2"></i>Sign Up</a>
+            <h5>Create an Account or Log In</h5>
+            <p>Sign up with your basic details, or log back in if you already have an account with us.</p>
+            @unless (session('user_id'))
+              <a href="{{ route('signup') }}" class="step-cta"><i class="fa-solid fa-user-plus me-2"></i>Sign Up</a>
+            @endunless
           </div>
         </div>
         <div class="col">
           <div class="soft-card step-card">
             <span class="step-badge">2</span>
             <div class="step-icon"><i class="fa-regular fa-calendar"></i></div>
-            <h5>Go to Appointments</h5>
-            <p>After logging in, open the Appointments page from your dashboard.</p>
+            <h5>Open the Appointment Section</h5>
+            <p>Once you're logged in, scroll down to "Book Now" — the doctor's monthly schedule appears right here on
+              this page.</p>
           </div>
         </div>
         <div class="col">
           <div class="soft-card step-card">
             <span class="step-badge">3</span>
-            <div class="step-icon"><i class="fa-solid fa-tooth"></i></div>
-            <h5>Select a Service</h5>
-            <p>Choose the dental treatment you need from our list of services.</p>
+            <div class="step-icon"><i class="fa-regular fa-calendar-days"></i></div>
+            <h5>Pick an Open Date</h5>
+            <p>Click any date that still has open slots to see that day's available times.</p>
           </div>
         </div>
         <div class="col">
           <div class="soft-card step-card">
             <span class="step-badge">4</span>
-            <div class="step-icon"><i class="fa-regular fa-calendar-days"></i></div>
-            <h5>Pick a Date</h5>
-            <p>Select a preferred date for your appointment from the available calendar.</p>
+            <div class="step-icon"><i class="fa-regular fa-clock"></i></div>
+            <h5>Choose a Time & Service</h5>
+            <p>Pick an open time slot, then select the dental treatment you need for that visit.</p>
           </div>
         </div>
         <div class="col">
           <div class="soft-card step-card">
             <span class="step-badge">5</span>
-            <div class="step-icon"><i class="fa-regular fa-clock"></i></div>
-            <h5>Pick a Time</h5>
-            <p>Choose a time slot that fits your schedule during clinic hours.</p>
+            <div class="step-icon"><i class="fa-regular fa-circle-check"></i></div>
+            <h5>Review & Confirm</h5>
+            <p>Double-check the service, date, and time, then confirm to submit your appointment request.</p>
           </div>
         </div>
         <div class="col">
           <div class="soft-card step-card">
             <span class="step-badge">6</span>
-            <div class="step-icon"><i class="fa-regular fa-circle-check"></i></div>
-            <h5>Submit Appointment</h5>
-            <p>Review your details and confirm — we'll see you at the clinic!</p>
+            <div class="step-icon"><i class="fa-regular fa-bell"></i></div>
+            <h5>Wait for Approval</h5>
+            <p>Your request starts as Pending — we'll notify you once staff approves it. Track it anytime on your
+              Appointments page.</p>
+            @if (session('user_id'))
+              <a href="{{ route('userAppointment') }}" class="step-cta"><i
+                  class="fa-regular fa-calendar-check me-2"></i>My Appointments</a>
+            @endif
           </div>
         </div>
       </div>
@@ -248,35 +257,35 @@
             means no wait.</p>
           <div class="ratio ratio-16x9 shadow rounded mb-4" style="border-radius: 12px; overflow: hidden;">
             <iframe
-              src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3865.35287554996!2d121.04920417380845!3d14.348978786108079!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x3397d7e836c1d71f%3A0x9b42ae743363dc2b!2sDr.%20M.E.B%20Austria%20Dental%20Clinic!5e0!3m2!1sen!2sph!4v1781873394761!5m2!1sen!2sph"
-              style="border:0;" allowfullscreen="" loading="lazy" referrerpolicy="no-referrer-when-downgrade"></iframe>
+              src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3866.290422858543!2d121.00423227592287!3d14.294550984494727!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x3397d642f1da52ff%3A0xad05742ba9b8761d!2sPuspus%20Britanico%20Dental%20Clinic.!5e0!3m2!1sen!2sph!4v1787657874563!5m2!1sen!2sph"
+              width="600" height="450" style="border:0;" allowfullscreen="" loading="lazy"
+              referrerpolicy="strict-origin-when-cross-origin"></iframe>
           </div>
           <div class="location-info">
-            <p><i class="fa-solid fa-location-dot"></i><span><strong>Address</strong>#50 Mainroad Ave. B21 L31 Phase 1
-                Pacita Complex 2 San Pedro, Laguna</span></p>
-            <p><i class="fa-regular fa-calendar"></i><span><strong>Operating Days</strong>Monday – Sunday</span></p>
-            <p><i class="fa-regular fa-clock"></i><span><strong>Operating Hours</strong>Mon – Sat: 7:00 PM – 9:00
-                PM<br>Sunday: 9:00 AM – 6:00 PM</span></p>
+            <p><i class="fa-solid fa-location-dot"></i><span><strong>Address</strong>Blk 6 Lot 2 Poblacion 2, GMA, Cavite</span></p>
+            <p><i class="fa-regular fa-calendar"></i><span><strong>Operating Days</strong>Monday – Saturday</span></p>
+            <p><i class="fa-regular fa-clock"></i><span><strong>Operating Hours</strong>9:00 AM – 6:00
+                PM</span></p>
           </div>
         </div>
       </div>
     </div>
   </section>
   @if (session('user_id'))
-  <!-- APPOINTMENT -->
-  <section id="appointment" class="section" style="background: linear-gradient(180deg, #c2f2c677 0%, #d1ffca30 100%);">
+    <!-- APPOINTMENT -->
+    <section id="appointment" class="section" style="background: linear-gradient(180deg, #c2f2c677 0%, #d1ffca30 100%);">
 
-    <div class="container">
-      <div class="text-center">
-        <span class="section-eyebrow">Book Now</span>
-        <h2 class="section-title">Schedule Your Appointment</h2>
-        <hr class="section-divider mx-auto">
-        <p class="section-intro mx-auto">Click a date on the calendar, pick a service, and choose an open time slot.</p>
-      </div>
+      <div class="container">
+        <div class="text-center">
+          <span class="section-eyebrow">Book Now</span>
+          <h2 class="section-title">Schedule Your Appointment</h2>
+          <hr class="section-divider mx-auto">
+          <p class="section-intro mx-auto">Click a date on the calendar, pick a service, and choose an open time slot.</p>
+        </div>
 
-      @include('partials.flash-toasts', ['topOffset' => '100px'])
+        @include('partials.flash-toasts', ['topOffset' => '100px'])
 
-      @include('partials.booking-calendar', [
+        @include('partials.booking-calendar', [
           'calendarMode' => 'post',
           'bookWeeks' => $bookWeeks,
           'bookCurrent' => $bookCurrent,
@@ -286,9 +295,9 @@
           'bookToday' => $bookToday,
           'services' => $services,
           'bookCurrentPatientId' => $bookCurrentPatientId,
-      ])
-    </div>
-  </section>
+        ])
+      </div>
+    </section>
   @endif
   <!-- CONTACT US -->
   <section id="contact" class="section" style="background: linear-gradient(180deg, #eff9ee 0%, #ffffff 100%);">
@@ -326,17 +335,26 @@
         </div>
         <div class="col-lg-7">
           <div class="appointment-card h-100">
+            @php
+              $contactName = trim(($currentPatient?->patientInfo?->FirstName ?? '') . ' ' . ($currentPatient?->patientInfo?->LastName ?? ''));
+            @endphp
             <form>
-              <div class="row">
-                <div class="col-md-6 mb-3">
-                  <label class="form-label">Full Name</label>
-                  <input type="text" class="form-control" placeholder="Juan Dela Cruz" required>
+              @if ($currentPatient)
+                {{-- Already know who this is — no need to ask again. --}}
+                <input type="hidden" name="name" value="{{ $contactName }}">
+                <input type="hidden" name="email" value="{{ $currentPatient->Email }}">
+              @else
+                <div class="row">
+                  <div class="col-md-6 mb-3">
+                    <label class="form-label">Full Name</label>
+                    <input type="text" class="form-control" name="name" placeholder="Juan Dela Cruz" required>
+                  </div>
+                  <div class="col-md-6 mb-3">
+                    <label class="form-label">Email Address</label>
+                    <input type="email" class="form-control" name="email" placeholder="you@email.com" required>
+                  </div>
                 </div>
-                <div class="col-md-6 mb-3">
-                  <label class="form-label">Email Address</label>
-                  <input type="email" class="form-control" placeholder="you@email.com" required>
-                </div>
-              </div>
+              @endif
               <div class="mb-3">
                 <label class="form-label">Subject</label>
                 <input type="text" class="form-control" placeholder="How can we help?" required>
@@ -402,11 +420,13 @@
       <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content">
           <div class="modal-header">
-            <h5 class="modal-title"><i class="fas fa-calendar-alt me-2" style="color:#0f7a33"></i>Reschedule Appointment</h5>
+            <h5 class="modal-title"><i class="fas fa-calendar-alt me-2" style="color:#0f7a33"></i>Reschedule Appointment
+            </h5>
             <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
           </div>
           <div class="modal-body p-4">
-            <p class="mb-0" style="font-size:14px;line-height:1.7">Rescheduling removes this appointment and releases its time. You can then choose a new available time from the booking calendar.</p>
+            <p class="mb-0" style="font-size:14px;line-height:1.7">Rescheduling removes this appointment and releases its
+              time. You can then choose a new available time from the booking calendar.</p>
           </div>
           <div class="modal-footer gap-2">
             <button type="button" class="confirm-btn-sec" data-bs-dismiss="modal">Discard</button>
@@ -425,18 +445,22 @@
       <div class="modal-dialog modal-dialog-centered modal-sm">
         <div class="modal-content">
           <div class="modal-header">
-            <h5 class="modal-title"><i class="fas fa-exclamation-triangle me-2" style="color:#ef4444"></i>Cancel Appointment</h5>
+            <h5 class="modal-title"><i class="fas fa-exclamation-triangle me-2" style="color:#ef4444"></i>Cancel
+              Appointment</h5>
             <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
           </div>
           <div class="modal-body p-4">
-            <p style="font-size:14px;line-height:1.7">Are you sure you want to cancel your <strong id="landingCancelLabel" style="color:#0f4c7a"></strong> appointment? This cannot be undone.</p>
+            <p style="font-size:14px;line-height:1.7">Are you sure you want to cancel your <strong id="landingCancelLabel"
+                style="color:#0f4c7a"></strong> appointment? This cannot be undone.</p>
           </div>
           <div class="modal-footer gap-2">
             <button type="button" class="confirm-btn-sec" data-bs-dismiss="modal">Keep It</button>
             <form method="POST" id="landingCancelForm">
               @csrf
               <input type="hidden" name="action" value="cancel">
-              <button class="confirm-btn-prim" style="background:linear-gradient(135deg,#b91c1c,#ef4444);box-shadow:0 4px 12px rgba(239,68,68,0.3)"><i class="fas fa-times me-1"></i> Yes, Cancel</button>
+              <button class="confirm-btn-prim"
+                style="background:linear-gradient(135deg,#b91c1c,#ef4444);box-shadow:0 4px 12px rgba(239,68,68,0.3)"><i
+                  class="fas fa-times me-1"></i> Yes, Cancel</button>
             </form>
           </div>
         </div>

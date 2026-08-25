@@ -14,28 +14,9 @@
     href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Poppins:wght@500;600;700&display=swap"
     rel="stylesheet">
   <link rel="stylesheet" href="{{ asset('css/styles.css') }}">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
   <style>
-    .chart-tooltip {
-      position: fixed;
-      z-index: 2000;
-      background: var(--ink-900, #0f172a);
-      color: #fff;
-      padding: .45rem .7rem;
-      border-radius: .5rem;
-      font-size: .78rem;
-      font-family: 'Inter', sans-serif;
-      pointer-events: none;
-      opacity: 0;
-      transform: translateY(4px);
-      transition: opacity .12s ease, transform .12s ease;
-      box-shadow: var(--shadow-md, 0 6px 16px rgba(15,23,42,.08));
-      display: flex;
-      align-items: center;
-      gap: .45rem;
-      white-space: nowrap;
-    }
-    .chart-tooltip.show { opacity: 1; transform: translateY(0); }
-    .chart-tooltip .chart-tooltip-dot { width: 8px; height: 8px; border-radius: 50%; flex: none; }
+    .chart-ph canvas { width: 100% !important; height: 100% !important; }
     .chart-legend {
       display: flex;
       flex-wrap: wrap;
@@ -61,10 +42,6 @@
     .chart-legend .legend-count {
       color: var(--ink-500, #64748b);
     }
-    .chart-tip-target { transition: filter .12s ease; }
-    .chart-tip-target.chart-active { filter: brightness(1.18) saturate(1.1); }
-    .chart-tip-target.chart-active[fill-opacity="0.001"] { fill-opacity: 0.12 !important; }
-    .chart-dot { transition: r .12s ease; }
   </style>
 </head>
 
@@ -200,41 +177,7 @@
               </div>
               <div class="card-body">
                 <div class="chart-ph">
-                  <svg viewBox="0 0 600 240" preserveAspectRatio="none">
-                    <defs>
-                      <linearGradient id="g1" x1="0" x2="0" y1="0" y2="1">
-                        <stop offset="0%" stop-color="#167d1d" stop-opacity=".32" />
-                        <stop offset="100%" stop-color="#167d1d" stop-opacity="0" />
-                      </linearGradient>
-                    </defs>
-
-                    @foreach ($overviewChart['gridLines'] as $gy)
-                      <line x1="0" y1="{{ $gy }}" x2="600" y2="{{ $gy }}" stroke="#eef1ee" stroke-width="1" />
-                    @endforeach
-
-                    <path d="{{ $overviewChart['areaPath'] }}" fill="url(#g1)" />
-                    <path d="{{ $overviewChart['linePath'] }}" fill="none" stroke="#167d1d" stroke-width="3"
-                      stroke-linecap="round" stroke-linejoin="round" />
-
-                    @foreach ($overviewChart['points'] as $point)
-                      @if ($point['count'] > 0)
-                        <rect x="{{ $point['pillX'] }}" y="{{ max($point['y'] - 30, 4) }}"
-                          width="{{ $point['pillWidth'] }}" height="18" rx="9" fill="#0f172a" pointer-events="none" />
-                        <text x="{{ $point['x'] }}" y="{{ max($point['y'] - 30, 4) + 13 }}" text-anchor="middle"
-                          font-size="11" font-weight="700" fill="#fff" font-family="Inter"
-                          pointer-events="none">{{ $point['count'] }}</text>
-                      @endif
-                      <circle cx="{{ $point['x'] }}" cy="{{ $point['y'] }}" r="10" fill="#167d1d" fill-opacity="0.001"
-                        pointer-events="all" class="chart-tip-target" style="cursor:pointer;"
-                        data-tip-color="#167d1d" data-tip-label="{{ $point['label'] }}"
-                        data-tip-value="{{ $point['count'] }} appointment{{ $point['count'] === 1 ? '' : 's' }}"></circle>
-                      <circle cx="{{ $point['x'] }}" cy="{{ $point['y'] }}" r="5" fill="#fff" stroke="#167d1d"
-                        stroke-width="2.5" pointer-events="none" class="chart-dot" />
-                      <text x="{{ $point['x'] }}" y="{{ $overviewChart['baselineY'] + 24 }}"
-                        text-anchor="{{ $point['anchor'] }}"
-                        font-size="12" fill="#64748b" font-family="Inter" pointer-events="none">{{ $point['day'] }}</text>
-                    @endforeach
-                  </svg>
+                  <canvas id="overviewChart"></canvas>
                 </div>
                 <div class="chart-legend">
                   <div class="legend-item">
@@ -250,21 +193,12 @@
             <div class="card-soft h-100">
               <div class="card-header">Patients by Treatment</div>
               <div class="card-body d-flex align-items-center justify-content-center">
-                <div class="chart-ph w-100" style="height: 240px; background: transparent;">
-                  <svg viewBox="0 0 200 200">
-                    <circle cx="100" cy="100" r="70" fill="none" stroke="#e3fde5" stroke-width="28" />
-                    @foreach ($treatmentDonut['segments'] as $segment)
-                      <circle cx="100" cy="100" r="70" fill="none" stroke="{{ $segment['color'] }}" stroke-width="28"
-                        stroke-dasharray="{{ $segment['dasharray'] }}" stroke-dashoffset="{{ $segment['dashoffset'] }}"
-                        transform="rotate(-90 100 100)" pointer-events="all" class="chart-tip-target" style="cursor:pointer;"
-                        data-tip-color="{{ $segment['color'] }}" data-tip-label="{{ $segment['label'] }}"
-                        data-tip-value="{{ $segment['count'] }} patient{{ $segment['count'] === 1 ? '' : 's' }}"></circle>
-                    @endforeach
-                    <text x="100" y="95" text-anchor="middle" font-size="14" fill="#64748b"
-                      font-family="Inter">Total</text>
-                    <text x="100" y="118" text-anchor="middle" font-size="22" fill="#0f172a" font-weight="700"
-                      font-family="Poppins">{{ number_format($treatmentDonut['total']) }}</text>
-                  </svg>
+                <div class="chart-ph w-100" style="height: 240px; background: transparent; position: relative;">
+                  <canvas id="treatmentDonutChart"></canvas>
+                  <div style="position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center; pointer-events:none;">
+                    <div style="font-size:14px; color:#64748b; font-family:'Inter',sans-serif;">Total</div>
+                    <div style="font-size:22px; color:#0f172a; font-weight:700; font-family:'Poppins',sans-serif;">{{ number_format($treatmentDonut['total']) }}</div>
+                  </div>
                 </div>
               </div>
               <div class="card-body pt-0">
@@ -288,15 +222,7 @@
               <div class="card-header">Appointments by Service</div>
               <div class="card-body">
                 <div class="chart-ph">
-                  <svg viewBox="0 0 600 240" preserveAspectRatio="none">
-                    @foreach ($serviceBars['bars'] as $bar)
-                      <rect x="{{ $bar['x'] }}" y="{{ $bar['y'] }}" width="40" height="{{ $bar['height'] }}" rx="6"
-                        fill="{{ $bar['color'] }}"
-                        pointer-events="all" class="chart-tip-target" style="cursor:pointer;"
-                        data-tip-color="{{ $bar['color'] }}" data-tip-label="{{ $bar['name'] }}"
-                        data-tip-value="{{ $bar['count'] }} appointment{{ $bar['count'] === 1 ? '' : 's' }}"></rect>
-                    @endforeach
-                  </svg>
+                  <canvas id="serviceBarsChart"></canvas>
                 </div>
                 <div class="chart-legend">
                   @foreach ($serviceBars['bars'] as $bar)
@@ -516,49 +442,104 @@
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
   <script>
     (function () {
-        var tooltip = document.createElement('div');
-        tooltip.className = 'chart-tooltip';
-        tooltip.innerHTML = '<span class="chart-tooltip-dot"></span><span class="chart-tooltip-text"></span>';
-        document.body.appendChild(tooltip);
-        var dot = tooltip.querySelector('.chart-tooltip-dot');
-        var text = tooltip.querySelector('.chart-tooltip-text');
+        var overviewData = @json($overviewChart);
+        var donutData = @json($treatmentDonut['segments']);
+        var barsData = @json($serviceBars['bars']);
 
-        function position(x, y) {
-            var pad = 14;
-            var left = x + pad;
-            var top = y + pad;
-            var rect = tooltip.getBoundingClientRect();
-            if (left + rect.width > window.innerWidth - 8) left = x - rect.width - pad;
-            if (top + rect.height > window.innerHeight - 8) top = y - rect.height - pad;
-            tooltip.style.left = left + 'px';
-            tooltip.style.top = top + 'px';
-        }
+        var brandGreen = '#167d1d';
 
-        function show(el, x, y) {
-            dot.style.background = el.getAttribute('data-tip-color') || '#167d1d';
-            text.textContent = el.getAttribute('data-tip-label') + ': ' + el.getAttribute('data-tip-value');
-            tooltip.classList.add('show');
-            position(x, y);
-        }
+        new Chart(document.getElementById('overviewChart'), {
+            type: 'line',
+            data: {
+                labels: overviewData.labels,
+                datasets: [{
+                    data: overviewData.data,
+                    borderColor: brandGreen,
+                    backgroundColor: 'rgba(22, 125, 29, 0.12)',
+                    pointBackgroundColor: '#fff',
+                    pointBorderColor: brandGreen,
+                    pointBorderWidth: 2.5,
+                    pointRadius: 5,
+                    pointHoverRadius: 7,
+                    borderWidth: 3,
+                    tension: 0.4,
+                    fill: true,
+                }],
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { display: false },
+                    tooltip: {
+                        callbacks: {
+                            title: function (items) { return overviewData.fullLabels[items[0].dataIndex]; },
+                            label: function (item) { return item.parsed.y + ' appointment' + (item.parsed.y === 1 ? '' : 's'); },
+                        },
+                    },
+                },
+                scales: {
+                    y: { beginAtZero: true, ticks: { precision: 0 }, grid: { color: '#eef1ee' } },
+                    x: { grid: { display: false } },
+                },
+            },
+        });
 
-        function hide() {
-            tooltip.classList.remove('show');
-        }
+        new Chart(document.getElementById('treatmentDonutChart'), {
+            type: 'doughnut',
+            data: {
+                labels: donutData.map(function (s) { return s.label; }),
+                datasets: [{
+                    data: donutData.map(function (s) { return s.count; }),
+                    backgroundColor: donutData.map(function (s) { return s.color; }),
+                    borderWidth: 0,
+                }],
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                cutout: '72%',
+                plugins: {
+                    legend: { display: false },
+                    tooltip: {
+                        callbacks: {
+                            label: function (item) {
+                                var count = item.parsed;
+                                return item.label + ': ' + count + ' patient' + (count === 1 ? '' : 's');
+                            },
+                        },
+                    },
+                },
+            },
+        });
 
-        document.querySelectorAll('.chart-tip-target').forEach(function (el) {
-            var dotSibling = el.nextElementSibling && el.nextElementSibling.classList.contains('chart-dot')
-                ? el.nextElementSibling : null;
-            el.addEventListener('mouseenter', function (e) {
-                show(el, e.clientX, e.clientY);
-                el.classList.add('chart-active');
-                if (dotSibling) dotSibling.setAttribute('r', 7);
-            });
-            el.addEventListener('mousemove', function (e) { position(e.clientX, e.clientY); });
-            el.addEventListener('mouseleave', function () {
-                hide();
-                el.classList.remove('chart-active');
-                if (dotSibling) dotSibling.setAttribute('r', 4);
-            });
+        new Chart(document.getElementById('serviceBarsChart'), {
+            type: 'bar',
+            data: {
+                labels: barsData.map(function (b) { return b.name; }),
+                datasets: [{
+                    data: barsData.map(function (b) { return b.count; }),
+                    backgroundColor: barsData.map(function (b) { return b.color; }),
+                    borderRadius: 6,
+                    maxBarThickness: 40,
+                }],
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { display: false },
+                    tooltip: {
+                        callbacks: {
+                            label: function (item) { return item.parsed.y + ' appointment' + (item.parsed.y === 1 ? '' : 's'); },
+                        },
+                    },
+                },
+                scales: {
+                    y: { beginAtZero: true, ticks: { precision: 0 }, grid: { color: '#eef1ee' } },
+                    x: { grid: { display: false } },
+                },
+            },
         });
     })();
   </script>

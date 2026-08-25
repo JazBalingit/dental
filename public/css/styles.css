@@ -651,6 +651,7 @@ h6 {
 .data-toolbar .left,
 .data-toolbar .right {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: .5rem;
 }
@@ -1139,8 +1140,22 @@ h6 {
     grid-template-columns: 1fr;
   }
 
+  /* CSS Grid items default to min-width:auto (sized to their content's
+     intrinsic minimum), not 0 — so without this, a wide descendant like
+     .month-grid or .week-grid (even with their own overflow-x:auto) can
+     still force this whole chain wider than the viewport instead of
+     scrolling internally where intended. */
+  .app > main {
+    min-width: 0;
+  }
+
   .sidebar {
-    position: fixed;
+    /* !important needed to beat Bootstrap's .position-sticky utility class
+       (also !important) that some pages stack onto .sidebar.offcanvas —
+       without this, the sidebar stays position:sticky at this width and,
+       despite being transformed off-screen, still contributes its full
+       intrinsic width to the page, forcing horizontal scroll everywhere. */
+    position: fixed !important;
     left: -260px;
     transition: left .25s ease;
     z-index: 50;
@@ -1153,6 +1168,36 @@ h6 {
   .week-grid {
     grid-template-columns: 70px repeat(7, minmax(110px, 1fr));
     overflow-x: auto;
+  }
+
+  /* Same horizontal-scroll treatment as .week-grid above: without a min
+     column width, CSS Grid's default min-width:auto still sizes each 1fr
+     track to fit its cell's content (day-cell badges/labels), which was
+     forcing the whole page to overflow horizontally instead of just this
+     calendar scrolling internally. */
+  .month-grid {
+    grid-template-columns: repeat(7, minmax(80px, 1fr));
+    overflow-x: auto;
+  }
+
+  /* Login/signup split-screen banner: Bootstrap's .position-fixed utility
+     (!important) pins it over the left 50% of the viewport at every width,
+     but .col-lg-6 stacks to full-width below this breakpoint — so the fixed
+     banner was permanently covering the form instead of sitting above it.
+     Restoring normal flow lets it stack like a hero strip instead. */
+  .banner-wrap.position-fixed {
+    position: static !important;
+    width: 100%;
+    height: 260px;
+  }
+}
+
+/* Record-detail modals' two-column field grid gets too cramped once each
+   column drops below ~170px on a phone-width modal — single column reads
+   far better there without needing any change at tablet/desktop widths. */
+@media (max-width: 575.98px) {
+  .info-grid-edit {
+    grid-template-columns: 1fr;
   }
 }
 

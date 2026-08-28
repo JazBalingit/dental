@@ -58,8 +58,8 @@
                                                 <br><span class="text-muted small">
                                                     Date: {{ $n->appointment->AppointmentDate->format('F j, Y') }}
                                                     &bull; Time: {{ \Carbon\Carbon::createFromFormat('H:i', $n->appointment->AppointmentTime)->format('g:i A') }}
-                                                    @if ($n->appointment->service)
-                                                        &bull; Service: {{ $n->appointment->service->ServiceName }}
+                                                    @if ($n->appointment->TypeOfAppointment || $n->appointment->service)
+                                                        &bull; Service: {{ $n->appointment->TypeOfAppointment ?: $n->appointment->service->ServiceName }}
                                                     @endif
                                                 </span>
                                             @endif
@@ -111,8 +111,8 @@
                                                 <br><span class="text-muted small">
                                                     Date: {{ $n->appointment->AppointmentDate->format('F j, Y') }}
                                                     &bull; Time: {{ \Carbon\Carbon::createFromFormat('H:i', $n->appointment->AppointmentTime)->format('g:i A') }}
-                                                    @if ($n->appointment->service)
-                                                        &bull; Service: {{ $n->appointment->service->ServiceName }}
+                                                    @if ($n->appointment->TypeOfAppointment || $n->appointment->service)
+                                                        &bull; Service: {{ $n->appointment->TypeOfAppointment ?: $n->appointment->service->ServiceName }}
                                                     @endif
                                                 </span>
                                             @endif

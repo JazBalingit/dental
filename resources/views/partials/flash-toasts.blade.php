@@ -1,5 +1,6 @@
 {{--
-    Shared flash-message toasts — fixed top-right, auto-dismiss after 3s.
+    Shared flash-message toasts — fixed top-right, auto-dismiss after 8s
+    (long enough to read the longer booking-failure explanations).
     Covers every page-level session flash key used across the app plus the
     default Laravel validation error bag. Modal-scoped alerts (OTP modal,
     forgot/reset-password modals) are NOT part of this partial — those stay
@@ -49,7 +50,7 @@
     .flash-toast-body ul { padding-left: 1.1rem; margin: 0; }
     .flash-toast-close { position: absolute; top: .55rem; right: .55rem; border: none; background: transparent; color: var(--ink-500, #64748b); width: 22px; height: 22px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: .65rem; cursor: pointer; transition: background .15s, color .15s; }
     .flash-toast-close:hover { background: var(--ink-100, #f1f5f9); color: var(--ink-900, #0f172a); }
-    .flash-toast-progress { position: absolute; left: 0; bottom: 0; height: 3px; background: var(--success, #10b981); width: 100%; animation: flashToastProgress 3s linear forwards; }
+    .flash-toast-progress { position: absolute; left: 0; bottom: 0; height: 3px; background: var(--success, #10b981); width: 100%; animation: flashToastProgress 8s linear forwards; }
     .flash-toast.flash-toast-danger .flash-toast-progress { background: var(--danger, #ef4444); }
     .flash-toast.hide-toast { animation: flashToastOut .2s ease forwards; }
     @keyframes flashToastIn { to { opacity: 1; transform: translateX(0); } }
@@ -98,7 +99,7 @@
                 setTimeout(function () { el.remove(); }, 200);
             }
             el.querySelector('.flash-toast-close')?.addEventListener('click', dismiss);
-            setTimeout(dismiss, 3000);
+            setTimeout(dismiss, 8000);
         });
     });
 </script>

@@ -61,9 +61,9 @@
                 <a href="{{ route('appointments') }}"><i class="bi bi-clipboard2-check"></i> Appointments</a>
                 <a href="{{ route('patientRecords') }}"><i class="bi bi-folder2-open"></i> Patient Records</a>
                 <div class="nav-section">System</div>
-                <a href="{{ route('configuration') }}"><i class="bi bi-sliders2"></i> Configuration</a>
+                <a href="{{ route('configuration') }}"><i class="bi bi-sliders2"></i> Settings</a>
             </nav>
-            <div class="footer">© PUS-PUS BRITANICO DENTAL CLINIC</div>
+            @include('partials.admin-profile-badge')
         </aside>
 
         <main>
@@ -76,29 +76,6 @@
                 </div>
                 <div class="right">
                     @include('partials.admin-notif-dropdown')
-                    <div class="dropdown">
-                        <button class="user-chip" type="button" data-bs-toggle="dropdown" aria-expanded="false"
-                            style="all:unset; cursor:pointer; display:flex; align-items:center; gap:.6rem; padding:.35rem .8rem .35rem .35rem; border-radius:999px; background:var(--brand-50); border:1px solid var(--brand-100); font-family:inherit;">
-                            <div><img class="avatar" src="/images/default.png" alt=""></div>
-                            <div class="meta">
-                                <div class="name">{{ session('user_email', 'Admin') }}</div>
-                                <div class="role">{{ session('account_type') === 'staff' ? 'Staff' : 'Administrator' }}</div>
-                            </div>
-                            <i class="bi bi-chevron-down ms-1 text-muted-2"></i>
-                        </button>
-                        <ul class="dropdown-menu dropdown-menu-end shadow-sm">
-                            @if (session('account_type') === 'staff')
-                                <li><a class="dropdown-item small" href="{{ route('staffProfile') }}"><i class="bi bi-person me-2"></i>My Profile</a></li>
-                                <li><hr class="dropdown-divider"></li>
-                            @endif
-                            <li>
-                                <form method="POST" action="{{ route('logout') }}" class="m-0">
-                                    @csrf
-                                    <button type="submit" class="dropdown-item text-danger small"><i class="bi bi-box-arrow-right me-1"></i> Log Out</button>
-                                </form>
-                            </li>
-                        </ul>
-                    </div>
                 </div>
             </div>
 
@@ -129,7 +106,7 @@
                         <input type="hidden" name="patient_id" id="patient_id" value="">
                         <input type="hidden" name="date" id="wi_date" value="">
                         <input type="hidden" name="time" id="wi_time" value="">
-                        <input type="hidden" name="service_id" id="service_id" value="">
+                        <div id="wi_service_ids_container"></div>
 
                         <!-- ===================== STEP 1: PATIENT INFORMATION ===================== -->
                         <div class="wizard-step" data-step="1">
@@ -330,10 +307,10 @@
                                 <div class="form-text mb-3">Tip: click an open date above, then pick the service and time slot right there — just like online booking.</div>
                                 <div class="row">
                                     <div class="col-md-4 mb-3">
-                                        <label class="form-label">Selected Service <span class="text-danger">*</span></label>
+                                        <label class="form-label">Selected Service(s) <span class="text-danger">*</span></label>
                                         <input type="text" class="form-control" id="wi_service_display"
-                                            placeholder="Pick a service from the calendar above" readonly>
-                                        <div class="invalid-feedback">Select a service from the calendar above.</div>
+                                            placeholder="Pick service(s) from the calendar above" readonly>
+                                        <div class="invalid-feedback">Select at least one service from the calendar above.</div>
                                     </div>
                                     <div class="col-md-4 mb-3">
                                         <label class="form-label">Select Day <span class="text-danger">*</span></label>
@@ -365,9 +342,10 @@
                                 <div class="review-row" id="review_patient_id_row"><span class="text-muted-2">Patient ID</span><span class="fw-semibold" id="review_patient_id">—</span></div>
 
                                 <div class="section-label mb-3 mt-4">Appointment</div>
-                                <div class="review-row"><span class="text-muted-2">Service</span><span class="fw-semibold" id="review_service">—</span></div>
+                                <div class="review-row"><span class="text-muted-2">Service(s)</span><span class="fw-semibold" id="review_service">—</span></div>
                                 <div class="review-row"><span class="text-muted-2">Date</span><span class="fw-semibold" id="review_date">—</span></div>
                                 <div class="review-row"><span class="text-muted-2">Time</span><span class="fw-semibold" id="review_time">—</span></div>
+                                <div class="review-row"><span class="text-muted-2">Duration</span><span class="fw-semibold" id="review_duration">—</span></div>
                                 <div class="review-row"><span class="text-muted-2">Appointment Type</span><span class="fw-semibold">Walk-in</span></div>
                             </div>
 
@@ -560,34 +538,98 @@
         // ---------- Step 2: calendar slot selection (mirrors the online booking modal) ----------
         const wiDateInput = document.getElementById('wi_date');
         const wiTimeInput = document.getElementById('wi_time');
-        const wiServiceInput = document.getElementById('service_id');
+        const wiServiceIdsContainer = document.getElementById('wi_service_ids_container');
         const wiDateDisplay = document.getElementById('wi_date_display');
         const wiTimeDisplay = document.getElementById('wi_time_display');
         const wiServiceDisplay = document.getElementById('wi_service_display');
+        let wiServiceIds = [];
+        let wiTotalMinutes = 0;
+
+        function renderWiServiceInputs() {
+            wiServiceIdsContainer.innerHTML = '';
+            wiServiceIds.forEach((id) => {
+                const input = document.createElement('input');
+                input.type = 'hidden';
+                input.name = 'service_ids[]';
+                input.value = id;
+                wiServiceIdsContainer.appendChild(input);
+            });
+        }
+
+        function updateWiServiceToggleLabel(wrapper) {
+            const text = wrapper.querySelector('.wi-slot-service-toggle-text');
+            const checked = wrapper.querySelectorAll('.wi-slot-service-option:checked');
+            text.textContent = checked.length
+                ? Array.from(checked).map((c) => c.dataset.name).join(', ')
+                : 'Select services';
+        }
+
+        // Clinic slot grid, mirrors DentistSchedule on the server — used to
+        // preview the actual end time (skipping the lunch-hour gap).
+        const SLOT_TIMES = @json(\App\Models\DentistSchedule::slotTimes());
+        const SLOT_MINUTES = {{ \App\Models\DentistSchedule::SLOT_MINUTES }};
+
+        function formatTime12h(hours, minutes) {
+            const period = hours >= 12 ? 'PM' : 'AM';
+            const hour12 = hours % 12 || 12;
+            return hour12 + ':' + String(minutes).padStart(2, '0') + ' ' + period;
+        }
+
+        function computeEndTimeLabel(startTime, totalMinutes) {
+            const slotsNeeded = Math.max(1, Math.ceil(totalMinutes / SLOT_MINUTES));
+            const startIndex = SLOT_TIMES.indexOf(startTime);
+            if (startIndex === -1) return null;
+            const lastIndex = startIndex + slotsNeeded - 1;
+            if (lastIndex >= SLOT_TIMES.length) return null;
+            const lastSlot = SLOT_TIMES[lastIndex].split(':').map(Number);
+            const endMinutesTotal = lastSlot[0] * 60 + lastSlot[1] + SLOT_MINUTES;
+            return formatTime12h(Math.floor(endMinutesTotal / 60), endMinutesTotal % 60);
+        }
+
+        // "1 hour 30 minutes" / "30 minutes" — mirrors DentistSchedule::formatSlotDuration().
+        function formatDurationLabel(totalMinutes) {
+            const hours = Math.floor(totalMinutes / 60);
+            const minutes = totalMinutes % 60;
+            const parts = [];
+            if (hours > 0) parts.push(hours + ' hour' + (hours > 1 ? 's' : ''));
+            if (minutes > 0) parts.push(minutes + ' minute' + (minutes > 1 ? 's' : ''));
+            return parts.length ? parts.join(' ') : '0 minutes';
+        }
+
+        document.addEventListener('change', (e) => {
+            if (e.target.matches('.wi-slot-service-option')) {
+                const wrapper = e.target.closest('.wi-slot-service');
+                updateWiServiceToggleLabel(wrapper);
+                wrapper.querySelector('.wi-slot-service-toggle').classList.remove('is-invalid');
+            }
+        });
 
         document.addEventListener('click', (e) => {
             const btn = e.target.closest('[data-wi-date][data-wi-time]');
             if (!btn) return;
 
             const slotRow = btn.closest('.d-flex');
-            const serviceSelect = slotRow ? slotRow.querySelector('.wi-slot-service') : null;
+            const wrapper = slotRow ? slotRow.querySelector('.wi-slot-service') : null;
+            const checked = wrapper ? Array.from(wrapper.querySelectorAll('.wi-slot-service-option:checked')) : [];
 
-            if (serviceSelect && !serviceSelect.value) {
-                serviceSelect.classList.add('is-invalid');
+            if (!checked.length) {
+                if (wrapper) wrapper.querySelector('.wi-slot-service-toggle').classList.add('is-invalid');
                 return;
             }
-            if (serviceSelect) serviceSelect.classList.remove('is-invalid');
+            wrapper.querySelector('.wi-slot-service-toggle').classList.remove('is-invalid');
 
             wiDateInput.value = btn.dataset.wiDate;
             wiTimeInput.value = btn.dataset.wiTime;
             wiDateDisplay.value = btn.dataset.wiDateLabel || btn.dataset.wiDate;
-            wiTimeDisplay.value = btn.dataset.wiTimeLabel || btn.dataset.wiTime;
+            const startLabel = btn.dataset.wiTimeLabel || btn.dataset.wiTime;
+            wiTotalMinutes = checked.reduce((sum, c) => sum + (parseInt(c.dataset.duration, 10) || 60), 0);
+            const endLabel = computeEndTimeLabel(btn.dataset.wiTime, wiTotalMinutes);
+            wiTimeDisplay.value = endLabel ? (startLabel + ' - ' + endLabel) : startLabel;
             [wiServiceDisplay, wiDateDisplay, wiTimeDisplay].forEach(el => el.classList.remove('is-invalid'));
 
-            if (serviceSelect) {
-                wiServiceInput.value = serviceSelect.value;
-                wiServiceDisplay.value = serviceSelect.options[serviceSelect.selectedIndex].text;
-            }
+            wiServiceIds = checked.map((c) => c.value);
+            wiServiceDisplay.value = checked.map((c) => c.dataset.name).join(', ');
+            renderWiServiceInputs();
 
             const modalEl = btn.closest('.modal');
             if (modalEl && window.bootstrap) {
@@ -595,12 +637,6 @@
                 if (instance) instance.hide();
             }
             saveDraft();
-        });
-
-        document.addEventListener('change', (e) => {
-            if (e.target.matches('.wi-slot-service')) {
-                e.target.classList.remove('is-invalid');
-            }
         });
 
         // Month navigation while in select mode (walk-in wizard)
@@ -613,6 +649,15 @@
                 window.location.href = '{{ route("walkIn") }}?bookMonth=' + y + '-' + m;
             });
         }
+
+        ['wiBookMonthPrev', 'wiBookMonthNext'].forEach((id) => {
+            const btn = document.getElementById(id);
+            if (!btn) return;
+            btn.addEventListener('click', () => {
+                saveDraft();
+                window.location.href = '{{ route("walkIn") }}?bookMonth=' + btn.dataset.month;
+            });
+        });
 
         // ---------- Continue to Step 3 ----------
         // Extracted so restoreDraft() can rebuild the same summary after a page
@@ -633,18 +678,19 @@
             document.getElementById('review_service').textContent = wiServiceDisplay.value;
             document.getElementById('review_date').textContent = wiDateDisplay.value;
             document.getElementById('review_time').textContent = wiTimeDisplay.value;
+            document.getElementById('review_duration').textContent = wiTotalMinutes ? formatDurationLabel(wiTotalMinutes) : '—';
         }
 
         document.getElementById('toStep3Btn').addEventListener('click', () => {
             [wiServiceDisplay, wiDateDisplay, wiTimeDisplay].forEach(el => el.classList.remove('is-invalid'));
 
             let firstInvalid = null;
-            if (!wiServiceInput.value) firstInvalid = firstInvalid || wiServiceDisplay;
+            if (!wiServiceIds.length) firstInvalid = firstInvalid || wiServiceDisplay;
             if (!wiDateInput.value) firstInvalid = firstInvalid || wiDateDisplay;
             if (!wiTimeInput.value) firstInvalid = firstInvalid || wiTimeDisplay;
 
             if (firstInvalid) {
-                if (!wiServiceInput.value) wiServiceDisplay.classList.add('is-invalid');
+                if (!wiServiceIds.length) wiServiceDisplay.classList.add('is-invalid');
                 if (!wiDateInput.value) wiDateDisplay.classList.add('is-invalid');
                 if (!wiTimeInput.value) wiTimeDisplay.classList.add('is-invalid');
                 return;
@@ -693,8 +739,9 @@
                     email: document.querySelector('[name=email]').value,
                     phone: document.querySelector('[name=phone]').value,
                 },
-                serviceId: wiServiceInput.value,
+                serviceIds: wiServiceIds,
                 serviceLabel: wiServiceDisplay.value,
+                totalMinutes: wiTotalMinutes,
                 date: wiDateInput.value,
                 time: wiTimeInput.value,
                 dateLabel: wiDateDisplay.value,
@@ -724,8 +771,12 @@
                 });
             }
 
-            if (draft.serviceId) wiServiceInput.value = draft.serviceId;
+            if (draft.serviceIds && draft.serviceIds.length) {
+                wiServiceIds = draft.serviceIds;
+                renderWiServiceInputs();
+            }
             if (draft.serviceLabel) wiServiceDisplay.value = draft.serviceLabel;
+            if (draft.totalMinutes) wiTotalMinutes = draft.totalMinutes;
             if (draft.date) wiDateInput.value = draft.date;
             if (draft.time) wiTimeInput.value = draft.time;
             if (draft.dateLabel) wiDateDisplay.value = draft.dateLabel;
@@ -742,16 +793,42 @@
         form.addEventListener('input', saveDraft);
         form.addEventListener('change', saveDraft);
 
-        // A successful confirm now redirects to Appointment Approval (not back to this
-        // page), so we can't detect success by re-rendering here. Clear the draft the
-        // moment the real submit fires; on a validation failure the browser redirects
-        // back to this same page and the draft will already be gone, which is an
-        // acceptable trade-off for the rare race-condition/validation-failure case.
+        // A successful confirm redirects to Appointment Approval (not back to this
+        // page), so this script never runs again to know it worked — mark the draft
+        // "submitted" instead of deleting it outright, so a validation/business-logic
+        // failure (which DOES redirect back here) still has everything to restore.
         form.addEventListener('submit', function () {
-            try { sessionStorage.removeItem(DRAFT_KEY); } catch (e) {}
+            saveDraft();
+            try {
+                const raw = sessionStorage.getItem(DRAFT_KEY);
+                if (raw) {
+                    const draft = JSON.parse(raw);
+                    draft.submitted = true;
+                    sessionStorage.setItem(DRAFT_KEY, JSON.stringify(draft));
+                }
+            } catch (e) {}
         });
 
-        restoreDraft();
+        // this request's response to a failed submit (old input echoed back) —
+        // vs. a fresh visit or a mid-wizard reload (month nav), which aren't.
+        const cameFromFailedSubmit = {{ session()->hasOldInput() ? 'true' : 'false' }};
+        const errorStep = {{ session('walkin_error_step') ? (int) session('walkin_error_step') : 'null' }};
+
+        let existingDraft = null;
+        try { existingDraft = JSON.parse(sessionStorage.getItem(DRAFT_KEY) || 'null'); } catch (e) {}
+
+        if (existingDraft && existingDraft.submitted && !cameFromFailedSubmit) {
+            // The last submit from this tab went through — this draft is stale.
+            try { sessionStorage.removeItem(DRAFT_KEY); } catch (e) {}
+        } else if (existingDraft) {
+            restoreDraft();
+            if (cameFromFailedSubmit && errorStep) {
+                // The error is about the appointment details, not who the
+                // patient is — jump straight there instead of wherever the
+                // draft's own step happened to be.
+                showStep(errorStep);
+            }
+        }
     })();
     </script>
 </body>

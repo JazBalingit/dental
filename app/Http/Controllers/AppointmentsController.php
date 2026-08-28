@@ -19,8 +19,6 @@ class AppointmentsController extends Controller
     ) {
     }
 
-    protected array $slotOrder = ['09:00', '10:00', '11:00', '13:00', '14:00', '15:00', '16:00', '17:00', '18:00'];
-
     protected function guard()
     {
         if (!session('user_id') || session('user_role') !== 'admin') {
@@ -96,7 +94,7 @@ class AppointmentsController extends Controller
             'ServiceID' => $appointment->ServiceID,
             'VisitDate' => $appointment->AppointmentDate,
             'VisitTime' => $appointment->AppointmentTime,
-            'Service' => $appointment->service->ServiceName ?? $appointment->TypeOfAppointment,
+            'Service' => $appointment->TypeOfAppointment ?: ($appointment->service->ServiceName ?? null),
             'Status' => 'Completed',
         ]);
 
@@ -181,18 +179,19 @@ class AppointmentsController extends Controller
      */
     protected function releaseAppointmentSlots(Appointment $appointment): void
     {
-        $start = array_search($appointment->AppointmentTime, $this->slotOrder, true);
-        $duration = $appointment->Status === 'Approved' ? max(1, (int) ($appointment->DurationHours ?? 1)) : 1;
+        $times = DentistSchedule::slotTimes();
+        $start = array_search($appointment->AppointmentTime, $times, true);
+        $duration = $appointment->duration_slots;
 
-        for ($offset = 0; $start !== false && $offset < $duration && isset($this->slotOrder[$start + $offset]); $offset++) {
-            $time = $this->slotOrder[$start + $offset];
+        for ($offset = 0; $start !== false && $offset < $duration && isset($times[$start + $offset]); $offset++) {
+            $time = $times[$start + $offset];
             $stillHeld = Appointment::whereKeyNot($appointment->AppointmentID)
                 ->whereDate('AppointmentDate', $appointment->AppointmentDate)
                 ->whereIn('Status', ['Pending', 'Approved'])->get()
-                ->contains(function ($other) use ($time) {
-                    $otherStart = array_search($other->AppointmentTime, $this->slotOrder, true);
-                    $otherDuration = $other->Status === 'Approved' ? max(1, (int) ($other->DurationHours ?? 1)) : 1;
-                    return $otherStart !== false && in_array($time, array_slice($this->slotOrder, $otherStart, $otherDuration), true);
+                ->contains(function ($other) use ($times, $time) {
+                    $otherStart = array_search($other->AppointmentTime, $times, true);
+                    $otherDuration = $other->duration_slots;
+                    return $otherStart !== false && in_array($time, array_slice($times, $otherStart, $otherDuration), true);
                 });
             if (!$stillHeld) {
                 DentistSchedule::where('Date', $appointment->AppointmentDate->format('Y-m-d'))->where('Time', $time)->update(['Status' => 'Available']);

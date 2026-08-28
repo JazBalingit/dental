@@ -18,18 +18,6 @@ use Illuminate\Http\Request;
  */
 trait BuildsBookingCalendar
 {
-    protected array $slots = [
-        '09:00' => '9:00 AM',
-        '10:00' => '10:00 AM',
-        '11:00' => '11:00 AM',
-        '13:00' => '1:00 PM',
-        '14:00' => '2:00 PM',
-        '15:00' => '3:00 PM',
-        '16:00' => '4:00 PM',
-        '17:00' => '5:00 PM',
-        '18:00' => '6:00 PM',
-    ];
-
     /**
      * Returns everything the booking calendar section needs. Call this
      * from whatever controller renders the calendar and merge the
@@ -70,19 +58,20 @@ trait BuildsBookingCalendar
             ->whereIn('Status', ['Pending', 'Approved', 'Completed'])
             ->get();
 
-        // An approved or completed appointment occupies every slot in its
-        // approved duration. A pending request holds only its starting slot.
+        // Every appointment — Pending or Approved — occupies its full
+        // service-driven duration from the moment it's booked (DurationHours
+        // is computed from the selected services' total time at booking, not
+        // assigned later at approval), so a slot is reserved end-to-end
+        // regardless of status.
         $occupiedSlots = [];
-        $slotTimes = array_keys($this->slots);
+        $slotTimes = DentistSchedule::slotTimes();
         foreach ($appointments as $appointment) {
             $start = array_search($appointment->AppointmentTime, $slotTimes, true);
             if ($start === false) {
                 continue;
             }
 
-            $duration = in_array($appointment->Status, ['Approved', 'Completed'], true)
-                ? max(1, (int) ($appointment->DurationHours ?? 1))
-                : 1;
+            $duration = $appointment->duration_slots;
 
             for ($offset = 0; $offset < $duration && isset($slotTimes[$start + $offset]); $offset++) {
                 $occupiedSlots[$appointment->AppointmentDate->format('Y-m-d') . '_' . $slotTimes[$start + $offset]] = $appointment;
@@ -105,10 +94,70 @@ trait BuildsBookingCalendar
             'bookCurrent' => $current,
             'bookSchedules' => $schedules,
             'bookOccupiedSlots' => $occupiedSlots,
-            'bookSlots' => $this->slots,
+            'bookSlots' => DentistSchedule::slotLabels(),
             'bookToday' => now()->format('Y-m-d'),
             'services' => Service::orderBy('ServiceName')->get(),
             'bookCurrentPatientId' => UserAccount::with('patientInfo')->find(session('user_id'))?->patientInfo?->PatientID,
         ];
+    }
+
+    /**
+     * How many half-hour slots a set of services needs, rounded up — a
+     * 45-minute service needs ceil(45 / 30) = 2 half-hour slots.
+     */
+    protected function slotsNeededForServices($services): int
+    {
+        $minutes = collect($services)->sum(fn ($s) => $s->DurationMinutes ?? 60);
+
+        return max(1, (int) ceil($minutes / DentistSchedule::SLOT_MINUTES));
+    }
+
+    /**
+     * Reserves $slotsNeeded consecutive half-hour slots starting at
+     * $startTime on $date — either every one of them flips to Not
+     * Available, or none do. Returns the reserved DentistSchedule rows.
+     *
+     * @throws \RuntimeException with a patient-facing explanation if the
+     *         full block isn't available (runs past closing, or another
+     *         appointment already holds one of the slots).
+     */
+    protected function reserveSlotBlock(string $date, string $startTime, int $slotsNeeded): array
+    {
+        $slotTimes = DentistSchedule::slotTimes();
+        $startIndex = array_search($startTime, $slotTimes, true);
+
+        if ($startIndex === false) {
+            throw new \RuntimeException('That time is not a valid appointment slot.');
+        }
+
+        $durationLabel = DentistSchedule::formatSlotDuration($slotsNeeded);
+        $times = array_slice($slotTimes, $startIndex, $slotsNeeded);
+
+        if (count($times) < $slotsNeeded) {
+            throw new \RuntimeException(
+                "Booking failed: your selected services need {$durationLabel} total, which runs past closing time from this slot. Please choose an earlier start time or a date with more room."
+            );
+        }
+
+        $rows = [];
+        foreach ($times as $time) {
+            $schedule = DentistSchedule::firstOrCreate(['Date' => $date, 'Time' => $time], ['Status' => 'Available']);
+
+            if ($schedule->Status !== 'Available') {
+                $conflictLabel = Carbon::createFromFormat('H:i', $time)->format('g:i A');
+                throw new \RuntimeException(
+                    "Booking failed: your total service duration is {$durationLabel}, but {$conflictLabel} on this day is already booked. Please choose a start time with your full {$durationLabel} available."
+                );
+            }
+
+            $rows[] = $schedule;
+        }
+
+        foreach ($rows as $schedule) {
+            $schedule->Status = 'Not Available';
+            $schedule->save();
+        }
+
+        return $rows;
     }
 }

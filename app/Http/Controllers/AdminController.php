@@ -11,10 +11,6 @@ use Illuminate\Http\Request;
 
 class AdminController extends Controller
 {
-    // Same 9-slot day used everywhere else this schedule is computed
-    // (BuildsBookingCalendar, DentistScheduleController, AppointmentApprovalController).
-    protected array $slots = ['09:00', '10:00', '11:00', '13:00', '14:00', '15:00', '16:00', '17:00', '18:00'];
-
     protected function guard()
     {
         if (!session('user_id') || session('user_role') !== 'admin') {
@@ -59,7 +55,8 @@ class AdminController extends Controller
      */
     protected function availableScheduleThisMonth(): int
     {
-        $totalSlotsPerDay = count($this->slots);
+        $slots = DentistSchedule::slotTimes();
+        $totalSlotsPerDay = count($slots);
         $monthStart = today()->startOfMonth();
         $monthEnd = today()->endOfMonth();
 
@@ -75,15 +72,13 @@ class AdminController extends Controller
 
         $occupied = [];
         foreach ($appointments as $appointment) {
-            $start = array_search($appointment->AppointmentTime, $this->slots, true);
+            $start = array_search($appointment->AppointmentTime, $slots, true);
             if ($start === false) {
                 continue;
             }
-            $duration = in_array($appointment->Status, ['Approved', 'Completed'], true)
-                ? max(1, (int) ($appointment->DurationHours ?? 1))
-                : 1;
-            for ($offset = 0; $offset < $duration && isset($this->slots[$start + $offset]); $offset++) {
-                $occupied[$appointment->AppointmentDate->format('Y-m-d') . '_' . $this->slots[$start + $offset]] = true;
+            $duration = $appointment->duration_slots;
+            for ($offset = 0; $offset < $duration && isset($slots[$start + $offset]); $offset++) {
+                $occupied[$appointment->AppointmentDate->format('Y-m-d') . '_' . $slots[$start + $offset]] = true;
             }
         }
 
@@ -93,7 +88,7 @@ class AdminController extends Controller
             if (!$cursor->isSunday()) {
                 $dateKey = $cursor->format('Y-m-d');
                 $rows = $schedules->get($dateKey, collect());
-                $occupiedCount = collect($this->slots)->filter(fn ($time) => isset($occupied[$dateKey . '_' . $time]))->count();
+                $occupiedCount = collect($slots)->filter(fn ($time) => isset($occupied[$dateKey . '_' . $time]))->count();
                 $manualUnavailable = $rows->where('Status', 'Not Available')->count();
                 $total += $totalSlotsPerDay - max($occupiedCount, $manualUnavailable);
             }

@@ -119,10 +119,16 @@ Route::post('/configuration/services', [ConfigurationController::class, 'storeSe
 Route::post('/configuration/services/{id}/update', [ConfigurationController::class, 'updateService'])->name('configuration.services.update');
 Route::post('/configuration/services/{id}/archive', [ConfigurationController::class, 'archiveService'])->name('configuration.services.archive');
 Route::post('/configuration/services/{id}/unarchive', [ConfigurationController::class, 'unarchiveService'])->name('configuration.services.unarchive');
+Route::post('/configuration/categories', [ConfigurationController::class, 'storeCategory'])->name('configuration.categories.store');
+Route::post('/configuration/categories/{id}/update', [ConfigurationController::class, 'updateCategory'])->name('configuration.categories.update');
+Route::post('/configuration/categories/{id}/delete', [ConfigurationController::class, 'destroyCategory'])->name('configuration.categories.destroy');
 Route::post('/configuration/activity-logs/{id}/archive', [ConfigurationController::class, 'archiveActivityLog'])->name('configuration.activityLogs.archive');
 Route::post('/configuration/activity-logs/{id}/unarchive', [ConfigurationController::class, 'unarchiveActivityLog'])->name('configuration.activityLogs.unarchive');
 Route::post('/configuration/audit-logs/{id}/archive', [ConfigurationController::class, 'archiveAuditLog'])->name('configuration.auditLogs.archive');
 Route::post('/configuration/audit-logs/{id}/unarchive', [ConfigurationController::class, 'unarchiveAuditLog'])->name('configuration.auditLogs.unarchive');
+Route::post('/configuration/about', [ConfigurationController::class, 'updateAboutInfo'])->name('configuration.about.update');
+Route::post('/configuration/privacy-legal', [ConfigurationController::class, 'updatePrivacyLegal'])->name('configuration.privacyLegal.update');
+Route::post('/configuration/appointment-steps', [ConfigurationController::class, 'updateAppointmentSteps'])->name('configuration.appointmentSteps.update');
 
 // staff user profile (staff self-service: view info, verify email, change password)
 Route::get('/staff-profile', [StaffProfileController::class, 'edit'])->name('staffProfile');

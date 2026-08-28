@@ -170,11 +170,11 @@
                     <div class="date-mon">{{ $current->AppointmentDate->format('M Y') }}</div>
                 </div>
                 <div class="appt-detail">
-                    <h3>{{ $current->service->ServiceName ?? $current->TypeOfAppointment }}</h3>
+                    <h3>{{ $current->TypeOfAppointment ?: ($current->service->ServiceName ?? '') }}</h3>
                     <div class="appt-meta">
                         <span><i class="fas fa-calendar"></i> {{ $current->AppointmentDate->format('F j, Y') }}</span>
                         <span><i class="fas fa-clock"></i> {{ \Carbon\Carbon::createFromFormat('H:i', $current->AppointmentTime)->format('g:i A') }}</span>
-                        @if($current->Status === 'Approved')<span><i class="fas fa-hourglass-half"></i> {{ $current->DurationHours ?? 1 }} hour(s)</span>@endif
+                        <span><i class="fas fa-hourglass-half"></i> {{ $current->duration_label }}</span>
                     </div>
                     <div style="margin-top:10px">
                         <span class="badge-pill badge-scheduled">{{ $current->Status === 'Approved' ? 'Booked' : 'Pending' }}</span>
@@ -216,7 +216,7 @@
                         </tr>
                     </thead>
                     <tbody>
-                        @forelse($history as $appointment)<tr><td style="font-weight:600;color:#0f4c7a">{{ $appointment->AppointmentDate->format('M j, Y') }}</td><td>{{ \Carbon\Carbon::createFromFormat('H:i', $appointment->AppointmentTime)->format('g:i A') }}</td><td><span class="service-tag">{{ $appointment->service->ServiceName ?? $appointment->TypeOfAppointment }}</span></td><td>Pus-Pus Britanico Dental Clinic</td><td><span class="badge-pill {{ $appointment->Status === 'Completed' ? 'badge-completed' : ($appointment->Status === 'Declined' ? 'badge-cancelled' : 'badge-scheduled') }}">{{ $appointment->Status === 'Approved' ? 'Booked' : $appointment->Status }}</span></td></tr>@empty<tr><td colspan="5" class="text-center text-muted">No appointments found.</td></tr>@endforelse
+                        @forelse($history as $appointment)<tr><td style="font-weight:600;color:#0f4c7a">{{ $appointment->AppointmentDate->format('M j, Y') }}</td><td>{{ \Carbon\Carbon::createFromFormat('H:i', $appointment->AppointmentTime)->format('g:i A') }}</td><td><span class="service-tag">{{ $appointment->TypeOfAppointment ?: ($appointment->service->ServiceName ?? '') }}</span></td><td>Pus-Pus Britanico Dental Clinic</td><td><span class="badge-pill {{ $appointment->Status === 'Completed' ? 'badge-completed' : ($appointment->Status === 'Declined' ? 'badge-cancelled' : 'badge-scheduled') }}">{{ $appointment->Status === 'Approved' ? 'Booked' : $appointment->Status }}</span></td></tr>@empty<tr><td colspan="5" class="text-center text-muted">No appointments found.</td></tr>@endforelse
                     </tbody>
                 </table>
             </div>
@@ -266,7 +266,7 @@
                 </div>
                 <div class="modal-body p-4">
                     <p style="font-size:14px;line-height:1.7">Are you sure you want to cancel your
-                        @if($current)<strong style="color:#0f4c7a">{{ $current->AppointmentDate->format('M j') }} – {{ $current->service->ServiceName ?? $current->TypeOfAppointment }}</strong>@endif
+                        @if($current)<strong style="color:#0f4c7a">{{ $current->AppointmentDate->format('M j') }} – {{ $current->TypeOfAppointment ?: ($current->service->ServiceName ?? '') }}</strong>@endif
                         appointment? This cannot be undone.</p>
                 </div>
                 <div class="modal-footer gap-2">

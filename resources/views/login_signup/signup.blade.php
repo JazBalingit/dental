@@ -191,12 +191,48 @@
               </div>
             </div>
 
-            <div class="d-flex gap-2 mt-4">
+            <div class="form-check mt-3">
+              <input type="checkbox" class="form-check-input" name="agree_terms" id="agreeTerms" value="1"
+                {{ old('agree_terms') ? 'checked' : '' }} required>
+              <label class="form-check-label small text-muted-2" for="agreeTerms">
+                I agree to the
+                <a href="#" data-bs-toggle="modal" data-bs-target="#privacyPolicyModal">Privacy Policy</a>
+                and
+                <a href="#" data-bs-toggle="modal" data-bs-target="#legalTermsModal">Terms</a>.
+              </label>
+            </div>
+
+            <div class="d-flex gap-2 mt-3">
               <a href="{{ route('login') }}" class="btn btn-ghost flex-fill">Back to Login</a>
               <button type="submit" class="btn btn-brand flex-fill">Create Account</button>
             </div>
           </form>
         </div>
+      </div>
+    </div>
+  </div>
+
+  {{-- ===================== PRIVACY POLICY / LEGAL TERMS MODALS ===================== --}}
+  <div class="modal fade" id="privacyPolicyModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+      <div class="modal-content">
+        <div class="modal-header border-0 pb-0">
+          <h5 class="modal-title fw-semibold">Privacy Policy</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body pt-2" style="max-height:60vh; overflow-y:auto; white-space:pre-wrap;">{{ $privacyPolicy ?: 'This clinic has not published a privacy policy yet.' }}</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal fade" id="legalTermsModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+      <div class="modal-content">
+        <div class="modal-header border-0 pb-0">
+          <h5 class="modal-title fw-semibold">Legal Terms</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body pt-2" style="max-height:60vh; overflow-y:auto; white-space:pre-wrap;">{{ $legalTerms ?: 'This clinic has not published its legal terms yet.' }}</div>
       </div>
     </div>
   </div>

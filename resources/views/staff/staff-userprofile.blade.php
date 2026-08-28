@@ -13,7 +13,7 @@
     <link
         href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Poppins:wght@500;600;700&display=swap"
         rel="stylesheet">
-    <link rel="stylesheet" href="/css/styles.css">
+    <link rel="stylesheet" href="{{ asset('css/styles.css') }}">
 </head>
 
 <body>
@@ -21,11 +21,12 @@
         $si = $staff->staffInfo;
         $verified = (bool) $staff->EmailVerifiedAt;
         $showVerifyForm = session('show_staff_verify', false);
+        $isSuperAdmin = (bool) session('is_super_admin');
     @endphp
     <div class="app">
         <aside class="sidebar offcanvas position-sticky" tabindex="-1" id="sidebarOffcanvas">
             <div class="brand">
-                <div><img class="logo" src="/images/adams_logo2.png" alt=""></div>
+                <div><img class="logo" src="/images/puspus_logo.png" alt=""></div>
                 <div>
                     <div class="name">PUS-PUS BRITANICO</div>
                     <div class="sub">Dental Clinic</div>
@@ -43,9 +44,9 @@
                 <a href="{{ route('appointments') }}"><i class="bi bi-clipboard2-check"></i> Appointments</a>
                 <a href="{{ route('patientRecords') }}"><i class="bi bi-folder2-open"></i> Patient Records</a>
                 <div class="nav-section">System</div>
-                <a href="{{ route('configuration') }}"><i class="bi bi-sliders2"></i> Configuration</a>
+                <a href="{{ route('configuration') }}"><i class="bi bi-sliders2"></i> Settings</a>
             </nav>
-            <div class="footer">© PUS-PUS BRITANICO DENTAL CLINIC</div>
+            @include('partials.admin-profile-badge')
         </aside>
 
         <main>
@@ -57,27 +58,7 @@
                     </button>
                 </div>
                 <div class="right">
-                    <div class="dropdown">
-                        <button class="user-chip" type="button" data-bs-toggle="dropdown" aria-expanded="false"
-                            style="all:unset; cursor:pointer; display:flex; align-items:center; gap:.6rem; padding:.35rem .8rem .35rem .35rem; border-radius:999px; background:var(--brand-50); border:1px solid var(--brand-100); font-family:inherit;">
-                            <div><img class="avatar" src="{{ $si->photo_url ?? asset('images/default.png') }}" alt=""></div>
-                            <div class="meta">
-                                <div class="name">{{ $si->FirstName ?? 'Staff' }}</div>
-                                <div class="role">{{ $staff->Position }}</div>
-                            </div>
-                            <i class="bi bi-chevron-down ms-1 text-muted-2"></i>
-                        </button>
-                        <ul class="dropdown-menu dropdown-menu-end shadow-sm">
-                            <li><a class="dropdown-item small" href="{{ route('staffProfile') }}"><i class="bi bi-person me-2"></i>My Profile</a></li>
-                            <li><hr class="dropdown-divider"></li>
-                            <li>
-                                <form method="POST" action="{{ route('logout') }}" class="m-0">
-                                    @csrf
-                                    <button type="submit" class="dropdown-item text-danger small"><i class="bi bi-box-arrow-right me-1"></i> Log Out</button>
-                                </form>
-                            </li>
-                        </ul>
-                    </div>
+                    @include('partials.admin-notif-dropdown')
                 </div>
             </div>
 
@@ -91,148 +72,194 @@
 
                 @include('partials.flash-toasts')
 
-                <!-- Account Information -->
-                <div class="card-soft p-3 p-md-4 mb-3">
-                    <div class="d-flex align-items-center gap-3 mb-4">
-                        <img class="avatar-initials" src="{{ $si->photo_url ?? asset('images/default.png') }}" alt="" style="width:72px;height:72px;">
-                        <div>
-                            <h5 class="fw-semibold mb-1">{{ $si->FirstName ?? '' }} {{ $si->LastName ?? '' }}</h5>
-                            <span class="pill pill-info">{{ ucfirst($staff->AccountRole) }}</span>
-                            <span class="pill pill-success">{{ $staff->Position }}</span>
+                <div class="row g-3">
+                    <div class="col-lg-3">
+                        <div class="card-soft p-2">
+                            <div class="nav flex-column nav-pills" role="tablist" aria-orientation="vertical">
+                                <button class="nav-link text-start {{ $activeTab === 'profile' ? 'active' : '' }}"
+                                    data-profile-tab="profile" type="button"><i class="bi bi-person me-2"></i>User
+                                    Profile</button>
+                                <button class="nav-link text-start {{ $activeTab === 'security' ? 'active' : '' }}"
+                                    data-profile-tab="security" type="button"><i class="bi bi-shield-lock me-2"></i>Security</button>
+                            </div>
                         </div>
                     </div>
 
-                    <div class="section-label">Account Information</div>
-                    <div class="row g-3 mb-3">
-                        <div class="col-md-6">
-                            <label class="form-label">Email address</label>
-                            <div class="input-icon"><i class="bi bi-envelope"></i><input type="text" class="form-control" value="{{ $staff->Email }}" disabled></div>
+                    <div class="col-lg-9">
+
+                        {{-- ===================== USER PROFILE ===================== --}}
+                        <div class="settings-pane" data-profile-pane="profile" @if ($activeTab !== 'profile') hidden @endif>
+                            <div class="card-soft p-3 p-md-4">
+                                <div class="d-flex align-items-center gap-3 mb-4">
+                                    <img class="avatar-initials" src="{{ $si->photo_url ?? asset('images/default.png') }}" alt="" style="width:72px;height:72px;">
+                                    <div>
+                                        <h5 class="fw-semibold mb-1">{{ $si->FirstName ?? '' }} {{ $si->LastName ?? '' }}{{ $si ? '' : ($isSuperAdmin ? 'Super Admin' : 'Administrator') }}</h5>
+                                        <span class="pill pill-info">{{ ucfirst($staff->AccountRole) }}</span>
+                                        @if ($staff->Position)
+                                            <span class="pill pill-success">{{ $staff->Position }}</span>
+                                        @endif
+                                    </div>
+                                </div>
+
+                                <div class="section-label">Account Information</div>
+                                <div class="row g-3 {{ $si ? 'mb-3' : '' }}">
+                                    <div class="col-md-6">
+                                        <label class="form-label">Email address</label>
+                                        <div class="input-icon"><i class="bi bi-envelope"></i><input type="text" class="form-control" value="{{ $staff->Email }}" disabled></div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label class="form-label">Email verification</label>
+                                        <div class="input-icon">
+                                            @if ($verified)
+                                                <i class="bi bi-patch-check-fill"></i><input type="text" class="form-control" value="Verified on {{ $staff->EmailVerifiedAt->format('M j, Y g:i A') }}" disabled>
+                                            @else
+                                                <i class="bi bi-exclamation-triangle"></i><input type="text" class="form-control" value="Not verified yet" disabled>
+                                            @endif
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label class="form-label">Date created</label>
+                                        <div class="input-icon"><i class="bi bi-clock-history"></i><input type="text" class="form-control" value="{{ \Carbon\Carbon::parse($staff->DateCreated)->format('M j, Y g:i A') }}" disabled></div>
+                                    </div>
+                                </div>
+
+                                @if ($si)
+                                    <div class="section-label mt-2">Personal Information</div>
+                                    <div class="row g-3">
+                                        <div class="col-md-4">
+                                            <label class="form-label">Last name</label>
+                                            <div class="input-icon"><i class="bi bi-person"></i><input type="text" class="form-control" value="{{ $si->LastName ?? '' }}" disabled></div>
+                                        </div>
+                                        <div class="col-md-4">
+                                            <label class="form-label">First name</label>
+                                            <div class="input-icon"><i class="bi bi-person"></i><input type="text" class="form-control" value="{{ $si->FirstName ?? '' }}" disabled></div>
+                                        </div>
+                                        <div class="col-md-4">
+                                            <label class="form-label">Middle name</label>
+                                            <div class="input-icon"><i class="bi bi-person"></i><input type="text" class="form-control" value="{{ $si->MiddleName ?? '' }}" disabled></div>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <label class="form-label">Birthdate</label>
+                                            <div class="input-icon"><i class="bi bi-calendar-event"></i><input type="text" class="form-control" value="{{ optional($si->DateOfBirth ?? null)->format('M j, Y') }}" disabled></div>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <label class="form-label">Age</label>
+                                            <div class="input-icon"><i class="bi bi-calendar3"></i><input type="text" class="form-control" value="{{ optional($si->DateOfBirth ?? null)->age ?? '' }}" disabled></div>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <label class="form-label">Gender</label>
+                                            <div class="input-icon"><i class="bi bi-person-badge"></i><input type="text" class="form-control" value="{{ ucfirst($si->Gender ?? '') }}" disabled></div>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <label class="form-label">Religion</label>
+                                            <div class="input-icon"><i class="bi bi-book"></i><input type="text" class="form-control" value="{{ $si->Religion ?? '' }}" disabled></div>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <label class="form-label">Nationality</label>
+                                            <div class="input-icon"><i class="bi bi-flag"></i><input type="text" class="form-control" value="{{ $si->Nationality ?? '' }}" disabled></div>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <label class="form-label">Cell/Mobile number</label>
+                                            <div class="input-icon"><i class="bi bi-telephone"></i><input type="text" class="form-control" value="{{ $si->PhoneNumber ?? '' }}" disabled></div>
+                                        </div>
+                                        <div class="col-12">
+                                            <label class="form-label">Home address</label>
+                                            <div class="input-icon"><i class="bi bi-geo-alt"></i><input type="text" class="form-control" value="{{ $si->Address ?? '' }}" disabled></div>
+                                        </div>
+                                    </div>
+                                @endif
+                            </div>
+
+                            @unless ($verified)
+                                <!-- Email Verification -->
+                                <div class="card-soft p-3 p-md-4 mt-3">
+                                    <div class="section-label mb-3"><i class="bi bi-shield-exclamation me-1"></i> Verify Your Email</div>
+                                    <p class="text-muted-2 small">For your security, verify your email address before you can change your password. We'll send a 6-digit code to <strong>{{ $staff->Email }}</strong>.</p>
+
+                                    @if ($showVerifyForm)
+                                        <form method="POST" action="{{ route('staffProfile.verifyEmail') }}" class="row g-2 align-items-end">
+                                            @csrf
+                                            <div class="col-md-4">
+                                                <label class="form-label">Verification code</label>
+                                                <input type="text" name="code" class="form-control text-center" maxlength="6" inputmode="numeric" pattern="[0-9]*" placeholder="••••••" required style="letter-spacing:4px;">
+                                            </div>
+                                            <div class="col-auto">
+                                                <button type="submit" class="btn btn-brand">Verify</button>
+                                            </div>
+                                        </form>
+                                        <form method="POST" action="{{ route('staffProfile.sendVerification') }}" class="mt-2">
+                                            @csrf
+                                            <button type="submit" class="btn btn-link btn-sm p-0">Didn't receive the code? Resend</button>
+                                        </form>
+                                    @else
+                                        <form method="POST" action="{{ route('staffProfile.sendVerification') }}">
+                                            @csrf
+                                            <button type="submit" class="btn btn-brand"><i class="bi bi-envelope-check me-1"></i> Send Verification Code</button>
+                                        </form>
+                                    @endif
+                                </div>
+                            @endunless
                         </div>
-                        <div class="col-md-6">
-                            <label class="form-label">Email verification</label>
-                            <div class="input-icon">
-                                @if ($verified)
-                                    <i class="bi bi-patch-check-fill"></i><input type="text" class="form-control" value="Verified on {{ $staff->EmailVerifiedAt->format('M j, Y g:i A') }}" disabled>
+
+                        {{-- ===================== SECURITY ===================== --}}
+                        <div class="settings-pane" data-profile-pane="security" @if ($activeTab !== 'security') hidden @endif>
+                            <div class="card-soft p-3 p-md-4">
+                                <div class="section-label mb-3"><i class="bi bi-shield-lock me-1"></i> Change Password</div>
+
+                                @if ($isSuperAdmin)
+                                    <p class="text-muted-2 small mb-0">Your login is managed by server configuration, not a stored password — there's nothing to change here.</p>
+                                @elseif (!$verified)
+                                    <p class="text-muted-2 small mb-0">Verify your email on the User Profile tab to unlock password changes.</p>
                                 @else
-                                    <i class="bi bi-exclamation-triangle"></i><input type="text" class="form-control" value="Not verified yet" disabled>
+                                    <form method="POST" action="{{ route('staffProfile.password.update') }}">
+                                        @csrf
+                                        <div class="row g-3">
+                                            <div class="col-md-4">
+                                                <label class="form-label">Current password</label>
+                                                <div class="input-icon"><i class="bi bi-lock"></i><input type="password" name="current_password" class="form-control" required></div>
+                                            </div>
+                                            <div class="col-md-4">
+                                                <label class="form-label">New password</label>
+                                                <div class="input-icon"><i class="bi bi-key"></i><input type="password" name="password" class="form-control" minlength="8" required></div>
+                                            </div>
+                                            <div class="col-md-4">
+                                                <label class="form-label">Confirm new password</label>
+                                                <div class="input-icon"><i class="bi bi-shield-lock"></i><input type="password" name="password_confirmation" class="form-control" required></div>
+                                            </div>
+                                        </div>
+                                        <div class="d-flex justify-content-end mt-3">
+                                            <button type="submit" class="btn btn-brand"><i class="bi bi-save me-1"></i> Update Password</button>
+                                        </div>
+                                    </form>
                                 @endif
                             </div>
                         </div>
-                        <div class="col-md-6">
-                            <label class="form-label">Date created</label>
-                            <div class="input-icon"><i class="bi bi-clock-history"></i><input type="text" class="form-control" value="{{ \Carbon\Carbon::parse($staff->DateCreated)->format('M j, Y g:i A') }}" disabled></div>
-                        </div>
+
                     </div>
-
-                    <div class="section-label mt-2">Personal Information</div>
-                    <div class="row g-3">
-                        <div class="col-md-4">
-                            <label class="form-label">Last name</label>
-                            <div class="input-icon"><i class="bi bi-person"></i><input type="text" class="form-control" value="{{ $si->LastName ?? '' }}" disabled></div>
-                        </div>
-                        <div class="col-md-4">
-                            <label class="form-label">First name</label>
-                            <div class="input-icon"><i class="bi bi-person"></i><input type="text" class="form-control" value="{{ $si->FirstName ?? '' }}" disabled></div>
-                        </div>
-                        <div class="col-md-4">
-                            <label class="form-label">Middle name</label>
-                            <div class="input-icon"><i class="bi bi-person"></i><input type="text" class="form-control" value="{{ $si->MiddleName ?? '' }}" disabled></div>
-                        </div>
-                        <div class="col-md-6">
-                            <label class="form-label">Birthdate</label>
-                            <div class="input-icon"><i class="bi bi-calendar-event"></i><input type="text" class="form-control" value="{{ optional($si->DateOfBirth ?? null)->format('M j, Y') }}" disabled></div>
-                        </div>
-                        <div class="col-md-6">
-                            <label class="form-label">Age</label>
-                            <div class="input-icon"><i class="bi bi-calendar3"></i><input type="text" class="form-control" value="{{ optional($si->DateOfBirth ?? null)->age ?? '' }}" disabled></div>
-                        </div>
-                        <div class="col-md-6">
-                            <label class="form-label">Gender</label>
-                            <div class="input-icon"><i class="bi bi-person-badge"></i><input type="text" class="form-control" value="{{ ucfirst($si->Gender ?? '') }}" disabled></div>
-                        </div>
-                        <div class="col-md-6">
-                            <label class="form-label">Religion</label>
-                            <div class="input-icon"><i class="bi bi-book"></i><input type="text" class="form-control" value="{{ $si->Religion ?? '' }}" disabled></div>
-                        </div>
-                        <div class="col-md-6">
-                            <label class="form-label">Nationality</label>
-                            <div class="input-icon"><i class="bi bi-flag"></i><input type="text" class="form-control" value="{{ $si->Nationality ?? '' }}" disabled></div>
-                        </div>
-                        <div class="col-md-6">
-                            <label class="form-label">Cell/Mobile number</label>
-                            <div class="input-icon"><i class="bi bi-telephone"></i><input type="text" class="form-control" value="{{ $si->PhoneNumber ?? '' }}" disabled></div>
-                        </div>
-                        <div class="col-12">
-                            <label class="form-label">Home address</label>
-                            <div class="input-icon"><i class="bi bi-geo-alt"></i><input type="text" class="form-control" value="{{ $si->Address ?? '' }}" disabled></div>
-                        </div>
-                    </div>
-                </div>
-
-                @unless ($verified)
-                    <!-- Email Verification -->
-                    <div class="card-soft p-3 p-md-4 mb-3">
-                        <div class="section-label mb-3"><i class="bi bi-shield-exclamation me-1"></i> Verify Your Email</div>
-                        <p class="text-muted-2 small">For your security, verify your email address before you can change your password. We'll send a 6-digit code to <strong>{{ $staff->Email }}</strong>.</p>
-
-                        @if ($showVerifyForm)
-                            <form method="POST" action="{{ route('staffProfile.verifyEmail') }}" class="row g-2 align-items-end">
-                                @csrf
-                                <div class="col-md-4">
-                                    <label class="form-label">Verification code</label>
-                                    <input type="text" name="code" class="form-control text-center" maxlength="6" inputmode="numeric" pattern="[0-9]*" placeholder="••••••" required style="letter-spacing:4px;">
-                                </div>
-                                <div class="col-auto">
-                                    <button type="submit" class="btn btn-brand">Verify</button>
-                                </div>
-                            </form>
-                            <form method="POST" action="{{ route('staffProfile.sendVerification') }}" class="mt-2">
-                                @csrf
-                                <button type="submit" class="btn btn-link btn-sm p-0">Didn't receive the code? Resend</button>
-                            </form>
-                        @else
-                            <form method="POST" action="{{ route('staffProfile.sendVerification') }}">
-                                @csrf
-                                <button type="submit" class="btn btn-brand"><i class="bi bi-envelope-check me-1"></i> Send Verification Code</button>
-                            </form>
-                        @endif
-                    </div>
-                @endunless
-
-                <!-- Change Password -->
-                <div class="card-soft p-3 p-md-4">
-                    <div class="section-label mb-3"><i class="bi bi-shield-lock me-1"></i> Change Password</div>
-
-                    @if (!$verified)
-                        <p class="text-muted-2 small mb-0">Verify your email above to unlock password changes.</p>
-                    @else
-                        <form method="POST" action="{{ route('staffProfile.password.update') }}">
-                            @csrf
-                            <div class="row g-3">
-                                <div class="col-md-4">
-                                    <label class="form-label">Current password</label>
-                                    <div class="input-icon"><i class="bi bi-lock"></i><input type="password" name="current_password" class="form-control" required></div>
-                                </div>
-                                <div class="col-md-4">
-                                    <label class="form-label">New password</label>
-                                    <div class="input-icon"><i class="bi bi-key"></i><input type="password" name="password" class="form-control" minlength="8" required></div>
-                                </div>
-                                <div class="col-md-4">
-                                    <label class="form-label">Confirm new password</label>
-                                    <div class="input-icon"><i class="bi bi-shield-lock"></i><input type="password" name="password_confirmation" class="form-control" required></div>
-                                </div>
-                            </div>
-                            <div class="d-flex justify-content-end mt-3">
-                                <button type="submit" class="btn btn-brand"><i class="bi bi-save me-1"></i> Update Password</button>
-                            </div>
-                        </form>
-                    @endif
                 </div>
             </div>
         </main>
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        document.querySelectorAll('[data-profile-tab]').forEach(function (btn) {
+            btn.addEventListener('click', function () {
+                var tab = btn.dataset.profileTab;
+
+                document.querySelectorAll('[data-profile-tab]').forEach(function (b) {
+                    b.classList.toggle('active', b === btn);
+                });
+                document.querySelectorAll('[data-profile-pane]').forEach(function (pane) {
+                    pane.hidden = pane.dataset.profilePane !== tab;
+                });
+
+                var url = new URL(window.location.href);
+                url.searchParams.set('tab', tab);
+                window.history.replaceState({}, '', url);
+            });
+        });
+    </script>
 </body>
 
 </html>

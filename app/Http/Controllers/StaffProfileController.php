@@ -11,9 +11,15 @@ use Illuminate\Support\Facades\RateLimiter;
 
 class StaffProfileController extends Controller
 {
+    /**
+     * "My Profile" — used by every admin session (true admin, staff, super
+     * admin), not just staff. Route names stay staffProfile* for backward
+     * compatibility: EnsureStaffIsVerified's allowlist references these
+     * exact names to let an unverified staff account reach only this page.
+     */
     protected function guard()
     {
-        if (!session('user_id') || session('account_type') !== 'staff') {
+        if (!session('user_id') || session('user_role') !== 'admin') {
             return redirect()->route('login')->with('login_error', 'Please log in to continue.');
         }
 
@@ -25,15 +31,16 @@ class StaffProfileController extends Controller
         return UserAccount::with('staffInfo')->findOrFail(session('user_id'));
     }
 
-    public function edit()
+    public function edit(Request $request)
     {
         if ($redirect = $this->guard()) {
             return $redirect;
         }
 
         $staff = $this->currentStaff();
+        $activeTab = $request->query('tab') === 'security' ? 'security' : 'profile';
 
-        return view('staff.staff-userprofile', ['staff' => $staff]);
+        return view('staff.staff-userprofile', ['staff' => $staff, 'activeTab' => $activeTab]);
     }
 
     public function sendVerification(Request $request)
@@ -108,6 +115,14 @@ class StaffProfileController extends Controller
     {
         if ($redirect = $this->guard()) {
             return $redirect;
+        }
+
+        // The super admin authenticates against .env credentials, not a
+        // stored hash — there's no real password here to change. The
+        // Security tab is hidden for this session already; this is just
+        // the defensive backend check.
+        if (session('is_super_admin')) {
+            return redirect()->route('staffProfile')->with('error', 'Your login is managed by server configuration, not a stored password.');
         }
 
         $staff = $this->currentStaff();

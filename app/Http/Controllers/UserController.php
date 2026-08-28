@@ -4,6 +4,9 @@ namespace App\Http\Controllers;
 
 use App\Models\Appointment;
 use App\Models\DentistSchedule;
+use App\Models\Service;
+use App\Models\ServiceCategory;
+use App\Models\SystemSetting;
 use App\Models\UserAccount;
 use App\Services\NotificationService;
 use Carbon\Carbon;
@@ -24,7 +27,24 @@ class UserController extends Controller
         // Lets the Contact form skip asking for name/email when we already know them.
         $currentPatient = session('user_id') ? UserAccount::with('patientInfo')->find(session('user_id')) : null;
 
-        return view('users.landing-page', array_merge($bookingData, ['currentPatient' => $currentPatient]));
+        // "Our Services" section — grouped by category so each admin-defined
+        // category becomes its own card, instead of hardcoded copy. Services
+        // with no category land in a single "Other Services" catch-all so
+        // nothing silently disappears from the public page.
+        $serviceCategories = ServiceCategory::with(['services' => fn ($q) => $q->where('IsArchived', false)->orderBy('ServiceName')])
+            ->orderBy('DisplayOrder')->orderBy('Name')->get()
+            ->filter(fn ($category) => $category->services->isNotEmpty())
+            ->values();
+
+        $uncategorizedServices = Service::where('IsArchived', false)->whereNull('CategoryID')->orderBy('ServiceName')->get();
+
+        return view('users.landing-page', array_merge($bookingData, [
+            'currentPatient' => $currentPatient,
+            'appointmentSteps' => SystemSetting::appointmentSteps(),
+            'aboutInfo' => SystemSetting::aboutInfo(),
+            'serviceCategories' => $serviceCategories,
+            'uncategorizedServices' => $uncategorizedServices,
+        ]));
     }
     // show user appointment front end
     public function showUserAppointment(Request $request)
@@ -118,9 +138,9 @@ class UserController extends Controller
 
     protected function releaseAppointmentSlots(Appointment $appointment): void
     {
-        $times = ['09:00', '10:00', '11:00', '13:00', '14:00', '15:00', '16:00', '17:00', '18:00'];
+        $times = DentistSchedule::slotTimes();
         $start = array_search($appointment->AppointmentTime, $times, true);
-        $duration = $appointment->Status === 'Approved' ? max(1, (int) ($appointment->DurationHours ?? 1)) : 1;
+        $duration = $appointment->duration_slots;
         for ($offset = 0; $start !== false && $offset < $duration && isset($times[$start + $offset]); $offset++) {
             $time = $times[$start + $offset];
             $stillHeld = Appointment::whereKeyNot($appointment->AppointmentID)
@@ -128,7 +148,7 @@ class UserController extends Controller
                 ->whereIn('Status', ['Pending', 'Approved'])->get()
                 ->contains(function ($other) use ($times, $time) {
                     $otherStart = array_search($other->AppointmentTime, $times, true);
-                    $otherDuration = $other->Status === 'Approved' ? max(1, (int) ($other->DurationHours ?? 1)) : 1;
+                    $otherDuration = $other->duration_slots;
                     return $otherStart !== false && in_array($time, array_slice($times, $otherStart, $otherDuration), true);
                 });
             if (!$stillHeld) DentistSchedule::where('Date', $appointment->AppointmentDate->format('Y-m-d'))->where('Time', $time)->update(['Status' => 'Available']);

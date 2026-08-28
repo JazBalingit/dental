@@ -39,6 +39,7 @@ class AppServiceProvider extends ServiceProvider
             'superAdmin.staff-accounts',
             'superAdmin.user-accounts',
             'superAdmin.appointment-approval',
+            'staff.staff-userprofile',
         ], AdminNotificationComposer::class);
 
         View::composer([

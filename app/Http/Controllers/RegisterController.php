@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 
 use App\Mail\OtpMail;
 use App\Models\PatientInfo;
+use App\Models\SystemSetting;
 use App\Models\UserAccount;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
@@ -15,7 +16,10 @@ class RegisterController extends Controller
 {
     public function create()
     {
-        return view('login_signup.signup');
+        return view('login_signup.signup', [
+            'privacyPolicy' => SystemSetting::get('privacy_policy_content', ''),
+            'legalTerms' => SystemSetting::get('legal_terms_content', ''),
+        ]);
     }
 
     /**
@@ -42,6 +46,9 @@ class RegisterController extends Controller
             'guardian_occupation' => 'nullable|string|max:150',
             // 'confirmed' automatically checks password === password_confirmation
             'password' => 'required|string|min:8|confirmed',
+            'agree_terms' => 'accepted',
+        ], [
+            'agree_terms.accepted' => 'You must agree to the Privacy Policy and Terms to create an account.',
         ]);
 
         $throttleKey = 'signup-otp:' . strtolower($data['email']);

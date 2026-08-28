@@ -11,6 +11,7 @@ use App\Models\UserAccount;
 use App\Services\NotificationService;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
 class AppointmentBookingController extends Controller
 {
@@ -29,13 +30,21 @@ class AppointmentBookingController extends Controller
         $data = $request->validate([
             'date' => 'required|date',
             'time' => 'required|string',
-            'service_id' => 'required|exists:tbl_services,ServiceID',
+            'service_ids' => 'required|array|min:1',
+            'service_ids.*' => 'distinct|exists:tbl_services,ServiceID',
         ]);
 
         $user = UserAccount::with('patientInfo')->findOrFail(session('user_id'));
 
         if (!$user->patientInfo) {
             return redirect()->to(route('landingPage') . '#appointment')->with('booking_error', 'Your patient profile is incomplete.');
+        }
+
+        // One active appointment at a time — the next slot opens up once
+        // this one is completed, declined, or cancelled.
+        if (Appointment::where('PatientID', $user->patientInfo->PatientID)->whereIn('Status', ['Pending', 'Approved'])->exists()) {
+            return redirect()->to(route('landingPage') . '#appointment')
+                ->with('booking_error', 'You already have an upcoming appointment. Please wait until it\'s completed, or cancel it, before booking another.');
         }
 
         $date = Carbon::parse($data['date']);
@@ -45,30 +54,65 @@ class AppointmentBookingController extends Controller
                 ->with('booking_error', 'That date is not available for booking.');
         }
 
-        // Reserve the slot atomically-ish: create it as Available if it
-        // doesn't exist yet, then immediately check + flip it.
-        $schedule = DentistSchedule::firstOrCreate(
-            ['Date' => $data['date'], 'Time' => $data['time']],
-            ['Status' => 'Available']
-        );
-
-        if ($schedule->Status !== 'Available') {
+        // A same-day slot whose start time has already gone by can't be
+        // booked either — the calendar hides these, but the check belongs
+        // here too since this is what actually decides what gets created.
+        if (Carbon::parse($data['date'] . ' ' . $data['time'])->lt(now())) {
             return redirect()->to(route('landingPage') . '#appointment')
-                ->with('booking_error', 'Sorry, that slot was just taken. Please pick another time.');
+                ->with('booking_error', 'That time has already passed today. Please choose an upcoming time.');
         }
 
-        $schedule->Status = 'Not Available';
-        $schedule->save();
+        if ($date->gt(today()->addMonths(2))) {
+            return redirect()->to(route('landingPage') . '#appointment')
+                ->with('booking_error', 'Appointments can only be booked up to 2 months in advance.');
+        }
 
-        $appointment = Appointment::create([
-            'PatientID' => $user->patientInfo->PatientID,
-            'ScheduleID' => $schedule->ScheduleID,
-            'ServiceID' => $data['service_id'],
-            'AppointmentDate' => $data['date'],
-            'AppointmentTime' => $data['time'],
-            'TypeOfAppointment' => \App\Models\Service::find($data['service_id'])->ServiceName ?? null,
-            'Status' => 'Pending',
-        ]);
+        $services = Service::whereIn('ServiceID', $data['service_ids'])->get();
+        $slotsNeeded = $this->slotsNeededForServices($services);
+
+        try {
+            DB::beginTransaction();
+
+            // Reserve every slot the total service duration needs — either
+            // the whole block flips to Not Available, or none of it does.
+            $scheduleRows = $this->reserveSlotBlock($data['date'], $data['time'], $slotsNeeded);
+
+            $appointment = Appointment::create([
+                'PatientID' => $user->patientInfo->PatientID,
+                'ScheduleID' => $scheduleRows[0]->ScheduleID,
+                'ServiceID' => $services->first()?->ServiceID,
+                'AppointmentDate' => $data['date'],
+                'AppointmentTime' => $data['time'],
+                'TypeOfAppointment' => $services->pluck('ServiceName')->implode(', ') ?: null,
+                'DurationHours' => round($slotsNeeded * DentistSchedule::SLOT_MINUTES / 60, 1),
+                'Status' => 'Pending',
+            ]);
+
+            $appointment->services()->sync($services->pluck('ServiceID'));
+
+            DB::commit();
+        } catch (\Throwable $e) {
+            DB::rollBack();
+
+            $failureMessage = $e->getMessage() ?: 'Could not book this appointment. Please try again.';
+
+            // Keep a record of why in the patient's notifications — the
+            // flash toast disappears in a few seconds, but this needs
+            // no email since they're already looking right at it.
+            $this->notifications->notifyUser(
+                $user,
+                'Booking Failed',
+                $failureMessage,
+                'danger',
+                null,
+                null,
+                null,
+                false
+            );
+
+            return redirect()->to(route('landingPage') . '#appointment')
+                ->with('booking_error', $failureMessage);
+        }
 
         $timeLabel = Carbon::createFromFormat('H:i', $data['time'])->format('g:i A');
         $dateLabel = $date->format('F j, Y');
@@ -91,7 +135,9 @@ class AppointmentBookingController extends Controller
             'Pending'
         );
 
+        $durationLabel = DentistSchedule::formatSlotDuration($slotsNeeded);
+
         return redirect()->to(route('landingPage') . '#appointment')
-            ->with('booking_success', "Booked! {$dateLabel} at {$timeLabel} — status: Pending.");
+            ->with('booking_success', "Booked! {$dateLabel} at {$timeLabel} for {$durationLabel} — status: Pending.");
     }
 }

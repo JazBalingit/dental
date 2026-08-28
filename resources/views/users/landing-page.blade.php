@@ -119,52 +119,37 @@
           care under one roof.</p>
       </div>
       <div class="row row-cols-1 row-cols-md-2 g-4">
-        <div class="col">
-          <div class="soft-card service-card">
-            <div class="service-icon"><i class="fa-solid fa-tooth"></i></div>
-            <h5>General Dentistry</h5>
-            <ul>
-              <li>Oral Prophylaxis (Cleaning)</li>
-              <li>Tooth Filling</li>
-              <li>Extraction</li>
-              <li>Periapical X-ray</li>
-              <li>Consultation</li>
-            </ul>
+        @foreach ($serviceCategories as $category)
+          <div class="col">
+            <div class="soft-card service-card">
+              <div class="service-icon"><i class="{{ $category->Icon ?: 'fa-solid fa-tooth' }}"></i></div>
+              <h5>{{ $category->Name }}</h5>
+              <ul>
+                @foreach ($category->services as $service)
+                  <li>{{ $service->ServiceName }}</li>
+                @endforeach
+              </ul>
+            </div>
           </div>
-        </div>
-        <div class="col">
-          <div class="soft-card service-card">
-            <div class="service-icon"><i class="fa-solid fa-teeth"></i></div>
-            <h5>Prosthodontic Treatment</h5>
-            <ul>
-              <li>Dentures</li>
-              <li>Crowns</li>
-              <li>Retainers</li>
-            </ul>
+        @endforeach
+
+        @if ($uncategorizedServices->isNotEmpty())
+          <div class="col">
+            <div class="soft-card service-card">
+              <div class="service-icon"><i class="fa-solid fa-notes-medical"></i></div>
+              <h5>Other Services</h5>
+              <ul>
+                @foreach ($uncategorizedServices as $service)
+                  <li>{{ $service->ServiceName }}</li>
+                @endforeach
+              </ul>
+            </div>
           </div>
-        </div>
-        <div class="col">
-          <div class="soft-card service-card">
-            <div class="service-icon"><i class="fa-solid fa-teeth-open"></i></div>
-            <h5>Orthodontic Treatment</h5>
-            <ul>
-              <li>Braces</li>
-              <li>Bite Correction</li>
-              <li>Alignment Consultation</li>
-            </ul>
-          </div>
-        </div>
-        <div class="col">
-          <div class="soft-card service-card">
-            <div class="service-icon"><i class="fa-solid fa-stethoscope"></i></div>
-            <h5>Oral Surgery & Specialized</h5>
-            <ul>
-              <li>Root Canal Treatment</li>
-              <li>Odontectomy (Surgery)</li>
-              <li>Fluoride Treatment (Pedo Patients)</li>
-            </ul>
-          </div>
-        </div>
+        @endif
+
+        @if ($serviceCategories->isEmpty() && $uncategorizedServices->isEmpty())
+          <div class="col-12 text-center text-muted-2">Our services will be listed here soon.</div>
+        @endif
       </div>
     </div>
   </section>
@@ -175,67 +160,33 @@
         <span class="section-eyebrow">Easy Steps</span>
         <h2 class="section-title">How to Book Your Appointment</h2>
         <hr class="section-divider mx-auto">
-        <p class="section-intro mx-auto">Follow these six simple steps to schedule your visit with us — it only takes a
+        <p class="section-intro mx-auto">Follow these simple steps to schedule your visit with us — it only takes a
           few minutes.</p>
       </div>
+      @php
+        $stepIcons = \App\Models\SystemSetting::appointmentStepIcons();
+        $lastStep = count($appointmentSteps);
+      @endphp
       <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-4 g-lg-5 mt-2">
-        <div class="col">
-          <div class="soft-card step-card">
-            <span class="step-badge">1</span>
-            <div class="step-icon"><i class="fa-solid fa-user-plus"></i></div>
-            <h5>Create an Account or Log In</h5>
-            <p>Sign up with your basic details, or log back in if you already have an account with us.</p>
-            @unless (session('user_id'))
-              <a href="{{ route('signup') }}" class="step-cta"><i class="fa-solid fa-user-plus me-2"></i>Sign Up</a>
-            @endunless
+        @foreach ($appointmentSteps as $n => $step)
+          <div class="col">
+            <div class="soft-card step-card">
+              <span class="step-badge">{{ $n }}</span>
+              <div class="step-icon"><i class="{{ $stepIcons[($n - 1) % count($stepIcons)] }}"></i></div>
+              <h5>{{ $step['title'] }}</h5>
+              <p>{{ $step['desc'] }}</p>
+              @if ($n === 1)
+                @unless (session('user_id'))
+                  <a href="{{ route('signup') }}" class="step-cta"><i class="fa-solid fa-user-plus me-2"></i>Sign Up</a>
+                @endunless
+              @endif
+              @if ($n === $lastStep && session('user_id'))
+                <a href="{{ route('userAppointment') }}" class="step-cta"><i
+                    class="fa-regular fa-calendar-check me-2"></i>My Appointments</a>
+              @endif
+            </div>
           </div>
-        </div>
-        <div class="col">
-          <div class="soft-card step-card">
-            <span class="step-badge">2</span>
-            <div class="step-icon"><i class="fa-regular fa-calendar"></i></div>
-            <h5>Open the Appointment Section</h5>
-            <p>Once you're logged in, scroll down to "Book Now" — the doctor's monthly schedule appears right here on
-              this page.</p>
-          </div>
-        </div>
-        <div class="col">
-          <div class="soft-card step-card">
-            <span class="step-badge">3</span>
-            <div class="step-icon"><i class="fa-regular fa-calendar-days"></i></div>
-            <h5>Pick an Open Date</h5>
-            <p>Click any date that still has open slots to see that day's available times.</p>
-          </div>
-        </div>
-        <div class="col">
-          <div class="soft-card step-card">
-            <span class="step-badge">4</span>
-            <div class="step-icon"><i class="fa-regular fa-clock"></i></div>
-            <h5>Choose a Time & Service</h5>
-            <p>Pick an open time slot, then select the dental treatment you need for that visit.</p>
-          </div>
-        </div>
-        <div class="col">
-          <div class="soft-card step-card">
-            <span class="step-badge">5</span>
-            <div class="step-icon"><i class="fa-regular fa-circle-check"></i></div>
-            <h5>Review & Confirm</h5>
-            <p>Double-check the service, date, and time, then confirm to submit your appointment request.</p>
-          </div>
-        </div>
-        <div class="col">
-          <div class="soft-card step-card">
-            <span class="step-badge">6</span>
-            <div class="step-icon"><i class="fa-regular fa-bell"></i></div>
-            <h5>Wait for Approval</h5>
-            <p>Your request starts as Pending — we'll notify you once staff approves it. Track it anytime on your
-              Appointments page.</p>
-            @if (session('user_id'))
-              <a href="{{ route('userAppointment') }}" class="step-cta"><i
-                  class="fa-regular fa-calendar-check me-2"></i>My Appointments</a>
-            @endif
-          </div>
-        </div>
+        @endforeach
       </div>
     </div>
   </section>
@@ -249,7 +200,7 @@
       </div>
       <div class="row align-items-center g-5">
         <div class="col-md-6">
-          <img src="/images/clinic2.jpg" class="about-img" alt="Pus-Pus Britanico Dental Clinic">
+          <img src="{{ $aboutInfo['image'] }}" class="about-img" alt="Pus-Pus Britanico Dental Clinic">
         </div>
         <div class="col-md-6">
           <h3 class="fw-bold mb-3">Location & Hours</h3>
@@ -262,10 +213,9 @@
               referrerpolicy="strict-origin-when-cross-origin"></iframe>
           </div>
           <div class="location-info">
-            <p><i class="fa-solid fa-location-dot"></i><span><strong>Address</strong>Blk 6 Lot 2 Poblacion 2, GMA, Cavite</span></p>
-            <p><i class="fa-regular fa-calendar"></i><span><strong>Operating Days</strong>Monday – Saturday</span></p>
-            <p><i class="fa-regular fa-clock"></i><span><strong>Operating Hours</strong>9:00 AM – 6:00
-                PM</span></p>
+            <p><i class="fa-solid fa-location-dot"></i><span><strong>Address</strong>{{ $aboutInfo['address'] }}</span></p>
+            <p><i class="fa-regular fa-calendar"></i><span><strong>Operating Days</strong>{{ $aboutInfo['operatingDays'] }}</span></p>
+            <p><i class="fa-regular fa-clock"></i><span><strong>Operating Hours</strong>{{ $aboutInfo['operatingHours'] }}</span></p>
           </div>
         </div>
       </div>
@@ -519,17 +469,71 @@
       document.getElementById('bookMonth').value = year + '-' + month;
     });
 
-    // ---------- Review & Confirm inside the day modal (select service -> review -> confirm) ----------
+    // ---------- Clinic slot grid, mirrors DentistSchedule on the server — used to
+    // preview the actual end time (skipping the lunch-hour gap) before submitting ----------
+    var SLOT_TIMES = @json(\App\Models\DentistSchedule::slotTimes());
+    var SLOT_MINUTES = {{ \App\Models\DentistSchedule::SLOT_MINUTES }};
+
+    function formatTime12h(hours, minutes) {
+      var period = hours >= 12 ? 'PM' : 'AM';
+      var hour12 = hours % 12 || 12;
+      return hour12 + ':' + String(minutes).padStart(2, '0') + ' ' + period;
+    }
+
+    // "1 hour 30 minutes" / "30 minutes" — mirrors DentistSchedule::formatSlotDuration().
+    function formatDurationLabel(totalMinutes) {
+      var hours = Math.floor(totalMinutes / 60);
+      var minutes = totalMinutes % 60;
+      var parts = [];
+      if (hours > 0) parts.push(hours + ' hour' + (hours > 1 ? 's' : ''));
+      if (minutes > 0) parts.push(minutes + ' minute' + (minutes > 1 ? 's' : ''));
+      return parts.length ? parts.join(' ') : '0 minutes';
+    }
+
+    // The last reserved slot's end time for a booking of totalMinutes
+    // starting at startTime — null if it would run past closing (the
+    // actual check still happens server-side; this is just a preview).
+    function computeEndTimeLabel(startTime, totalMinutes) {
+      var slotsNeeded = Math.max(1, Math.ceil(totalMinutes / SLOT_MINUTES));
+      var startIndex = SLOT_TIMES.indexOf(startTime);
+      if (startIndex === -1) return null;
+      var lastIndex = startIndex + slotsNeeded - 1;
+      if (lastIndex >= SLOT_TIMES.length) return null;
+      var lastSlot = SLOT_TIMES[lastIndex].split(':').map(Number);
+      var endMinutesTotal = lastSlot[0] * 60 + lastSlot[1] + SLOT_MINUTES;
+      return formatTime12h(Math.floor(endMinutesTotal / 60), endMinutesTotal % 60);
+    }
+
+    // ---------- Multi-service dropdown: keep each toggle button's label in sync ----------
+    function updateServiceToggleLabel(wrapper) {
+      var text = wrapper.querySelector('.book-slot-service-toggle-text');
+      var checked = wrapper.querySelectorAll('.book-slot-service-option:checked');
+      text.textContent = checked.length
+        ? Array.from(checked).map(function (c) { return c.dataset.name; }).join(', ')
+        : 'Select services';
+    }
+
+    document.addEventListener('change', function (e) {
+      if (e.target.matches('.book-slot-service-option')) {
+        var wrapper = e.target.closest('.book-slot-service');
+        updateServiceToggleLabel(wrapper);
+        wrapper.querySelector('.book-slot-service-toggle').classList.remove('is-invalid');
+      }
+    });
+
+    // ---------- Review & Confirm inside the day modal (select service(s) -> review -> confirm) ----------
     document.addEventListener('click', function (e) {
       var selectBtn = e.target.closest('.book-select-btn');
       if (selectBtn) {
         var row = selectBtn.closest('.d-flex');
-        var serviceSelect = row ? row.querySelector('.book-slot-service') : null;
-        if (serviceSelect && !serviceSelect.value) {
-          serviceSelect.classList.add('is-invalid');
+        var wrapper = row ? row.querySelector('.book-slot-service') : null;
+        var checked = wrapper ? Array.from(wrapper.querySelectorAll('.book-slot-service-option:checked')) : [];
+
+        if (!checked.length) {
+          if (wrapper) wrapper.querySelector('.book-slot-service-toggle').classList.add('is-invalid');
           return;
         }
-        if (serviceSelect) serviceSelect.classList.remove('is-invalid');
+        wrapper.querySelector('.book-slot-service-toggle').classList.remove('is-invalid');
 
         var modalEl = selectBtn.closest('.modal');
         if (!modalEl) return;
@@ -539,13 +543,26 @@
         if (!slotsView || !confirmView) return;
 
         var dateLabel = modalEl.querySelector('.modal-title')?.textContent || selectBtn.dataset.date;
+        var totalMinutes = checked.reduce(function (sum, c) { return sum + (parseInt(c.dataset.duration, 10) || 60); }, 0);
+        var startLabel = selectBtn.dataset.timeLabel || selectBtn.dataset.time;
+        var endLabel = computeEndTimeLabel(selectBtn.dataset.time, totalMinutes);
 
-        confirmView.querySelector('.book-confirm-service').textContent = serviceSelect.options[serviceSelect.selectedIndex].text;
+        confirmView.querySelector('.book-confirm-service').textContent = checked.map(function (c) { return c.dataset.name; }).join(', ');
         confirmView.querySelector('.book-confirm-date').textContent = dateLabel;
-        confirmView.querySelector('.book-confirm-time').textContent = selectBtn.dataset.timeLabel || selectBtn.dataset.time;
+        confirmView.querySelector('.book-confirm-time').textContent = endLabel ? (startLabel + ' - ' + endLabel) : startLabel;
+        confirmView.querySelector('.book-confirm-duration').textContent = formatDurationLabel(totalMinutes);
         confirmView.querySelector('.book-confirm-date-input').value = selectBtn.dataset.date;
         confirmView.querySelector('.book-confirm-time-input').value = selectBtn.dataset.time;
-        confirmView.querySelector('.book-confirm-service-input').value = serviceSelect.value;
+
+        var inputsContainer = confirmView.querySelector('.book-confirm-service-inputs');
+        inputsContainer.innerHTML = '';
+        checked.forEach(function (c) {
+          var input = document.createElement('input');
+          input.type = 'hidden';
+          input.name = 'service_ids[]';
+          input.value = c.value;
+          inputsContainer.appendChild(input);
+        });
 
         slotsView.hidden = true;
         confirmView.hidden = false;
@@ -569,12 +586,6 @@
       var confirmView = e.target.querySelector('.book-confirm-view');
       if (slotsView) slotsView.hidden = false;
       if (confirmView) confirmView.hidden = true;
-    });
-
-    document.addEventListener('change', function (e) {
-      if (e.target.matches('.book-slot-service')) {
-        e.target.classList.remove('is-invalid');
-      }
     });
 
     // ---------- Wire the Reschedule / Cancel confirmation modals to whichever slot triggered them ----------

@@ -104,15 +104,38 @@ class WalkInController extends Controller
             'address' => 'required_if:patient_source,new|nullable|string|max:255',
             'email' => 'nullable|email|max:255',
             'phone' => 'required_if:patient_source,new|nullable|string|max:20',
-            'service_id' => 'required|exists:tbl_services,ServiceID',
+            'service_ids' => 'required|array|min:1',
+            'service_ids.*' => 'distinct|exists:tbl_services,ServiceID',
             'date' => 'required|date',
             'time' => 'required|string',
         ]);
 
+        // One active appointment at a time — only meaningful for an existing
+        // patient, since a "new" one can't already have an appointment.
+        if ($data['patient_source'] === 'existing'
+            && Appointment::where('PatientID', $data['patient_id'])->whereIn('Status', ['Pending', 'Approved'])->exists()) {
+            return back()->withInput()->with('error', 'This patient already has an upcoming appointment. Please wait until it\'s completed, or cancel it, before booking another.')
+                ->with('walkin_error_step', 2);
+        }
+
         $date = Carbon::parse($data['date']);
 
         if ($date->isSunday() || $date->lt(today())) {
-            return back()->withInput()->with('error', 'That date is not available for booking.');
+            return back()->withInput()->with('error', 'That date is not available for booking.')
+                ->with('walkin_error_step', 2);
+        }
+
+        // A same-day slot whose start time has already gone by can't be
+        // booked either — the calendar hides these, but the check belongs
+        // here too since this is what actually decides what gets created.
+        if (Carbon::parse($data['date'] . ' ' . $data['time'])->lt(now())) {
+            return back()->withInput()->with('error', 'That time has already passed today. Please choose an upcoming time.')
+                ->with('walkin_error_step', 2);
+        }
+
+        if ($date->gt(today()->addMonths(2))) {
+            return back()->withInput()->with('error', 'Appointments can only be booked up to 2 months in advance.')
+                ->with('walkin_error_step', 2);
         }
 
         $user = null;
@@ -151,37 +174,41 @@ class WalkInController extends Controller
                 $isNewPatient = true;
             }
 
-            // Race-condition guard, identical pattern to AppointmentBookingController::store().
-            $schedule = DentistSchedule::firstOrCreate(
-                ['Date' => $data['date'], 'Time' => $data['time']],
-                ['Status' => 'Available']
-            );
+            $services = Service::whereIn('ServiceID', $data['service_ids'])->get();
+            $slotsNeeded = $this->slotsNeededForServices($services);
 
-            if ($schedule->Status !== 'Available') {
-                throw new \RuntimeException('Sorry, that slot was just taken. Please pick another time.');
-            }
-
-            $schedule->Status = 'Not Available';
-            $schedule->save();
-
-            $service = Service::find($data['service_id']);
+            // Reserve every slot the total service duration needs — either
+            // the whole block flips to Not Available, or none of it does.
+            // Same pattern as AppointmentBookingController::store().
+            $scheduleRows = $this->reserveSlotBlock($data['date'], $data['time'], $slotsNeeded);
 
             $appointment = Appointment::create([
                 'PatientID' => $patientInfo->PatientID,
-                'ScheduleID' => $schedule->ScheduleID,
-                'ServiceID' => $data['service_id'],
+                'ScheduleID' => $scheduleRows[0]->ScheduleID,
+                'ServiceID' => $services->first()?->ServiceID,
                 'AppointmentDate' => $data['date'],
                 'AppointmentTime' => $data['time'],
-                'TypeOfAppointment' => $service->ServiceName ?? null,
+                'TypeOfAppointment' => $services->pluck('ServiceName')->implode(', ') ?: null,
+                'DurationHours' => round($slotsNeeded * DentistSchedule::SLOT_MINUTES / 60, 1),
                 'Source' => 'Walk-in',
                 'Status' => 'Pending',
             ]);
+
+            $appointment->services()->sync($services->pluck('ServiceID'));
 
             DB::commit();
         } catch (\Throwable $e) {
             DB::rollBack();
 
-            return back()->withInput()->with('error', $e->getMessage() ?: 'Could not create the walk-in appointment.');
+            $failureMessage = $e->getMessage() ?: 'Could not create the walk-in appointment.';
+
+            // Keep a record of why in the patient's notifications when they
+            // have an account to see it — no email, they're at the counter.
+            if ($user) {
+                $this->notifications->notifyUser($user, 'Booking Failed', $failureMessage, 'danger', null, null, null, false);
+            }
+
+            return back()->withInput()->with('error', $failureMessage)->with('walkin_error_step', 2);
         }
 
         $timeLabel = Carbon::createFromFormat('H:i', $data['time'])->format('g:i A');
@@ -219,6 +246,8 @@ class WalkInController extends Controller
             "{$performerName} recorded a walk-in appointment for {$patientName} (" . ($isNewPatient ? 'new patient' : "Patient ID {$patientInfo->PatientID}") . ") — {$dateLabel} at {$timeLabel}."
         );
 
-        return redirect()->route('appointmentApproval')->with('success', "Walk-in appointment recorded for {$patientName} — {$dateLabel} at {$timeLabel}. It's now pending approval.");
+        $durationLabel = DentistSchedule::formatSlotDuration($slotsNeeded);
+
+        return redirect()->route('appointmentApproval')->with('success', "Walk-in appointment recorded for {$patientName} — {$dateLabel} at {$timeLabel} for {$durationLabel}. It's now pending approval.");
     }
 }

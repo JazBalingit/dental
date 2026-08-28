@@ -68,9 +68,9 @@
         <a href="{{ route('appointments') }}"><i class="bi bi-clipboard2-check"></i> Appointments</a>
         <a href="{{ route('patientRecords') }}"><i class="bi bi-folder2-open"></i> Patient Records</a>
         <div class="nav-section">System</div>
-        <a href="{{ route('configuration') }}"><i class="bi bi-sliders2"></i> Configuration</a>
+        <a href="{{ route('configuration') }}"><i class="bi bi-sliders2"></i> Settings</a>
       </nav>
-      <div class="footer">© PUS-PUS BRITANICO DENTAL CLINIC</div>
+      @include('partials.admin-profile-badge')
     </aside>
 
     <main>
@@ -83,29 +83,6 @@
         </div>
         <div class="right">
           @include('partials.admin-notif-dropdown')
-          <div class="dropdown">
-            <button class="user-chip" type="button" data-bs-toggle="dropdown" aria-expanded="false"
-              style="all:unset; cursor:pointer; display:flex; align-items:center; gap:.6rem; padding:.35rem .8rem .35rem .35rem; border-radius:999px; background:var(--brand-50); border:1px solid var(--brand-100); font-family:inherit;">
-              <div><img class="avatar" src="/images/default.png" alt=""></div>
-              <div class="meta">
-                <div class="name">{{ session('user_email', 'Admin') }}</div>
-                <div class="role">{{ session('account_type') === 'staff' ? 'Staff' : 'Administrator' }}</div>
-              </div>
-              <i class="bi bi-chevron-down ms-1 text-muted-2"></i>
-            </button>
-            <ul class="dropdown-menu dropdown-menu-end shadow-sm">
-              @if (session('account_type') === 'staff')
-                <li><a class="dropdown-item small" href="{{ route('staffProfile') }}"><i class="bi bi-person me-2"></i>My Profile</a></li>
-                <li><hr class="dropdown-divider"></li>
-              @endif
-              <li>
-                <form method="POST" action="{{ route('logout') }}" class="m-0">
-                  @csrf
-                  <button type="submit" class="dropdown-item text-danger small"><i class="bi bi-box-arrow-right me-1"></i> Log Out</button>
-                </form>
-              </li>
-            </ul>
-          </div>
         </div>
       </div>
 

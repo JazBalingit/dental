@@ -15,19 +15,6 @@ class DentistScheduleController extends Controller
     {
     }
 
-    // 24h value => display label, matches the original static modal
-    protected array $slots = [
-        '09:00' => '9:00',
-        '10:00' => '10:00',
-        '11:00' => '11:00',
-        '13:00' => '1:00',
-        '14:00' => '2:00',
-        '15:00' => '3:00',
-        '16:00' => '4:00',
-        '17:00' => '5:00',
-        '18:00' => '6:00',
-    ];
-
     protected function guard()
     {
         if (!session('user_id') || session('user_role') !== 'admin') {
@@ -35,6 +22,13 @@ class DentistScheduleController extends Controller
         }
 
         return null;
+    }
+
+    // 24h value => "9:00 AM - 9:30 AM" range label, from the single
+    // source of truth for the clinic's slot grid.
+    protected function slots(): array
+    {
+        return DentistSchedule::slotLabels();
     }
 
     public function index(Request $request)
@@ -79,7 +73,7 @@ class DentistScheduleController extends Controller
             ->get();
         $occupiedSlots = $this->occupiedSlots($appointments);
 
-        $totalSlotsPerDay = count($this->slots);
+        $totalSlotsPerDay = count($this->slots());
 
         // build weeks => array of Carbon dates, 7 per row
         $weeks = [];
@@ -100,7 +94,7 @@ class DentistScheduleController extends Controller
             if (!$monthCursor->isSunday()) {
                 $dStr = $monthCursor->format('Y-m-d');
                 $rows = $schedules[$dStr] ?? collect();
-                $occupiedCount = collect($this->slots)->filter(fn($_, $time) => isset($occupiedSlots[$dStr . '_' . $time]))->count();
+                $occupiedCount = collect($this->slots())->filter(fn($_, $time) => isset($occupiedSlots[$dStr . '_' . $time]))->count();
                 $manualUnavailable = $rows->where('Status', 'Not Available')->count();
                 $totalAvailableThisMonth += ($totalSlotsPerDay - max($occupiedCount, $manualUnavailable));
             }
@@ -111,7 +105,7 @@ class DentistScheduleController extends Controller
             'weeks' => $weeks,
             'current' => $current,
             'schedules' => $schedules,
-            'slots' => $this->slots,
+            'slots' => $this->slots(),
             'totalSlotsPerDay' => $totalSlotsPerDay,
             'today' => now()->format('Y-m-d'),
             'totalAvailableThisMonth' => $totalAvailableThisMonth,
@@ -165,13 +159,11 @@ class DentistScheduleController extends Controller
     protected function occupiedSlots($appointments): array
     {
         $occupied = [];
-        $times = array_keys($this->slots);
+        $times = array_keys($this->slots());
         foreach ($appointments as $appointment) {
             $start = array_search($appointment->AppointmentTime, $times, true);
             if ($start === false) continue;
-            $duration = in_array($appointment->Status, ['Approved', 'Completed'], true)
-                ? max(1, (int) ($appointment->DurationHours ?? 1))
-                : 1;
+            $duration = $appointment->duration_slots;
             for ($offset = 0; $offset < $duration && isset($times[$start + $offset]); $offset++) {
                 $occupied[$appointment->AppointmentDate->format('Y-m-d') . '_' . $times[$start + $offset]] = $appointment;
             }
@@ -189,7 +181,7 @@ class DentistScheduleController extends Controller
     /**
      * Turns every slot on a date to Not Available (or back to Available if
      * the day is already fully closed) in one click, instead of toggling
-     * each of the 9 slots by hand. Closing the day cancels any Pending or
+     * each half-hour slot by hand. Closing the day cancels any Pending or
      * Approved appointments still on it and emails each patient — a
      * Completed appointment already happened, so its slot is left alone.
      */
@@ -220,7 +212,7 @@ class DentistScheduleController extends Controller
             ->map(fn ($key) => explode('_', $key, 2)[1])
             ->all();
 
-        $editableTimes = array_diff(array_keys($this->slots), $completedTimes);
+        $editableTimes = array_diff(array_keys($this->slots()), $completedTimes);
 
         if (empty($editableTimes)) {
             return redirect()

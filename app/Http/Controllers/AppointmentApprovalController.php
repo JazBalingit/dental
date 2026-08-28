@@ -20,11 +20,6 @@ class AppointmentApprovalController extends Controller
     ) {
     }
 
-    // Same ordered slot list used by the Dentist Schedule calendar —
-    // needed here to figure out which slots to block when a staff member
-    // approves an appointment with a multi-hour duration.
-    protected array $slotOrder = ['09:00', '10:00', '11:00', '13:00', '14:00', '15:00', '16:00', '17:00', '18:00'];
-
     protected function guard()
     {
         if (!session('user_id') || session('user_role') !== 'admin') {
@@ -65,13 +60,6 @@ class AppointmentApprovalController extends Controller
 
         $appointments = $query->paginate(10)->withQueryString();
 
-        // Pending rows get a duration cap so admins can't approve a longer
-        // block than the day actually has room for — see maxDurationForAppointment().
-        $appointments->getCollection()->transform(function ($appt) {
-            $appt->maxDurationHours = $appt->Status === 'Pending' ? $this->maxDurationForAppointment($appt) : null;
-            return $appt;
-        });
-
         $today = now()->format('Y-m-d');
 
         $stats = [
@@ -95,27 +83,15 @@ class AppointmentApprovalController extends Controller
             return $redirect;
         }
 
-        $data = $request->validate([
-            'duration_hours' => 'required|integer|min:1|max:8',
-        ]);
-
         $appointment = Appointment::with(['patientInfo.userAccount'])->findOrFail($id);
 
-        // Re-check against the current state of the day (not just what the
-        // admin's page had loaded) so a stale value can't overlap a slot
-        // another appointment has since claimed.
-        $durationHours = min((int) $data['duration_hours'], $this->maxDurationForAppointment($appointment));
-
+        // The full block of slots this appointment needs was already
+        // reserved (Not Available) the moment it was booked — DurationHours
+        // is computed from its services at that point, not chosen here.
+        // Approving just flips the status; nothing to (re)block.
         $appointment->Status = 'Approved';
-        $appointment->DurationHours = $durationHours;
         $appointment->ApprovedAt = now();
         $appointment->save();
-
-        $this->blockSubsequentSlots(
-            $appointment->AppointmentDate->format('Y-m-d'),
-            $appointment->AppointmentTime,
-            $durationHours
-        );
 
         $this->notifyPatient($appointment, 'Appointment Approved', 'Your appointment has been approved.', 'success');
         $this->notifyAdminsOfStatus($appointment, 'has been approved', 'Approved');
@@ -143,8 +119,9 @@ class AppointmentApprovalController extends Controller
         $appointment->DeclineReason = $data['reason'];
         $appointment->save();
 
-        // Release the single slot that was held while this was pending.
-        DentistSchedule::where('ScheduleID', $appointment->ScheduleID)->update(['Status' => 'Available']);
+        // Release every slot this appointment was holding for its full
+        // service-driven duration, not just the starting one.
+        $this->releaseSlotBlock($appointment);
 
         $this->notifyPatient(
             $appointment,
@@ -162,58 +139,32 @@ class AppointmentApprovalController extends Controller
     }
 
     /**
-     * How many consecutive hours this appointment may be approved for —
-     * capped by the clinic closing at 6:00 PM and by whichever other
-     * Pending/Approved appointment starts next that same day, whichever
-     * leaves less room. Never above the 8-hour ceiling the dropdown allows.
+     * Frees every slot this appointment was holding for its full
+     * DurationHours block, but only where no other Pending/Approved
+     * appointment that same day still needs that slot. Same pattern as
+     * UserController::releaseAppointmentSlots / AppointmentsController's
+     * equivalent — kept local rather than shared, as elsewhere in this app.
      */
-    protected function maxDurationForAppointment(Appointment $appointment): int
+    protected function releaseSlotBlock(Appointment $appointment): void
     {
-        $closingHour = 18; // 6:00 PM
-        $adminDurationCap = 8;
-        $startHour = (int) substr($appointment->AppointmentTime, 0, 2);
-        $maxByClosing = max(1, $closingHour - $startHour);
+        $times = DentistSchedule::slotTimes();
+        $start = array_search($appointment->AppointmentTime, $times, true);
+        $duration = $appointment->duration_slots;
 
-        $nextHour = Appointment::whereDate('AppointmentDate', $appointment->AppointmentDate)
-            ->whereIn('Status', ['Pending', 'Approved'])
-            ->whereKeyNot($appointment->AppointmentID)
-            ->get()
-            ->map(fn ($a) => (int) substr($a->AppointmentTime, 0, 2))
-            ->filter(fn ($h) => $h > $startHour)
-            ->sort()
-            ->first();
+        for ($offset = 0; $start !== false && $offset < $duration && isset($times[$start + $offset]); $offset++) {
+            $time = $times[$start + $offset];
+            $stillHeld = Appointment::whereKeyNot($appointment->AppointmentID)
+                ->whereDate('AppointmentDate', $appointment->AppointmentDate)
+                ->whereIn('Status', ['Pending', 'Approved'])->get()
+                ->contains(function ($other) use ($times, $time) {
+                    $otherStart = array_search($other->AppointmentTime, $times, true);
+                    $otherDuration = $other->duration_slots;
+                    return $otherStart !== false && in_array($time, array_slice($times, $otherStart, $otherDuration), true);
+                });
 
-        $maxByNextAppointment = $nextHour !== null ? max(1, $nextHour - $startHour) : $adminDurationCap;
-
-        return min($maxByClosing, $maxByNextAppointment, $adminDurationCap);
-    }
-
-    /**
-     * Marks the starting slot plus the next (duration - 1) slots on the
-     * same day as Not Available — e.g. a 1:00 PM booking approved for
-     * 4 hours blocks 1:00, 2:00, 3:00, and 4:00 PM.
-     */
-    protected function blockSubsequentSlots(string $date, string $startTime, int $durationHours): void
-    {
-        $startIndex = array_search($startTime, $this->slotOrder);
-
-        if ($startIndex === false) {
-            return;
-        }
-
-        for ($i = 0; $i < $durationHours; $i++) {
-            $index = $startIndex + $i;
-
-            if (!isset($this->slotOrder[$index])) {
-                break; // ran past the last slot of the day
+            if (!$stillHeld) {
+                DentistSchedule::where('Date', $appointment->AppointmentDate->format('Y-m-d'))->where('Time', $time)->update(['Status' => 'Available']);
             }
-
-            $slot = DentistSchedule::firstOrCreate(
-                ['Date' => $date, 'Time' => $this->slotOrder[$index]],
-                ['Status' => 'Available']
-            );
-            $slot->Status = 'Not Available';
-            $slot->save();
         }
     }
 

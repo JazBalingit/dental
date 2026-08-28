@@ -40,7 +40,7 @@ class AppointmentExpiryService
             $appointment->DeclineReason = 'This appointment request expired before it could be reviewed.';
             $appointment->save();
 
-            DentistSchedule::where('ScheduleID', $appointment->ScheduleID)->update(['Status' => 'Available']);
+            $this->releaseSlotBlock($appointment);
 
             $user = $appointment->patientInfo->userAccount ?? null;
 
@@ -57,5 +57,35 @@ class AppointmentExpiryService
         }
 
         return $stale->count();
+    }
+
+    /**
+     * Frees every slot this appointment was holding for its full
+     * DurationHours block, not just its starting slot — same pattern as
+     * AppointmentApprovalController::releaseSlotBlock and the other
+     * cancel/decline paths, kept local rather than shared as elsewhere
+     * in this app.
+     */
+    protected function releaseSlotBlock(Appointment $appointment): void
+    {
+        $times = DentistSchedule::slotTimes();
+        $start = array_search($appointment->AppointmentTime, $times, true);
+        $duration = $appointment->duration_slots;
+
+        for ($offset = 0; $start !== false && $offset < $duration && isset($times[$start + $offset]); $offset++) {
+            $time = $times[$start + $offset];
+            $stillHeld = Appointment::whereKeyNot($appointment->AppointmentID)
+                ->whereDate('AppointmentDate', $appointment->AppointmentDate)
+                ->whereIn('Status', ['Pending', 'Approved'])->get()
+                ->contains(function ($other) use ($times, $time) {
+                    $otherStart = array_search($other->AppointmentTime, $times, true);
+                    $otherDuration = $other->duration_slots;
+                    return $otherStart !== false && in_array($time, array_slice($times, $otherStart, $otherDuration), true);
+                });
+
+            if (!$stillHeld) {
+                DentistSchedule::where('Date', $appointment->AppointmentDate->format('Y-m-d'))->where('Time', $time)->update(['Status' => 'Available']);
+            }
+        }
     }
 }

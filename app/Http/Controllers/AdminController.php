@@ -48,7 +48,7 @@ class AdminController extends Controller
             'totalPatients' => PatientInfo::count(),
             'appointmentsToday' => Appointment::whereDate('AppointmentDate', today())->count(),
             'availableServices' => Service::where('IsArchived', false)->count(),
-            'doctorAvailableSchedule' => $this->availableScheduleThisMonth(),
+            'dentistAvailableSchedule' => $this->availableScheduleThisMonth(),
         ];
     }
 

@@ -1,6 +1,6 @@
 <?php
 // Place in: database/migrations/
-// Must run AFTER tbl_patientInfo, tbl_doctorSchedule, and tbl_services migrations
+// Must run AFTER tbl_patientInfo, tbl_dentistSchedule, and tbl_services migrations
 
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
@@ -17,7 +17,7 @@ return new class extends Migration {
             $table->unsignedBigInteger('ServiceID');
 
             $table->date('AppointmentDate');
-            $table->string('AppointmentTime', 5); // 'HH:MM', matches tbl_doctorSchedule.Time format
+            $table->string('AppointmentTime', 5); // 'HH:MM', matches tbl_dentistSchedule.Time format
             $table->string('TypeOfAppointment')->nullable();
             $table->enum('Status', ['Pending', 'Approved', 'Declined', 'Completed'])->default('Pending');
 

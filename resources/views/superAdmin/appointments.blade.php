@@ -26,20 +26,7 @@
                     <div class="sub">DENTAL CLINIC</div>
                 </div>
             </div>
-            <nav class="nav">
-                <div class="nav-section">Main</div>
-                <a href="{{ route('dashboard') }}"><i class="bi bi-grid-1x2-fill"></i> Dashboard</a>
-                <a href="{{ route('staffAcc') }}"><i class="bi bi-people-fill"></i> Staff Accounts</a>
-                <a href="{{ route('userAcc') }}"><i class="bi bi-people-fill"></i> User Accounts</a>
-                <a href="{{ route('dentistSchedule') }}"><i class="bi bi-calendar3"></i> Dentist Schedule</a>
-                <a href="{{ route('walkIn') }}"><i class="bi bi-calendar3"></i> Walk-in Appointments</a>
-                <a href="{{ route('appointmentApproval') }}"><i class="bi bi-clipboard2-check"></i> Appointment
-                    Approval</a>
-                <a href="{{ route('appointments') }}" class="active"><i class="bi bi-clipboard2-check"></i> Appointments</a>
-                <a href="{{ route('patientRecords') }}"><i class="bi bi-folder2-open"></i> Patient Records</a>
-                <div class="nav-section">System</div>
-                <a href="{{ route('configuration') }}"><i class="bi bi-sliders2"></i> Configuration</a>
-            </nav>
+            @include('partials.admin-sidebar-nav', ['active' => 'appointments'])
             @include('partials.admin-profile-badge')
         </aside>
 
@@ -162,6 +149,8 @@
                                             default => 'pill-warning',
                                         };
                                         $timeLabel = \Carbon\Carbon::createFromFormat('H:i', $appt->AppointmentTime)->format('g:i A');
+                                        $startsAt = \Carbon\Carbon::parse($appt->AppointmentDate->format('Y-m-d') . ' ' . $appt->AppointmentTime);
+                                        $hasStarted = now()->gte($startsAt);
                                     @endphp
                                     <tr>
                                         <td><span class="fw-semibold">{{ $appt->AppointmentDate->format('M j, Y') }} &bull; {{ $timeLabel }}</span></td>
@@ -176,10 +165,18 @@
                                         <td><span class="pill {{ $pillClass }}">{{ $appt->Status }}</span></td>
                                         <td class="text-end">
                                             @if ($appt->Status === 'Approved')
-                                                <form method="POST" action="{{ route('appointments.complete', $appt->AppointmentID) }}" class="d-inline">
-                                                    @csrf
-                                                    <button type="submit" class="btn btn-pill btn-pill-done me-1"><i class="bi bi-check2"></i> Done</button>
-                                                </form>
+                                                @if ($hasStarted)
+                                                    <form method="POST" action="{{ route('appointments.complete', $appt->AppointmentID) }}" class="d-inline">
+                                                        @csrf
+                                                        <button type="submit" class="btn btn-pill btn-pill-done me-1"><i class="bi bi-check2"></i> Done</button>
+                                                    </form>
+                                                @else
+                                                    <button type="button" class="btn btn-pill btn-pill-done me-1" disabled
+                                                        style="opacity:.5; cursor:not-allowed;"
+                                                        title="Available once the appointment starts — {{ $startsAt->format('M j, Y') }} at {{ $startsAt->format('g:i A') }}">
+                                                        <i class="bi bi-lock"></i> Done
+                                                    </button>
+                                                @endif
                                             @endif
                                             @if (in_array($appt->Status, ['Pending', 'Approved']))
                                                 <button type="button" class="btn btn-pill btn-pill-cancel" data-bs-toggle="modal"

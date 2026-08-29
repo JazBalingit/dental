@@ -11,6 +11,7 @@
     href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Poppins:wght@500;600;700&display=swap"
     rel="stylesheet">
   <link rel="stylesheet" href="{{ asset('css/styles.css') }}">
+  <link rel="stylesheet" href="{{ asset('css/odontogram.css') }}">
 </head>
 
 <body>
@@ -24,20 +25,7 @@
           <div class="sub">DENTAL CLINIC</div>
         </div>
       </div>
-      <nav class="nav">
-        <div class="nav-section">Main</div>
-        <a href="{{ route('dashboard') }}"><i class="bi bi-grid-1x2-fill"></i> Dashboard</a>
-        <a href="{{ route('staffAcc') }}"><i class="bi bi-people-fill"></i> Staff Accounts</a>
-        <a href="{{ route('userAcc') }}"><i class="bi bi-people-fill"></i> User Accounts</a>
-        <a href="{{ route('dentistSchedule') }}"><i class="bi bi-calendar3"></i> Dentist Schedule</a>
-        <a href="{{ route('walkIn') }}"><i class="bi bi-calendar3"></i> Walk-in Appointments</a>
-        <a href="{{ route('appointmentApproval') }}"><i class="bi bi-clipboard2-check"></i> Appointment
-          Approval</a>
-        <a href="{{ route('appointments') }}"><i class="bi bi-clipboard2-check"></i> Appointments</a>
-        <a href="{{ route('patientRecords') }}" class="active"><i class="bi bi-folder2-open"></i> Patient Records</a>
-        <div class="nav-section">System</div>
-        <a href="{{ route('configuration') }}"><i class="bi bi-sliders2"></i> Configuration</a>
-      </nav>
+      @include('partials.admin-sidebar-nav', ['active' => 'patientRecords'])
       @include('partials.admin-profile-badge')
     </aside>
 
@@ -337,12 +325,16 @@
               </div>
             </div>
 
-            <!-- Doctor's Notes -->
+            {{-- Odontogram (interactive dental chart for this visit) --}}
+            @include('partials.odontogram', ['record' => $record])
+
+            <!-- Dentist's Notes -->
             <div class="section-label">
-              <i class="bi bi-journal-text" style="font-size:13px; color:var(--brand);"></i> Doctor's Notes
+              <i class="bi bi-journal-text" style="font-size:13px; color:var(--brand);"></i> Dentist's Notes
             </div>
             <form method="POST" action="{{ route('patientRecords.update', $record->RecordID) }}">
               @csrf
+              @include('partials.record-return-fields')
               <div class="note-add-row">
                 <textarea name="notes" rows="3" placeholder="Add notes for this visit...">{{ $record->Notes }}</textarea>
                 <button type="submit" class="btn-brand" style="flex-shrink:0; height:40px; align-self:flex-end;">
@@ -367,6 +359,22 @@
   @include('partials.admin-notif-modal')
 
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+
+  <script>
+    // After saving notes or the odontogram the controller redirects back with
+    // a #viewModal<id> fragment — re-open that record's View modal so the
+    // staff member stays in context.
+    document.addEventListener('DOMContentLoaded', function () {
+      const hash = window.location.hash;
+      if (!hash.startsWith('#viewModal')) return;
+      const el = document.getElementById(hash.slice(1));
+      if (el && window.bootstrap) {
+        bootstrap.Modal.getOrCreateInstance(el).show();
+      }
+    });
+  </script>
+
+  <script src="{{ asset('js/odontogram.js') }}"></script>
 
 </body>
 

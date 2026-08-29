@@ -219,9 +219,9 @@
 
         /* CONTENT */
         .content-wrap {
-            max-width: 900px;
+            max-width: 1240px;
             margin: 0 auto;
-            padding: 40px 16px 80px;
+            padding: 40px 32px 80px;
         }
 
         /* STATS */
@@ -1232,4 +1232,77 @@
             .history-filters { width: 100%; }
             .history-search, .history-filters .form-select { width: 100%; }
             .history-footer { align-items: flex-start; flex-direction: column; }
+        }
+
+        /* ---- Appointment history: View button + information modal ---- */
+        .btn-view-appt {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            border: 1px solid var(--brand-500, #33bd3c);
+            background: var(--brand-50, #f1fcf0);
+            color: var(--brand-700, #37a03e);
+            font-size: 12px;
+            font-weight: 600;
+            padding: 6px 12px;
+            border-radius: 999px;
+            transition: background .15s, color .15s;
+        }
+
+        .btn-view-appt:hover {
+            background: var(--brand-700, #37a03e);
+            color: #fff;
+        }
+
+        .appt-info-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px 18px;
+        }
+
+        .appt-info-cell {
+            display: flex;
+            flex-direction: column;
+            gap: 3px;
+        }
+
+        .appt-info-lbl {
+            font-size: 11px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: .05em;
+            color: #9ca3af;
+        }
+
+        .appt-info-val {
+            font-size: 14px;
+            font-weight: 600;
+            color: #1f2937;
+        }
+
+        .appt-info-divider {
+            height: 1px;
+            background: #e5e7eb;
+            margin: 20px 0 16px;
+        }
+
+        .appt-info-empty {
+            text-align: center;
+            padding: 18px 12px;
+            color: #6b7280;
+        }
+
+        .appt-info-empty i {
+            font-size: 26px;
+            color: var(--brand-500, #33bd3c);
+            margin-bottom: 8px;
+        }
+
+        .appt-info-empty p {
+            margin: 0;
+            font-size: 13px;
+        }
+
+        @media (max-width: 575.98px) {
+            .appt-info-grid { grid-template-columns: 1fr; }
         }

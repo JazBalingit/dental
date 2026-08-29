@@ -2,12 +2,15 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Controllers\Concerns\RedirectsToPatientRecord;
 use App\Models\PatientRecord;
 use App\Services\ActivityLogService;
 use Illuminate\Http\Request;
 
 class PatientRecordsController extends Controller
 {
+    use RedirectsToPatientRecord;
+
     public function __construct(protected ActivityLogService $activityLog)
     {
     }
@@ -29,8 +32,8 @@ class PatientRecordsController extends Controller
 
         $search = $request->query('search');
 
-        $activeQuery = PatientRecord::with(['patientInfo', 'service'])->where('IsArchived', false);
-        $archivedQuery = PatientRecord::with(['patientInfo', 'service'])->where('IsArchived', true);
+        $activeQuery = PatientRecord::with(['patientInfo', 'service', 'odontogramTeeth'])->where('IsArchived', false);
+        $archivedQuery = PatientRecord::with(['patientInfo', 'service', 'odontogramTeeth'])->where('IsArchived', true);
 
         if ($search) {
             $filter = function ($q) use ($search) {
@@ -70,7 +73,7 @@ class PatientRecordsController extends Controller
         $name = $record->patientInfo ? trim($record->patientInfo->FirstName . ' ' . $record->patientInfo->LastName) : "record #{$id}";
         $this->activityLog->log('Edit', "Edited patient record notes for {$name}.");
 
-        return redirect()->route('patientRecords')->with('success', 'Patient record updated.');
+        return $this->redirectToRecord($request, $record->RecordID)->with('success', 'Patient record updated.');
     }
 
     public function archive($id)

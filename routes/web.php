@@ -17,6 +17,7 @@ use App\Http\Controllers\UserAccountController;
 use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\AppointmentsController;
 use App\Http\Controllers\PatientRecordsController;
+use App\Http\Controllers\OdontogramController;
 use App\Http\Controllers\ConfigurationController;
 use App\Http\Controllers\WalkInController;
 use App\Http\Controllers\ReportController;
@@ -113,6 +114,7 @@ Route::get('/patient-records', [PatientRecordsController::class, 'index'])->name
 Route::post('/patient-records/{id}/update', [PatientRecordsController::class, 'updateNotes'])->name('patientRecords.update');
 Route::post('/patient-records/{id}/archive', [PatientRecordsController::class, 'archive'])->name('patientRecords.archive');
 Route::post('/patient-records/{id}/unarchive', [PatientRecordsController::class, 'unarchive'])->name('patientRecords.unarchive');
+Route::post('/patient-records/{id}/odontogram', [OdontogramController::class, 'save'])->name('patientRecords.odontogram.save');
 
 // configuration (admin): branding logo, services, activity logs, audit logs
 Route::get('/configuration', [ConfigurationController::class, 'index'])->name('configuration');

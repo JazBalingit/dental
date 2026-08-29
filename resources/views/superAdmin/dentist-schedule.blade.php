@@ -4,7 +4,7 @@
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Doctor Schedule • Dental Clinic</title>
+    <title>Dentist Schedule • Dental Clinic</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
     <link
@@ -23,21 +23,7 @@
                     <div class="sub">DENTAL CLINIC</div>
                 </div>
             </div>
-            <nav class="nav">
-                <div class="nav-section">Main</div>
-                <a href="{{ route('dashboard') }}"><i class="bi bi-grid-1x2-fill"></i> Dashboard</a>
-                <a href="{{ route('staffAcc') }}"><i class="bi bi-people-fill"></i> Staff Accounts</a>
-                <a href="{{ route('userAcc') }}"><i class="bi bi-people-fill"></i> User Accounts</a>
-                <a href="{{ route('dentistSchedule') }}" class="active"><i class="bi bi-calendar3"></i> Dentist
-                    Schedule</a>
-                <a href="{{ route('walkIn') }}"><i class="bi bi-calendar3"></i> Walk-in Appointments</a>
-                <a href="{{ route('appointmentApproval') }}"><i class="bi bi-clipboard2-check"></i> Appointment
-                    Approval</a>
-                <a href="{{ route('appointments') }}"><i class="bi bi-clipboard2-check"></i> Appointments</a>
-                <a href="{{ route('patientRecords') }}"><i class="bi bi-folder2-open"></i> Patient Records</a>
-                <div class="nav-section">System</div>
-                <a href="{{ route('configuration') }}"><i class="bi bi-sliders2"></i> Configuration</a>
-            </nav>
+            @include('partials.admin-sidebar-nav', ['active' => 'dentistSchedule'])
             @include('partials.admin-profile-badge')
         </aside>
 
@@ -57,7 +43,7 @@
             <div class="content">
                 <div class="page-head">
                     <div>
-                        <h2>Doctor Schedule</h2>
+                        <h2>Dentist Schedule</h2>
                         <div class="crumbs">View and manage availability for all dentists.</div>
                     </div>
                 </div>

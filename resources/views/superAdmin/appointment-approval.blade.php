@@ -26,21 +26,7 @@
                     <div class="sub">DENTAL CLINIC</div>
                 </div>
             </div>
-            <nav class="nav">
-                <div class="nav-section">Main</div>
-                <a href="{{ route('dashboard') }}"><i class="bi bi-grid-1x2-fill"></i> Dashboard</a>
-                <a href="{{ route('staffAcc') }}"><i class="bi bi-people-fill"></i> Staff Accounts</a>
-                <a href="{{ route('userAcc') }}"><i class="bi bi-people-fill"></i> User Accounts</a>
-                <a href="{{ route('dentistSchedule') }}"><i class="bi bi-calendar3"></i> Dentist Schedule</a>
-                <a href="{{ route('walkIn') }}"><i class="bi bi-calendar3"></i> Walk-in Appointments</a>
-                <a href="{{ route('appointmentApproval') }}" class="active"><i class="bi bi-clipboard2-check"></i>
-                    Appointment
-                    Approval</a>
-                <a href="{{ route('appointments') }}"><i class="bi bi-clipboard2-check"></i> Appointments</a>
-                <a href="{{ route('patientRecords') }}"><i class="bi bi-folder2-open"></i> Patient Records</a>
-                <div class="nav-section">System</div>
-                <a href="{{ route('configuration') }}"><i class="bi bi-sliders2"></i> Configuration</a>
-            </nav>
+            @include('partials.admin-sidebar-nav', ['active' => 'appointmentApproval'])
             @include('partials.admin-profile-badge')
         </aside>
 

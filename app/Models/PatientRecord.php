@@ -41,4 +41,13 @@ class PatientRecord extends Model
     {
         return $this->belongsTo(Service::class, 'ServiceID', 'ServiceID');
     }
+
+    /**
+     * Tooth conditions charted on this visit's odontogram. Scoped to the
+     * record (not the patient) so each visit keeps its own history.
+     */
+    public function odontogramTeeth()
+    {
+        return $this->hasMany(OdontogramTooth::class, 'RecordID', 'RecordID');
+    }
 }

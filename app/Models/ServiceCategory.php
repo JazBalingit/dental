@@ -34,7 +34,7 @@ class ServiceCategory extends Model
             'fa-solid fa-stethoscope' => 'Stethoscope',
             'fa-solid fa-syringe' => 'Syringe',
             'fa-solid fa-tooth fa-flip' => 'Tooth (flipped)',
-            'fa-solid fa-user-doctor' => 'Doctor',
+            'fa-solid fa-user-doctor' => 'Dentist',
             'fa-solid fa-notes-medical' => 'Medical Notes',
             'fa-solid fa-kit-medical' => 'Medical Kit',
             'fa-solid fa-heart-pulse' => 'Heart Pulse',

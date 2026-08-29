@@ -90,6 +90,20 @@ class AppointmentsController extends Controller
                 ->with('error', 'Only an approved appointment can be marked complete — this one\'s status has already changed.');
         }
 
+        // An appointment can only be marked done once it has actually started —
+        // i.e. the current date and time has reached its scheduled slot.
+        $startsAt = \Carbon\Carbon::parse(
+            $appointment->AppointmentDate->format('Y-m-d') . ' ' . $appointment->AppointmentTime
+        );
+
+        if (now()->lt($startsAt)) {
+            return redirect()->route('appointments')->with(
+                'error',
+                'This appointment can only be marked as done once it has started (' .
+                    $startsAt->format('M j, Y \a\t g:i A') . ').'
+            );
+        }
+
         $appointment->Status = 'Completed';
         $appointment->save();
 

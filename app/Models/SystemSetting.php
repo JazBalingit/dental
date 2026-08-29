@@ -46,7 +46,7 @@ class SystemSetting extends Model
     {
         return [
             1 => ['title' => 'Create an Account or Log In', 'desc' => 'Sign up with your basic details, or log back in if you already have an account with us.'],
-            2 => ['title' => 'Open the Appointment Section', 'desc' => 'Once you\'re logged in, scroll down to "Book Now" — the doctor\'s monthly schedule appears right here on this page.'],
+            2 => ['title' => 'Open the Appointment Section', 'desc' => 'Once you\'re logged in, scroll down to "Book Now" — the dentist\'s monthly schedule appears right here on this page.'],
             3 => ['title' => 'Pick an Open Date', 'desc' => 'Click any date that still has open slots to see that day\'s available times.'],
             4 => ['title' => 'Choose a Time & Service', 'desc' => 'Pick an open time slot, then select the dental treatment you need for that visit.'],
             5 => ['title' => 'Review & Confirm', 'desc' => 'Double-check the service, date, and time, then confirm to submit your appointment request.'],

@@ -14,6 +14,7 @@
         href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Poppins:wght@500;600;700&display=swap"
         rel="stylesheet">
     <link rel="stylesheet" href="/css/user_appointments.css">
+    <link rel="stylesheet" href="/css/odontogram.css">
 </head>
 
 <body>
@@ -182,6 +183,9 @@
                     </div>
                 </div>
                 <div class="appt-actions">
+                    <button class="btn-outline" data-bs-toggle="modal" data-bs-target="#apptModal{{ $current->AppointmentID }}">
+                        <i class="fas fa-eye"></i> View Appointment Information
+                    </button>
                     <button class="btn-outline" data-bs-toggle="modal" data-bs-target="#rescheduleModal">
                         <i class="fas fa-calendar-alt"></i> Reschedule
                     </button>
@@ -211,13 +215,31 @@
                         <tr>
                             <th>Date</th>
                             <th>Time</th>
+                            <th>Duration</th>
                             <th>Service</th>
-                            <th>Doctor</th>
+                            <th>Dentist</th>
                             <th>Status</th>
+                            <th class="text-end">Details</th>
                         </tr>
                     </thead>
                     <tbody>
-                        @forelse($history as $appointment)<tr><td style="font-weight:600;color:#0f4c7a">{{ $appointment->AppointmentDate->format('M j, Y') }}</td><td>{{ \Carbon\Carbon::createFromFormat('H:i', $appointment->AppointmentTime)->format('g:i A') }}</td><td><span class="service-tag">{{ $appointment->TypeOfAppointment ?: ($appointment->service->ServiceName ?? '') }}</span></td><td>{{ $appointment->dentist_name }}</td><td><span class="badge-pill {{ $appointment->Status === 'Completed' ? 'badge-completed' : ($appointment->Status === 'Declined' ? 'badge-cancelled' : 'badge-scheduled') }}">{{ $appointment->Status === 'Approved' ? 'Booked' : $appointment->Status }}</span></td></tr>@empty<tr><td colspan="5" class="text-center text-muted">No appointments found.</td></tr>@endforelse
+                        @forelse($history as $appointment)
+                            <tr>
+                                <td style="font-weight:600;color:#0f4c7a">{{ $appointment->AppointmentDate->format('M j, Y') }}</td>
+                                <td>{{ \Carbon\Carbon::createFromFormat('H:i', $appointment->AppointmentTime)->format('g:i A') }}</td>
+                                <td>{{ $appointment->duration_label }}</td>
+                                <td><span class="service-tag">{{ $appointment->TypeOfAppointment ?: ($appointment->service->ServiceName ?? '') }}</span></td>
+                                <td>{{ $appointment->dentist_name }}</td>
+                                <td><span class="badge-pill {{ $appointment->Status === 'Completed' ? 'badge-completed' : ($appointment->Status === 'Declined' ? 'badge-cancelled' : 'badge-scheduled') }}">{{ $appointment->Status === 'Approved' ? 'Booked' : $appointment->Status }}</span></td>
+                                <td class="text-end">
+                                    <button type="button" class="btn-view-appt" data-bs-toggle="modal" data-bs-target="#apptModal{{ $appointment->AppointmentID }}">
+                                        <i class="fas fa-eye"></i> View
+                                    </button>
+                                </td>
+                            </tr>
+                        @empty
+                            <tr><td colspan="7" class="text-center text-muted">No appointments found.</td></tr>
+                        @endforelse
                     </tbody>
                 </table>
             </div>
@@ -235,6 +257,68 @@
             </div>
         </div>
     </div>
+
+    {{-- ===================== APPOINTMENT INFORMATION MODALS ===================== --}}
+    @php
+        $modalAppointments = $history->getCollection();
+        if ($current && ! $modalAppointments->contains('AppointmentID', $current->AppointmentID)) {
+            $modalAppointments = $modalAppointments->concat([$current]);
+        }
+    @endphp
+    @foreach ($modalAppointments as $appointment)
+        @php
+            $rec = $appointment->patientRecord;
+            $statusLabel = $appointment->Status === 'Approved' ? 'Booked' : $appointment->Status;
+            $badgeClass = $appointment->Status === 'Completed'
+                ? 'badge-completed'
+                : ($appointment->Status === 'Declined' ? 'badge-cancelled' : 'badge-scheduled');
+        @endphp
+        <div class="modal fade" id="apptModal{{ $appointment->AppointmentID }}" tabindex="-1" aria-hidden="true">
+            <div class="modal-dialog modal-dialog-centered modal-lg modal-dialog-scrollable">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title"><i class="fas fa-circle-info me-2" style="color:#0f7a33"></i>Appointment Information</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body p-4">
+
+                        <div class="appt-info-grid">
+                            <div class="appt-info-cell"><span class="appt-info-lbl">Service</span><span class="appt-info-val">{{ $appointment->TypeOfAppointment ?: ($appointment->service->ServiceName ?? '—') }}</span></div>
+                            <div class="appt-info-cell"><span class="appt-info-lbl">Dentist</span><span class="appt-info-val">{{ $appointment->dentist_name }}</span></div>
+                            <div class="appt-info-cell"><span class="appt-info-lbl">Date</span><span class="appt-info-val">{{ $appointment->AppointmentDate->format('F j, Y') }}</span></div>
+                            <div class="appt-info-cell"><span class="appt-info-lbl">Time</span><span class="appt-info-val">{{ \Carbon\Carbon::createFromFormat('H:i', $appointment->AppointmentTime)->format('g:i A') }}</span></div>
+                            <div class="appt-info-cell"><span class="appt-info-lbl">Duration</span><span class="appt-info-val">{{ $appointment->duration_label }}</span></div>
+                            <div class="appt-info-cell"><span class="appt-info-lbl">Status</span><span class="appt-info-val"><span class="badge-pill {{ $badgeClass }}">{{ $statusLabel }}</span></span></div>
+                            @if ($appointment->ApprovedAt)
+                                <div class="appt-info-cell"><span class="appt-info-lbl">Approved On</span><span class="appt-info-val">{{ $appointment->ApprovedAt->format('F j, Y g:i A') }}</span></div>
+                            @endif
+                            @if ($appointment->Status === 'Declined' && $appointment->DeclineReason)
+                                <div class="appt-info-cell" style="grid-column:1/-1"><span class="appt-info-lbl">Reason</span><span class="appt-info-val">{{ $appointment->DeclineReason }}</span></div>
+                            @endif
+                        </div>
+
+                        <div class="appt-info-divider"></div>
+
+                        @if ($rec)
+                            @include('partials.odontogram', ['record' => $rec, 'readonly' => true])
+
+                            <div class="odontogram-heading"><i class="bi bi-journal-text"></i> Dentist's Notes</div>
+                            <div class="odontogram-detail-readvalue">{{ $rec->Notes ?: 'No notes were recorded for this visit.' }}</div>
+                        @else
+                            <div class="appt-info-empty">
+                                <i class="fas fa-tooth"></i>
+                                <p>Your dental chart and dentist's notes will appear here once this appointment is completed.</p>
+                            </div>
+                        @endif
+
+                    </div>
+                    <div class="modal-footer gap-2">
+                        <button class="btn-sec" data-bs-dismiss="modal">Close</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    @endforeach
 
     <!-- RESCHEDULE MODAL -->
     <div class="modal fade" id="rescheduleModal" tabindex="-1" aria-hidden="true">
@@ -356,6 +440,7 @@
     @include('partials.user-notif-modal')
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="/js/odontogram.js"></script>
 </body>
 
 </html>

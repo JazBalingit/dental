@@ -103,7 +103,7 @@
     <div class="schedule-wrap booking-calendar">
         <div class="schedule-toolbar flex-wrap gap-2">
             <div>
-                <h4>Doctor Schedule</h4>
+                <h4>Dentist Schedule</h4>
                 <div class="small text-muted-2">
                     {{ $bookCurrent->format('F Y') }}
                     @if ($bookSelectedDentist)

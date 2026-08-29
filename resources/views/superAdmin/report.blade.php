@@ -8,7 +8,7 @@
     $typeTitles = [
         'appointments' => 'Appointments Report',
         'patients' => 'Patients Report',
-        'schedule' => 'Doctor Schedule Report',
+        'schedule' => 'Dentist Schedule Report',
         'summary' => 'Full Summary Report',
     ];
     $reportTitle = $typeTitles[$type] ?? 'Report';
@@ -200,7 +200,7 @@
 
       @if (in_array($type, ['schedule', 'summary']))
         <div class="report-section">
-          <h2><i class="bi bi-calendar3"></i> Doctor Schedule</h2>
+          <h2><i class="bi bi-calendar3"></i> Dentist Schedule</h2>
           <div class="report-stats">
             <div class="report-stat"><div class="label">Total Slots</div><div class="value">{{ $scheduleStats['total'] }}</div></div>
             <div class="report-stat"><div class="label">Available</div><div class="value">{{ $scheduleStats['available'] }}</div></div>

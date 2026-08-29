@@ -58,13 +58,13 @@ class UserController extends Controller
         $status = $request->query('status');
         $search = $request->query('search');
 
-        $history = Appointment::with(['service', 'dentist.staffInfo'])->where('PatientID', $patientId)
+        $history = Appointment::with(['service', 'dentist.staffInfo', 'patientRecord.odontogramTeeth'])->where('PatientID', $patientId)
             ->when($status, fn ($q) => $q->where('Status', $status))
             ->when($search, fn ($q) => $q->whereHas('service', fn ($s) => $s->where('ServiceName', 'like', "%{$search}%")))
             ->orderByDesc('AppointmentDate')->orderByDesc('AppointmentTime')
             ->paginate(10)->withQueryString();
 
-        $current = Appointment::with(['service', 'dentist.staffInfo'])->where('PatientID', $patientId)
+        $current = Appointment::with(['service', 'dentist.staffInfo', 'patientRecord.odontogramTeeth'])->where('PatientID', $patientId)
             ->whereIn('Status', ['Pending', 'Approved'])
             ->whereDate('AppointmentDate', '>=', today())
             ->orderBy('AppointmentDate')->orderBy('AppointmentTime')->first();

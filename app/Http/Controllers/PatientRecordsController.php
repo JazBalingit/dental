@@ -3,12 +3,12 @@
 namespace App\Http\Controllers;
 
 use App\Models\PatientRecord;
-use App\Services\AuditLogService;
+use App\Services\ActivityLogService;
 use Illuminate\Http\Request;
 
 class PatientRecordsController extends Controller
 {
-    public function __construct(protected AuditLogService $auditLog)
+    public function __construct(protected ActivityLogService $activityLog)
     {
     }
 
@@ -68,7 +68,7 @@ class PatientRecordsController extends Controller
         $record->update(['Notes' => $data['notes'] ?? null]);
 
         $name = $record->patientInfo ? trim($record->patientInfo->FirstName . ' ' . $record->patientInfo->LastName) : "record #{$id}";
-        $this->auditLog->log('Edit', "Edited patient record notes for {$name}.");
+        $this->activityLog->log('Edit', "Edited patient record notes for {$name}.");
 
         return redirect()->route('patientRecords')->with('success', 'Patient record updated.');
     }
@@ -83,7 +83,7 @@ class PatientRecordsController extends Controller
         $record->update(['IsArchived' => true]);
 
         $name = $record->patientInfo ? trim($record->patientInfo->FirstName . ' ' . $record->patientInfo->LastName) : "record #{$id}";
-        $this->auditLog->log('Archive', "Archived patient record for {$name}.");
+        $this->activityLog->log('Archive', "Archived patient record for {$name}.");
 
         return redirect()->route('patientRecords')->with('success', 'Record archived.');
     }
@@ -98,7 +98,7 @@ class PatientRecordsController extends Controller
         $record->update(['IsArchived' => false]);
 
         $name = $record->patientInfo ? trim($record->patientInfo->FirstName . ' ' . $record->patientInfo->LastName) : "record #{$id}";
-        $this->auditLog->log('Unarchive', "Unarchived patient record for {$name}.");
+        $this->activityLog->log('Unarchive', "Unarchived patient record for {$name}.");
 
         return redirect()->route('patientRecords')->with('success', 'Record restored.');
     }

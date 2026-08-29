@@ -4,7 +4,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Settings • Dental Clinic</title>
+  <title>Configuration • Dental Clinic</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
   <link
@@ -35,7 +35,7 @@
         <a href="{{ route('appointments') }}"><i class="bi bi-clipboard2-check"></i> Appointments</a>
         <a href="{{ route('patientRecords') }}"><i class="bi bi-folder2-open"></i> Patient Records</a>
         <div class="nav-section">System</div>
-        <a href="{{ route('configuration') }}" class="active"><i class="bi bi-sliders2"></i> Settings</a>
+        <a href="{{ route('configuration') }}" class="active"><i class="bi bi-sliders2"></i> Configuration</a>
       </nav>
       @include('partials.admin-profile-badge')
     </aside>
@@ -56,8 +56,8 @@
       <div class="content">
         <div class="page-head">
           <div>
-            <h2>Settings</h2>
-            <div class="crumbs">System information, services, legal content, appointment process, and logs.</div>
+            <h2>Configuration</h2>
+            <div class="crumbs">System information, services, legal content, appointment process, and the activity logs.</div>
           </div>
         </div>
 
@@ -421,10 +421,10 @@
             {{-- ===================== ACTIVITY LOGS ===================== --}}
             <div class="settings-pane" data-settings-pane="activity" @if ($settingsTab !== 'activity') hidden @endif>
 
-              <!-- ACTIVITY LOGS -->
-              <div class="card-soft mb-4">
+              <div class="card-soft">
                 <div class="card-header d-flex align-items-center justify-content-between">
                   <span><i class="bi bi-activity me-2" style="color: var(--brand-700);"></i> Activity Logs</span>
+                  <span class="small text-muted-2">Every sign-in, sign-out, failed login, and action taken across the system.</span>
                 </div>
                 <div class="card-body p-3 p-md-4">
                   <form method="GET" action="{{ route('configuration') }}" class="data-toolbar">
@@ -445,299 +445,105 @@
                     <div class="right">
                       <input type="hidden" name="settingsTab" value="activity">
                       <input type="hidden" name="activityTab" id="activityTabField" value="{{ $activityTab }}">
-                      <div class="input-icon search">
-                        <i class="bi bi-search"></i>
-                        <input class="form-control" name="activitySearch" value="{{ $activitySearch }}"
-                          placeholder="Search by name or email..."
-                          style="height:38px; padding-left:2.3rem; min-width:240px;" />
-                      </div>
-                    </div>
-                  </form>
-
-                  <div class="tab-content mt-3">
-                    <div class="tab-pane fade {{ $activityTab !== 'archived' ? 'show active' : '' }}"
-                      id="activityActivePane" role="tabpanel">
-                      <div class="table-responsive">
-                        <table class="table-soft" style="border-radius:0; box-shadow:none;">
-                          <thead>
-                            <tr>
-                              <th>User</th>
-                              <th>Account Type</th>
-                              <th>Logged In</th>
-                              <th>Logged Out</th>
-                              <th class="text-end">Actions</th>
-                            </tr>
-                          </thead>
-                          <tbody>
-                            @forelse ($activityLogs as $log)
-                              @php
-                                $ua = $log->userAccount;
-                                $isStaff = $ua?->AccountType === 'Staff';
-                                $info = $isStaff ? $ua?->staffInfo : $ua?->patientInfo;
-                                $name = $info ? trim($info->FirstName . ' ' . $info->LastName) : ($ua->Email ?? 'Unknown');
-                              @endphp
-                              <tr>
-                                <td><span><img class="avatar-initials" src="{{ $info->photo_url ?? asset('images/default.png') }}"
-                                      alt=""></span> {{ $name }}</td>
-                                <td><span class="pill {{ $isStaff ? 'pill-info' : 'pill-success' }}">{{ $isStaff ? 'Staff' : 'User' }}</span>
-                                </td>
-                                <td>{{ optional($log->LoggedInTime)->format('M j, Y g:i A') ?? '—' }}</td>
-                                <td>{{ optional($log->LoggedOutTime)->format('M j, Y g:i A') ?? '—' }}</td>
-                                <td class="text-end">
-                                  <form method="POST"
-                                    action="{{ route('configuration.activityLogs.archive', $log->ActivityLogsID) }}"
-                                    class="d-inline">
-                                    @csrf
-                                    <button type="submit" class="btn btn-pill btn-pill-archive"><i
-                                        class="bi bi-archive"></i> Archive</button>
-                                  </form>
-                                </td>
-                              </tr>
-                            @empty
-                              <tr>
-                                <td colspan="5" class="text-center text-muted-2 py-4">No activity yet.</td>
-                              </tr>
-                            @endforelse
-                          </tbody>
-                        </table>
-                      </div>
-                      <div class="pagination-soft">
-                        <div>Showing {{ $activityLogs->count() }} of {{ $activityLogs->total() }} entries</div>
-                        <div class="pages">
-                          <a href="{{ $activityLogs->previousPageUrl() ?? '#' }}"><i
-                              class="bi bi-chevron-left"></i></a>
-                          @for ($i = 1; $i <= $activityLogs->lastPage(); $i++)
-                            <a href="{{ $activityLogs->url($i) }}"
-                              class="{{ $activityLogs->currentPage() === $i ? 'active' : '' }}">{{ $i }}</a>
-                          @endfor
-                          <a href="{{ $activityLogs->nextPageUrl() ?? '#' }}"><i class="bi bi-chevron-right"></i></a>
-                        </div>
-                      </div>
-                    </div>
-
-                    <div class="tab-pane fade {{ $activityTab === 'archived' ? 'show active' : '' }}"
-                      id="activityArchivedPane" role="tabpanel">
-                      <div class="table-responsive">
-                        <table class="table-soft" style="border-radius:0; box-shadow:none;">
-                          <thead>
-                            <tr>
-                              <th>User</th>
-                              <th>Account Type</th>
-                              <th>Logged In</th>
-                              <th>Logged Out</th>
-                              <th class="text-end">Actions</th>
-                            </tr>
-                          </thead>
-                          <tbody>
-                            @forelse ($archivedActivityLogs as $log)
-                              @php
-                                $ua = $log->userAccount;
-                                $isStaff = $ua?->AccountType === 'Staff';
-                                $info = $isStaff ? $ua?->staffInfo : $ua?->patientInfo;
-                                $name = $info ? trim($info->FirstName . ' ' . $info->LastName) : ($ua->Email ?? 'Unknown');
-                              @endphp
-                              <tr>
-                                <td><span><img class="avatar-initials" src="{{ $info->photo_url ?? asset('images/default.png') }}"
-                                      alt=""></span> {{ $name }}</td>
-                                <td><span class="pill {{ $isStaff ? 'pill-info' : 'pill-success' }}">{{ $isStaff ? 'Staff' : 'User' }}</span>
-                                </td>
-                                <td>{{ optional($log->LoggedInTime)->format('M j, Y g:i A') ?? '—' }}</td>
-                                <td>{{ optional($log->LoggedOutTime)->format('M j, Y g:i A') ?? '—' }}</td>
-                                <td class="text-end">
-                                  <form method="POST"
-                                    action="{{ route('configuration.activityLogs.unarchive', $log->ActivityLogsID) }}"
-                                    class="d-inline">
-                                    @csrf
-                                    <button type="submit" class="btn btn-pill btn-pill-archive"><i
-                                        class="bi bi-archive"></i> Unarchive</button>
-                                  </form>
-                                </td>
-                              </tr>
-                            @empty
-                              <tr>
-                                <td colspan="5" class="text-center text-muted-2 py-4">No archived activity.</td>
-                              </tr>
-                            @endforelse
-                          </tbody>
-                        </table>
-                      </div>
-                      <div class="pagination-soft">
-                        <div>Showing {{ $archivedActivityLogs->count() }} of {{ $archivedActivityLogs->total() }}
-                          entries</div>
-                        <div class="pages">
-                          <a href="{{ $archivedActivityLogs->previousPageUrl() ?? '#' }}"><i
-                              class="bi bi-chevron-left"></i></a>
-                          @for ($i = 1; $i <= $archivedActivityLogs->lastPage(); $i++)
-                            <a href="{{ $archivedActivityLogs->url($i) }}"
-                              class="{{ $archivedActivityLogs->currentPage() === $i ? 'active' : '' }}">{{ $i }}</a>
-                          @endfor
-                          <a href="{{ $archivedActivityLogs->nextPageUrl() ?? '#' }}"><i
-                              class="bi bi-chevron-right"></i></a>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              <!-- AUDIT LOGS -->
-              <div class="card-soft">
-                <div class="card-header d-flex align-items-center justify-content-between">
-                  <span><i class="bi bi-shield-check me-2" style="color: var(--brand-700);"></i> Audit Logs</span>
-                </div>
-                <div class="card-body p-3 p-md-4">
-                  <form method="GET" action="{{ route('configuration') }}" class="data-toolbar">
-                    <div class="left">
-                      <ul class="nav nav-pills" data-tabgroup="audit" role="tablist">
-                        <li class="nav-item" role="presentation">
-                          <button class="nav-link {{ $auditTab !== 'archived' ? 'active' : '' }}" type="button"
-                            data-bs-toggle="pill" data-bs-target="#auditActivePane" data-tab-value="active"
-                            role="tab">Active</button>
-                        </li>
-                        <li class="nav-item" role="presentation">
-                          <button class="nav-link {{ $auditTab === 'archived' ? 'active' : '' }}" type="button"
-                            data-bs-toggle="pill" data-bs-target="#auditArchivedPane" data-tab-value="archived"
-                            role="tab">Archived</button>
-                        </li>
-                      </ul>
-                    </div>
-                    <div class="right">
-                      <input type="hidden" name="settingsTab" value="activity">
-                      <input type="hidden" name="auditTab" id="auditTabField" value="{{ $auditTab }}">
-                      <select class="form-select" name="auditType" style="height:38px; min-width:150px;"
+                      <select class="form-select" name="activityType" style="height:38px; min-width:170px;"
                         onchange="this.form.submit()">
-                        <option value="">All Actions</option>
+                        <option value="">All activity</option>
                         @foreach ($actionTypes as $type)
-                          <option value="{{ $type }}" {{ $auditType === $type ? 'selected' : '' }}>{{ $type }}
-                          </option>
+                          <option value="{{ $type }}" {{ $activityType === $type ? 'selected' : '' }}>{{ $type }}</option>
                         @endforeach
                       </select>
                       <div class="input-icon search">
                         <i class="bi bi-search"></i>
-                        <input class="form-control" name="auditSearch" value="{{ $auditSearch }}"
-                          placeholder="Search staff or description..."
+                        <input class="form-control" name="activitySearch" value="{{ $activitySearch }}"
+                          placeholder="Search name, email, or details..."
                           style="height:38px; padding-left:2.3rem; min-width:240px;" />
                       </div>
                     </div>
                   </form>
 
                   <div class="tab-content mt-3">
-                    <div class="tab-pane fade {{ $auditTab !== 'archived' ? 'show active' : '' }}" id="auditActivePane"
-                      role="tabpanel">
-                      <div class="table-responsive">
-                        <table class="table-soft" style="border-radius:0; box-shadow:none;">
-                          <thead>
-                            <tr>
-                              <th>Staff</th>
-                              <th>Action</th>
-                              <th>Description</th>
-                              <th>Timestamp</th>
-                              <th class="text-end">Actions</th>
-                            </tr>
-                          </thead>
-                          <tbody>
-                            @forelse ($auditLogs as $log)
-                              @php
-                                $si = $log->staffAccount?->staffInfo;
-                                $name = $si ? trim($si->FirstName . ' ' . $si->LastName) : ($log->staffAccount?->Email ?? 'Unknown');
-                              @endphp
+                    @foreach (['active' => $activityLogs, 'archived' => $archivedActivityLogs] as $paneKey => $rows)
+                      <div class="tab-pane fade {{ ($activityTab === 'archived' ? 'archived' : 'active') === $paneKey ? 'show active' : '' }}"
+                        id="activity{{ ucfirst($paneKey) }}Pane" role="tabpanel">
+                        <div class="table-responsive">
+                          <table class="table-soft" style="border-radius:0; box-shadow:none;">
+                            <thead>
                               <tr>
-                                <td>{{ $name }}</td>
-                                <td><span class="pill pill-info">{{ $log->ActionType }}</span></td>
-                                <td>{{ $log->Description }}</td>
-                                <td>{{ $log->created_at->format('M j, Y g:i A') }}</td>
-                                <td class="text-end">
-                                  <form method="POST"
-                                    action="{{ route('configuration.auditLogs.archive', $log->AuditLogID) }}"
-                                    class="d-inline">
-                                    @csrf
-                                    <button type="submit" class="btn btn-pill btn-pill-archive"><i
-                                        class="bi bi-archive"></i> Archive</button>
-                                  </form>
-                                </td>
+                                <th>User</th>
+                                <th>Type</th>
+                                <th>Activity</th>
+                                <th>When</th>
+                                <th class="text-end">Actions</th>
                               </tr>
-                            @empty
-                              <tr>
-                                <td colspan="5" class="text-center text-muted-2 py-4">No audit activity yet.</td>
-                              </tr>
-                            @endforelse
-                          </tbody>
-                        </table>
-                      </div>
-                      <div class="pagination-soft">
-                        <div>Showing {{ $auditLogs->count() }} of {{ $auditLogs->total() }} entries</div>
-                        <div class="pages">
-                          <a href="{{ $auditLogs->previousPageUrl() ?? '#' }}"><i class="bi bi-chevron-left"></i></a>
-                          @for ($i = 1; $i <= $auditLogs->lastPage(); $i++)
-                            <a href="{{ $auditLogs->url($i) }}"
-                              class="{{ $auditLogs->currentPage() === $i ? 'active' : '' }}">{{ $i }}</a>
-                          @endfor
-                          <a href="{{ $auditLogs->nextPageUrl() ?? '#' }}"><i class="bi bi-chevron-right"></i></a>
+                            </thead>
+                            <tbody>
+                              @forelse ($rows as $log)
+                                @php
+                                  $ua = $log->userAccount;
+                                  $isStaff = $ua?->AccountType === 'Staff';
+                                  $info = $isStaff ? $ua?->staffInfo : $ua?->patientInfo;
+                                  $name = $log->ActorName
+                                      ?: ($info ? trim($info->FirstName . ' ' . $info->LastName) : ($ua->Email ?? 'Unknown'));
+                                  $when = $log->LoggedInTime ?? $log->created_at;
+                                  $isFail = str_starts_with($log->ActivityType, 'Failed');
+                                  $pillClass = $isFail ? 'pill-danger' : ($isStaff ? 'pill-info' : 'pill-success');
+                                @endphp
+                                <tr>
+                                  <td>
+                                    <span><img class="avatar-initials"
+                                        src="{{ $info->photo_url ?? asset('images/default.png') }}" alt=""></span>
+                                    {{ $name }}
+                                  </td>
+                                  <td><span class="pill {{ $pillClass }}">{{ $log->ActivityType }}</span></td>
+                                  <td>
+                                    {{ $log->Description ?: '—' }}
+                                    @if ($log->ActivityType === 'Login' && $log->LoggedOutTime)
+                                      <div class="small text-muted-2">Signed out {{ $log->LoggedOutTime->format('M j, Y g:i A') }}</div>
+                                    @elseif ($log->ActivityType === 'Login')
+                                      <div class="small text-muted-2">Session still active</div>
+                                    @endif
+                                  </td>
+                                  <td>{{ optional($when)->format('M j, Y g:i A') ?? '—' }}</td>
+                                  <td class="text-end">
+                                    <form method="POST"
+                                      action="{{ $paneKey === 'archived'
+                                          ? route('configuration.activityLogs.unarchive', $log->ActivityLogsID)
+                                          : route('configuration.activityLogs.archive', $log->ActivityLogsID) }}"
+                                      class="d-inline">
+                                      @csrf
+                                      <button type="submit" class="btn btn-pill btn-pill-archive"><i
+                                          class="bi bi-archive"></i> {{ $paneKey === 'archived' ? 'Unarchive' : 'Archive' }}</button>
+                                    </form>
+                                  </td>
+                                </tr>
+                              @empty
+                                <tr>
+                                  <td colspan="5" class="text-center text-muted-2 py-4">
+                                    {{ $paneKey === 'archived' ? 'No archived activity.' : 'No activity recorded yet.' }}
+                                  </td>
+                                </tr>
+                              @endforelse
+                            </tbody>
+                          </table>
+                        </div>
+                        <div class="pagination-soft">
+                          <div>Showing {{ $rows->count() }} of {{ $rows->total() }} entries</div>
+                          <div class="pages">
+                            <a href="{{ $rows->previousPageUrl() ?? '#' }}"><i class="bi bi-chevron-left"></i></a>
+                            @for ($i = 1; $i <= $rows->lastPage(); $i++)
+                              <a href="{{ $rows->url($i) }}"
+                                class="{{ $rows->currentPage() === $i ? 'active' : '' }}">{{ $i }}</a>
+                            @endfor
+                            <a href="{{ $rows->nextPageUrl() ?? '#' }}"><i class="bi bi-chevron-right"></i></a>
+                          </div>
                         </div>
                       </div>
-                    </div>
-
-                    <div class="tab-pane fade {{ $auditTab === 'archived' ? 'show active' : '' }}"
-                      id="auditArchivedPane" role="tabpanel">
-                      <div class="table-responsive">
-                        <table class="table-soft" style="border-radius:0; box-shadow:none;">
-                          <thead>
-                            <tr>
-                              <th>Staff</th>
-                              <th>Action</th>
-                              <th>Description</th>
-                              <th>Timestamp</th>
-                              <th class="text-end">Actions</th>
-                            </tr>
-                          </thead>
-                          <tbody>
-                            @forelse ($archivedAuditLogs as $log)
-                              @php
-                                $si = $log->staffAccount?->staffInfo;
-                                $name = $si ? trim($si->FirstName . ' ' . $si->LastName) : ($log->staffAccount?->Email ?? 'Unknown');
-                              @endphp
-                              <tr>
-                                <td>{{ $name }}</td>
-                                <td><span class="pill pill-info">{{ $log->ActionType }}</span></td>
-                                <td>{{ $log->Description }}</td>
-                                <td>{{ $log->created_at->format('M j, Y g:i A') }}</td>
-                                <td class="text-end">
-                                  <form method="POST"
-                                    action="{{ route('configuration.auditLogs.unarchive', $log->AuditLogID) }}"
-                                    class="d-inline">
-                                    @csrf
-                                    <button type="submit" class="btn btn-pill btn-pill-archive"><i
-                                        class="bi bi-archive"></i> Unarchive</button>
-                                  </form>
-                                </td>
-                              </tr>
-                            @empty
-                              <tr>
-                                <td colspan="5" class="text-center text-muted-2 py-4">No archived audit activity.</td>
-                              </tr>
-                            @endforelse
-                          </tbody>
-                        </table>
-                      </div>
-                      <div class="pagination-soft">
-                        <div>Showing {{ $archivedAuditLogs->count() }} of {{ $archivedAuditLogs->total() }} entries
-                        </div>
-                        <div class="pages">
-                          <a href="{{ $archivedAuditLogs->previousPageUrl() ?? '#' }}"><i
-                              class="bi bi-chevron-left"></i></a>
-                          @for ($i = 1; $i <= $archivedAuditLogs->lastPage(); $i++)
-                            <a href="{{ $archivedAuditLogs->url($i) }}"
-                              class="{{ $archivedAuditLogs->currentPage() === $i ? 'active' : '' }}">{{ $i }}</a>
-                          @endfor
-                          <a href="{{ $archivedAuditLogs->nextPageUrl() ?? '#' }}"><i
-                              class="bi bi-chevron-right"></i></a>
-                        </div>
-                      </div>
-                    </div>
+                    @endforeach
                   </div>
                 </div>
               </div>
             </div>
+
 
           </div>
         </div>

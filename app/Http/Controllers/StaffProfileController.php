@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Mail\OtpMail;
 use App\Models\UserAccount;
+use App\Services\ActivityLogService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Mail;
@@ -11,6 +12,10 @@ use Illuminate\Support\Facades\RateLimiter;
 
 class StaffProfileController extends Controller
 {
+    public function __construct(protected ActivityLogService $activityLog)
+    {
+    }
+
     /**
      * "My Profile" — used by every admin session (true admin, staff, super
      * admin), not just staff. Route names stay staffProfile* for backward
@@ -137,11 +142,14 @@ class StaffProfileController extends Controller
         ]);
 
         if (!Hash::check($data['current_password'], $staff->Password)) {
+            $this->activityLog->log('Failed Password Change', 'Entered the wrong current password when trying to change it (My Profile → Security).', $staff->UserID);
             return redirect()->route('staffProfile')->with('error', 'Your current password is incorrect.');
         }
 
         $staff->Password = Hash::make($data['password']);
         $staff->save();
+
+        $this->activityLog->log('Password Changed', 'Changed own account password (My Profile → Security).', $staff->UserID);
 
         return redirect()->route('staffProfile')->with('success', 'Password updated successfully.');
     }

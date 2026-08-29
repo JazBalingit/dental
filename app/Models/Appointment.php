@@ -12,6 +12,7 @@ class Appointment extends Model
 
     protected $fillable = [
         'PatientID',
+        'DentistID',
         'ScheduleID',
         'ServiceID',
         'AppointmentDate',
@@ -38,6 +39,26 @@ class Appointment extends Model
     public function schedule()
     {
         return $this->belongsTo(DentistSchedule::class, 'ScheduleID', 'ScheduleID');
+    }
+
+    public function dentist()
+    {
+        return $this->belongsTo(UserAccount::class, 'DentistID', 'UserID');
+    }
+
+    /**
+     * "Dr. Jane Cruz" — the assigned dentist's name, or a plain fallback
+     * for legacy rows with no dentist recorded.
+     */
+    public function getDentistNameAttribute(): string
+    {
+        $info = $this->dentist?->staffInfo;
+
+        if ($info) {
+            return 'Dr. ' . trim($info->FirstName . ' ' . $info->LastName);
+        }
+
+        return $this->dentist?->Email ?? 'Unassigned';
     }
 
     public function service()

@@ -5,11 +5,16 @@ namespace App\Http\Controllers;
 
 use App\Models\PatientInfo;
 use App\Models\UserAccount;
+use App\Services\ActivityLogService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
 
 class ProfileController extends Controller
 {
+    public function __construct(protected ActivityLogService $activityLog)
+    {
+    }
+
     public function update(Request $request)
     {
         if (!session('user_id')) {
@@ -64,7 +69,28 @@ class ProfileController extends Controller
             $updates['ProfilePicture'] = 'images/profiles/' . $filename;
         }
 
+        // Work out which fields actually changed so the activity log can
+        // name them ("Updated profile: First name, Address").
+        $labels = [
+            'LastName' => 'Last name', 'FirstName' => 'First name', 'MiddleName' => 'Middle name',
+            'PhoneNumber' => 'Phone number', 'DateOfBirth' => 'Birthdate', 'Age' => 'Age',
+            'Gender' => 'Gender', 'Religion' => 'Religion', 'Nationality' => 'Nationality',
+            'Address' => 'Address', 'Occupation' => 'Occupation',
+            'ParentsName' => "Parent/Guardian's name", 'ParentsOccupation' => "Parent/Guardian's occupation",
+            'ProfilePicture' => 'Profile photo',
+        ];
+        $changed = [];
+        foreach ($updates as $key => $value) {
+            if ((string) ($patientInfo->getOriginal($key) ?? '') !== (string) ($value ?? '')) {
+                $changed[] = $labels[$key] ?? $key;
+            }
+        }
+
         $patientInfo->update($updates);
+
+        if ($changed) {
+            $this->activityLog->log('Profile Updated', 'Updated profile: ' . implode(', ', $changed) . '.', $user->UserID);
+        }
 
         return redirect()->route('settings', ['tab' => 'profile'])->with('profile_updated', true);
     }

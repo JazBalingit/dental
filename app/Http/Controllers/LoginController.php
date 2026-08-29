@@ -4,8 +4,8 @@
 namespace App\Http\Controllers;
 
 use App\Mail\OtpMail;
-use App\Models\ActivityLog;
 use App\Models\UserAccount;
+use App\Services\ActivityLogService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Mail;
@@ -14,6 +14,10 @@ use Illuminate\Support\Str;
 
 class LoginController extends Controller
 {
+    public function __construct(protected ActivityLogService $activityLog)
+    {
+    }
+
     public function create()
     {
         return view('login_signup.login');
@@ -42,6 +46,7 @@ class LoginController extends Controller
 
         if (!$user || $user->IsArchived || !Hash::check($data['password'], $user->Password)) {
             RateLimiter::hit($throttleKey, 60);
+            $this->activityLog->failedLogin($data['email'], $user?->UserID);
             return redirect()->route('login')->with('login_error', 'Incorrect email or password.');
         }
 
@@ -52,7 +57,7 @@ class LoginController extends Controller
         // so a leftover is_super_admin flag from an earlier super-admin login
         // in this same browser session would otherwise survive into this
         // completely unrelated account's session and bypass every guard that
-        // checks it (EnsureStaffIsVerified, AuditLogService).
+        // checks it (EnsureStaffIsVerified, ActivityLogService).
         session()->forget('is_super_admin');
 
         session([
@@ -62,12 +67,7 @@ class LoginController extends Controller
             'account_type' => $user->AccountType === 'Staff' ? 'staff' : 'user',
         ]);
 
-        $activityLog = ActivityLog::create([
-            'UserID' => $user->UserID,
-            'ActivityType' => 'Login',
-            'LoggedInTime' => now(),
-        ]);
-        session(['activity_log_id' => $activityLog->ActivityLogsID]);
+        session(['activity_log_id' => $this->activityLog->startSession($user->UserID)]);
 
         return $user->AccountRole === 'admin'
             ? redirect()->route('dashboard')
@@ -115,22 +115,14 @@ class LoginController extends Controller
             'is_super_admin' => true,
         ]);
 
-        $activityLog = ActivityLog::create([
-            'UserID' => $account->UserID,
-            'ActivityType' => 'Login',
-            'LoggedInTime' => now(),
-        ]);
-        session(['activity_log_id' => $activityLog->ActivityLogsID]);
+        session(['activity_log_id' => $this->activityLog->startSession($account->UserID)]);
 
         return true;
     }
 
     public function logout(Request $request)
     {
-        if ($request->session()->has('activity_log_id')) {
-            ActivityLog::where('ActivityLogsID', $request->session()->get('activity_log_id'))
-                ->update(['LoggedOutTime' => now()]);
-        }
+        $this->activityLog->endSession($request->session()->get('activity_log_id'));
 
         $request->session()->forget(['user_id', 'user_role', 'user_email', 'account_type', 'activity_log_id', 'is_super_admin']);
         $request->session()->regenerate();
@@ -229,6 +221,9 @@ class LoginController extends Controller
         if ($request->code !== session('reset_code')) {
             $attempts = session('reset_attempts', 0) + 1;
 
+            $wrongCodeUser = UserAccount::where('Email', session('reset_email'))->first();
+            $this->activityLog->log('Failed Password Change', "Incorrect reset code entered for \"" . session('reset_email') . "\".", $wrongCodeUser?->UserID);
+
             if ($attempts >= 5) {
                 session()->forget(['reset_email', 'reset_code', 'reset_attempts', 'show_reset_form']);
                 return redirect()->route('login')->with('reset_expired', true);
@@ -249,6 +244,8 @@ class LoginController extends Controller
 
         $user->Password = Hash::make($request->password);
         $user->save();
+
+        $this->activityLog->log('Password Changed', 'Reset password using an email verification code (from the login page).', $user->UserID);
 
         session()->forget(['reset_email', 'reset_code', 'reset_attempts', 'show_reset_form']);
 

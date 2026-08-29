@@ -38,7 +38,7 @@
                 <a href="{{ route('appointments') }}"><i class="bi bi-clipboard2-check"></i> Appointments</a>
                 <a href="{{ route('patientRecords') }}"><i class="bi bi-folder2-open"></i> Patient Records</a>
                 <div class="nav-section">System</div>
-                <a href="{{ route('configuration') }}"><i class="bi bi-sliders2"></i> Settings</a>
+                <a href="{{ route('configuration') }}"><i class="bi bi-sliders2"></i> Configuration</a>
             </nav>
             @include('partials.admin-profile-badge')
         </aside>

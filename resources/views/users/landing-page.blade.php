@@ -245,6 +245,9 @@
           'bookToday' => $bookToday,
           'services' => $services,
           'bookCurrentPatientId' => $bookCurrentPatientId,
+          'bookDentists' => $bookDentists,
+          'bookSelectedDentist' => $bookSelectedDentist,
+          'bookSelectedDentistId' => $bookSelectedDentistId,
         ])
       </div>
     </section>

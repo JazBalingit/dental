@@ -9,7 +9,7 @@ use App\Models\DentistSchedule;
 use App\Models\PatientInfo;
 use App\Models\Service;
 use App\Models\UserAccount;
-use App\Services\AuditLogService;
+use App\Services\ActivityLogService;
 use App\Services\NotificationService;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
@@ -19,7 +19,7 @@ class WalkInController extends Controller
 {
     use BuildsBookingCalendar;
 
-    public function __construct(protected NotificationService $notifications, protected AuditLogService $auditLog)
+    public function __construct(protected NotificationService $notifications, protected ActivityLogService $activityLog)
     {
     }
 
@@ -108,7 +108,15 @@ class WalkInController extends Controller
             'service_ids.*' => 'distinct|exists:tbl_services,ServiceID',
             'date' => 'required|date',
             'time' => 'required|string',
+            'dentist_id' => 'required|integer',
         ]);
+
+        $dentist = UserAccount::dentists()->where('UserID', $data['dentist_id'])->first();
+
+        if (!$dentist) {
+            return back()->withInput()->with('error', 'Please choose a dentist for this appointment.')
+                ->with('walkin_error_step', 2);
+        }
 
         // One active appointment at a time — only meaningful for an existing
         // patient, since a "new" one can't already have an appointment.
@@ -180,10 +188,11 @@ class WalkInController extends Controller
             // Reserve every slot the total service duration needs — either
             // the whole block flips to Not Available, or none of it does.
             // Same pattern as AppointmentBookingController::store().
-            $scheduleRows = $this->reserveSlotBlock($data['date'], $data['time'], $slotsNeeded);
+            $scheduleRows = $this->reserveSlotBlock($data['date'], $data['time'], $slotsNeeded, $dentist->UserID);
 
             $appointment = Appointment::create([
                 'PatientID' => $patientInfo->PatientID,
+                'DentistID' => $dentist->UserID,
                 'ScheduleID' => $scheduleRows[0]->ScheduleID,
                 'ServiceID' => $services->first()?->ServiceID,
                 'AppointmentDate' => $data['date'],
@@ -241,9 +250,9 @@ class WalkInController extends Controller
             ? trim($performer->staffInfo->FirstName . ' ' . $performer->staffInfo->LastName)
             : ($performer->Email ?? 'Staff');
 
-        $this->auditLog->log(
+        $this->activityLog->log(
             'Create',
-            "{$performerName} recorded a walk-in appointment for {$patientName} (" . ($isNewPatient ? 'new patient' : "Patient ID {$patientInfo->PatientID}") . ") — {$dateLabel} at {$timeLabel}."
+            "{$performerName} recorded a walk-in appointment for {$patientName} (" . ($isNewPatient ? 'new patient' : "Patient ID {$patientInfo->PatientID}") . ") with {$dentist->display_name} — {$dateLabel} at {$timeLabel}."
         );
 
         $durationLabel = DentistSchedule::formatSlotDuration($slotsNeeded);

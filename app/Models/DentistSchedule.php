@@ -11,6 +11,7 @@ class DentistSchedule extends Model
     protected $primaryKey = 'ScheduleID';
 
     protected $fillable = [
+        'DentistID',
         'Date',
         'Time',
         'Status',
@@ -19,6 +20,11 @@ class DentistSchedule extends Model
     protected $casts = [
         'Date' => 'date:Y-m-d',
     ];
+
+    public function dentist()
+    {
+        return $this->belongsTo(UserAccount::class, 'DentistID', 'UserID');
+    }
 
     /**
      * The clinic day, as a slot grid — single source of truth for "what

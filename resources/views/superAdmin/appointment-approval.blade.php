@@ -39,7 +39,7 @@
                 <a href="{{ route('appointments') }}"><i class="bi bi-clipboard2-check"></i> Appointments</a>
                 <a href="{{ route('patientRecords') }}"><i class="bi bi-folder2-open"></i> Patient Records</a>
                 <div class="nav-section">System</div>
-                <a href="{{ route('configuration') }}"><i class="bi bi-sliders2"></i> Settings</a>
+                <a href="{{ route('configuration') }}"><i class="bi bi-sliders2"></i> Configuration</a>
             </nav>
             @include('partials.admin-profile-badge')
         </aside>
@@ -143,6 +143,7 @@
                             <thead>
                                 <tr>
                                     <th>Patient</th>
+                                    <th>Dentist</th>
                                     <th>Service</th>
                                     <th>Date &amp; Time</th>
                                     <th>Booked At</th>
@@ -168,6 +169,7 @@
                                                 <span class="pill pill-muted">Walk-in</span>
                                             @endif
                                         </td>
+                                        <td>{{ $appt->dentist_name }}</td>
                                         <td>{{ $appt->TypeOfAppointment ?: ($appt->service->ServiceName ?? '—') }}</td>
                                         <td>{{ $appt->AppointmentDate->format('F j, Y') }} &bull; {{ $appt->time_range_label }}</td>
                                         <td>{{ $appt->created_at->format('M j, Y g:i A') }}</td>
@@ -185,7 +187,7 @@
                                     </tr>
                                 @empty
                                     <tr>
-                                        <td colspan="6" class="text-center text-muted-2 py-4">No appointments found.</td>
+                                        <td colspan="7" class="text-center text-muted-2 py-4">No appointments found.</td>
                                     </tr>
                                 @endforelse
                             </tbody>
@@ -341,6 +343,11 @@
                             <div class="modal-body pt-2">
                                 <div class="section-label">Appointment Details</div>
                                 <div class="row g-3 mb-3">
+                                    <div class="col-md-6">
+                                        <label class="form-label">Dentist</label>
+                                        <div class="input-icon"><i class="bi bi-person-badge"></i><input type="text"
+                                                class="form-control" value="{{ $appt->dentist_name }}" disabled /></div>
+                                    </div>
                                     <div class="col-md-6">
                                         <label class="form-label">Service</label>
                                         <div class="input-icon"><i class="bi bi-heart-pulse"></i><input type="text"

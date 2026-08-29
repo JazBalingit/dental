@@ -61,7 +61,7 @@
                 <a href="{{ route('appointments') }}"><i class="bi bi-clipboard2-check"></i> Appointments</a>
                 <a href="{{ route('patientRecords') }}"><i class="bi bi-folder2-open"></i> Patient Records</a>
                 <div class="nav-section">System</div>
-                <a href="{{ route('configuration') }}"><i class="bi bi-sliders2"></i> Settings</a>
+                <a href="{{ route('configuration') }}"><i class="bi bi-sliders2"></i> Configuration</a>
             </nav>
             @include('partials.admin-profile-badge')
         </aside>
@@ -106,6 +106,7 @@
                         <input type="hidden" name="patient_id" id="patient_id" value="">
                         <input type="hidden" name="date" id="wi_date" value="">
                         <input type="hidden" name="time" id="wi_time" value="">
+                        <input type="hidden" name="dentist_id" id="wi_dentist_id" value="{{ $bookSelectedDentistId }}">
                         <div id="wi_service_ids_container"></div>
 
                         <!-- ===================== STEP 1: PATIENT INFORMATION ===================== -->
@@ -300,7 +301,11 @@
                                 'bookToday' => $bookToday,
                                 'services' => $services,
                                 'bookCurrentPatientId' => null,
+                                'bookDentists' => $bookDentists,
+                                'bookSelectedDentist' => $bookSelectedDentist,
+                                'bookSelectedDentistId' => $bookSelectedDentistId,
                             ])
+
 
                             <div class="appointment-card mb-4 mt-4">
                                 <div class="section-label mb-3">Appointment Details</div>
@@ -342,6 +347,7 @@
                                 <div class="review-row" id="review_patient_id_row"><span class="text-muted-2">Patient ID</span><span class="fw-semibold" id="review_patient_id">—</span></div>
 
                                 <div class="section-label mb-3 mt-4">Appointment</div>
+                                <div class="review-row"><span class="text-muted-2">Dentist</span><span class="fw-semibold" id="review_dentist">—</span></div>
                                 <div class="review-row"><span class="text-muted-2">Service(s)</span><span class="fw-semibold" id="review_service">—</span></div>
                                 <div class="review-row"><span class="text-muted-2">Date</span><span class="fw-semibold" id="review_date">—</span></div>
                                 <div class="review-row"><span class="text-muted-2">Time</span><span class="fw-semibold" id="review_time">—</span></div>
@@ -639,25 +645,40 @@
             saveDraft();
         });
 
-        // Month navigation while in select mode (walk-in wizard)
+        // Month + dentist navigation while in select mode (walk-in wizard).
+        // A full reload, but saveDraft() keeps the wizard where it was.
+        const wiDentistSelect = document.getElementById('wiBookDentist');
+        function wiCurrentDentist() {
+            return wiDentistSelect ? wiDentistSelect.value
+                : (document.getElementById('wiSelectedDentist')?.value || '');
+        }
+        function wiReloadCalendar(month) {
+            saveDraft();
+            window.location.href = '{{ route("walkIn") }}?bookMonth=' + month + '&dentist=' + wiCurrentDentist();
+        }
+
         const wiGoBtn = document.getElementById('wiBookMonthGo');
         if (wiGoBtn) {
             wiGoBtn.addEventListener('click', () => {
                 const m = String(document.getElementById('wiBookMonthNum').value).padStart(2, '0');
                 const y = document.getElementById('wiBookYear').value;
-                saveDraft();
-                window.location.href = '{{ route("walkIn") }}?bookMonth=' + y + '-' + m;
+                wiReloadCalendar(y + '-' + m);
             });
         }
 
         ['wiBookMonthPrev', 'wiBookMonthNext'].forEach((id) => {
             const btn = document.getElementById(id);
             if (!btn) return;
-            btn.addEventListener('click', () => {
-                saveDraft();
-                window.location.href = '{{ route("walkIn") }}?bookMonth=' + btn.dataset.month;
-            });
+            btn.addEventListener('click', () => wiReloadCalendar(btn.dataset.month));
         });
+
+        if (wiDentistSelect) {
+            wiDentistSelect.addEventListener('change', () => {
+                const dentistId = document.getElementById('wi_dentist_id');
+                if (dentistId) dentistId.value = wiDentistSelect.value;
+                wiReloadCalendar('{{ $bookCurrent->format('Y-m') }}');
+            });
+        }
 
         // ---------- Continue to Step 3 ----------
         // Extracted so restoreDraft() can rebuild the same summary after a page
@@ -675,6 +696,9 @@
             document.getElementById('review_patient_type').textContent = isExisting ? 'Existing Patient' : 'New Patient';
             document.getElementById('review_patient_id_row').style.display = isExisting ? 'flex' : 'none';
             document.getElementById('review_patient_id').textContent = isExisting ? patientIdInput.value : '—';
+            const dentistSel = document.getElementById('wiBookDentist');
+            document.getElementById('review_dentist').textContent =
+                dentistSel ? (dentistSel.options[dentistSel.selectedIndex]?.text || '—') : '—';
             document.getElementById('review_service').textContent = wiServiceDisplay.value;
             document.getElementById('review_date').textContent = wiDateDisplay.value;
             document.getElementById('review_time').textContent = wiTimeDisplay.value;

@@ -36,7 +36,7 @@
                 <a href="{{ route('appointments') }}"><i class="bi bi-clipboard2-check"></i> Appointments</a>
                 <a href="{{ route('patientRecords') }}"><i class="bi bi-folder2-open"></i> Patient Records</a>
                 <div class="nav-section">System</div>
-                <a href="{{ route('configuration') }}"><i class="bi bi-sliders2"></i> Settings</a>
+                <a href="{{ route('configuration') }}"><i class="bi bi-sliders2"></i> Configuration</a>
             </nav>
             @include('partials.admin-profile-badge')
         </aside>
@@ -68,24 +68,61 @@
                 <div class="schedule-wrap">
                     <div class="schedule-toolbar d-flex justify-content-between align-items-center flex-wrap gap-2">
                         <div>
-                            <div class="fw-semibold">{{ $current->format('F Y') }}</div>
-                            <div class="small text-muted-2">Monthly overview</div>
+                            <div class="fw-semibold">
+                                {{ $current->format('F Y') }}
+                                @if ($selectedDentist)
+                                    — <span style="color: var(--brand-700);">{{ $selectedDentist->display_name }}</span>
+                                @endif
+                            </div>
+                            <div class="small text-muted-2">
+                                @if ($dentists->isEmpty())
+                                    No dentist accounts yet — add one under Staff Accounts.
+                                @else
+                                    Each dentist keeps an independent availability grid.
+                                @endif
+                            </div>
                         </div>
 
-                        {{-- Year / month picker — plain GET form, no JS required --}}
-                        <form method="GET" action="{{ route('dentistSchedule') }}"
-                            class="d-flex align-items-center gap-2">
-                            <select name="monthNum" class="form-select form-select-sm" style="width: 140px;">
-                                @foreach (range(1, 12) as $m)
-                                    <option value="{{ $m }}" {{ $current->month === $m ? 'selected' : '' }}>
-                                        {{ \Carbon\Carbon::create()->month($m)->format('F') }}
-                                    </option>
-                                @endforeach
-                            </select>
-                            <input type="number" name="year" class="form-control form-control-sm" style="width: 100px;"
-                                min="2000" max="2100" value="{{ $current->year }}">
-                            <button type="submit" class="btn btn-brand btn-sm">Go</button>
-                        </form>
+                        <div class="d-flex align-items-center gap-2 flex-wrap">
+                            {{-- Dentist filter --}}
+                            @if ($dentists->isNotEmpty())
+                                <select class="form-select form-select-sm" style="width: 190px;"
+                                    onchange="window.location.href='{{ route('dentistSchedule') }}?month={{ $current->format('Y-m') }}&dentist=' + this.value">
+                                    @foreach ($dentists as $dentist)
+                                        <option value="{{ $dentist->UserID }}" {{ (int) $selectedDentistId === (int) $dentist->UserID ? 'selected' : '' }}>
+                                            {{ $dentist->display_name }}
+                                        </option>
+                                    @endforeach
+                                </select>
+                            @endif
+
+                            {{-- Prev / next month --}}
+                            <a href="{{ route('dentistSchedule', ['month' => $current->copy()->subMonth()->format('Y-m'), 'dentist' => $selectedDentistId]) }}"
+                                class="btn btn-outline-secondary btn-sm" aria-label="Previous month"><i
+                                    class="bi bi-chevron-left"></i></a>
+
+                            {{-- Year / month picker — plain GET form, no JS required --}}
+                            <form method="GET" action="{{ route('dentistSchedule') }}"
+                                class="d-flex align-items-center gap-2">
+                                <input type="hidden" name="dentist" value="{{ $selectedDentistId }}">
+                                <select name="monthNum" class="form-select form-select-sm" style="width: 140px;">
+                                    @foreach (range(1, 12) as $m)
+                                        <option value="{{ $m }}" {{ $current->month === $m ? 'selected' : '' }}>
+                                            {{ \Carbon\Carbon::create()->month($m)->format('F') }}
+                                        </option>
+                                    @endforeach
+                                </select>
+                                <input type="number" name="year" class="form-control form-control-sm" style="width: 100px;"
+                                    min="2000" max="2100" value="{{ $current->year }}">
+                                <button type="submit" class="btn btn-brand btn-sm">Go</button>
+                            </form>
+
+                            <a href="{{ route('dentistSchedule', ['month' => $current->copy()->addMonth()->format('Y-m'), 'dentist' => $selectedDentistId]) }}"
+                                class="btn btn-outline-secondary btn-sm" aria-label="Next month"><i
+                                    class="bi bi-chevron-right"></i></a>
+
+                            <a href="{{ route('dentistSchedule', ['dentist' => $selectedDentistId]) }}" class="btn btn-outline-secondary btn-sm">Today</a>
+                        </div>
                     </div>
 
                     <div class="month-grid p-3">
@@ -103,10 +140,12 @@
                                     $dateStr = $d->format('Y-m-d');
                                     $inMonth = $d->month === $current->month;
                                     $isSunday = $d->isSunday();
+                                    $isPast = $d->lt(\Carbon\Carbon::parse($today));
                                     $daySlots = $schedules[$dateStr] ?? collect();
                                     $notAvailable = $daySlots->where('Status', 'Not Available');
                                     $lockedTimes = collect($slots)->filter(fn($label, $time) => isset($occupiedSlots[$dateStr . '_' . $time]) || (($daySlots[$time]->Status ?? 'Available') === 'Not Available'));
                                     $availableCount = $totalSlotsPerDay - $lockedTimes->count();
+                                    $completedThatDay = $completedCountByDate[$dateStr] ?? 0;
                                     $modalId = 'modalDay' . $d->format('Ymd');
 
                                     $countClass = 'count';
@@ -117,7 +156,19 @@
                                     }
                                 @endphp
 
-                                @if ($inMonth && !$isSunday)
+                                @if ($inMonth && !$isSunday && $isPast)
+                                    {{-- The day is done — no slots to manage anymore. Show it plainly
+                                         as passed, and roll the per-slot "Completed" chips into one line. --}}
+                                    <button type="button"
+                                        class="day-cell day-past border-0 text-start p-0 w-100 d-block"
+                                        data-bs-toggle="modal" data-bs-target="#{{ $modalId }}">
+                                        <div class="n" style="margin-left: 8px;">{{ $d->day }}</div>
+                                        <span class="ev ev-past">Date passed</span>
+                                        @if ($completedThatDay > 0)
+                                            <span class="ev ev-completed">{{ $completedThatDay }} appointment{{ $completedThatDay === 1 ? '' : 's' }} completed</span>
+                                        @endif
+                                    </button>
+                                @elseif ($inMonth && !$isSunday)
                                     <button type="button"
                                         class="day-cell border-0 text-start p-0 w-100 d-block {{ $dateStr === $today ? 'today' : '' }}"
                                         data-bs-toggle="modal" data-bs-target="#{{ $modalId }}">
@@ -186,10 +237,18 @@
 
             @php
                 $slotTimesForDay = array_keys($slots);
-                $heldTimesForDay = collect($slotTimesForDay)->filter(fn ($t) => isset($occupiedSlots[$dateStr . '_' . $t]));
-                $editableTimesForDay = collect($slotTimesForDay)->diff($heldTimesForDay);
+                // Times held by a COMPLETED appointment — those can't be reopened
+                // or closed. Pending/Approved times can (closing cancels them).
+                $completedTimesForDay = collect($slotTimesForDay)
+                    ->filter(fn ($t) => ($occupiedSlots[$dateStr . '_' . $t] ?? null)?->Status === 'Completed');
+                $editableTimesForDay = collect($slotTimesForDay)->diff($completedTimesForDay);
+                $openBookingsForDay = collect($slotTimesForDay)
+                    ->filter(fn ($t) => in_array(($occupiedSlots[$dateStr . '_' . $t] ?? null)?->Status, ['Pending', 'Approved'], true))
+                    ->count();
                 $dayFullyClosed = $editableTimesForDay->isNotEmpty()
-                    && $editableTimesForDay->every(fn ($t) => (($daySlots[$t]->Status ?? 'Available') === 'Not Available'));
+                    && $editableTimesForDay->every(fn ($t) =>
+                        isset($occupiedSlots[$dateStr . '_' . $t])
+                        || (($daySlots[$t]->Status ?? 'Available') === 'Not Available'));
             @endphp
             <div class="modal fade" id="{{ $modalId }}" tabindex="-1" aria-hidden="true">
                 <div class="modal-dialog modal-dialog-centered modal-xl">
@@ -200,10 +259,14 @@
                             </div>
                             @if (!$isPast && $editableTimesForDay->isNotEmpty())
                                 <form method="POST" action="{{ route('dentistSchedule.toggleDay') }}"
-                                    class="d-flex align-items-center gap-2 m-0 ms-auto me-3">
+                                    class="d-flex align-items-center gap-2 m-0 ms-auto me-3"
+                                    @if (!$dayFullyClosed && $openBookingsForDay > 0)
+                                        onsubmit="return confirm('Closing this day will cancel {{ $openBookingsForDay }} pending/booked appointment(s) and notify the patient(s). Continue?')"
+                                    @endif>
                                     @csrf
                                     <input type="hidden" name="date" value="{{ $dateStr }}">
                                     <input type="hidden" name="month" value="{{ $current->format('Y-m') }}">
+                                    <input type="hidden" name="dentist_id" value="{{ $selectedDentistId }}">
                                     <label class="form-check form-switch d-flex align-items-center gap-2 m-0" style="cursor:pointer;">
                                         <input class="form-check-input" type="checkbox" role="switch" style="cursor:pointer;"
                                             {{ !$dayFullyClosed ? 'checked' : '' }} onchange="this.closest('form').requestSubmit()">
@@ -250,6 +313,7 @@
                                                     <input type="hidden" name="date" value="{{ $dateStr }}">
                                                     <input type="hidden" name="time" value="{{ $time }}">
                                                     <input type="hidden" name="month" value="{{ $current->format('Y-m') }}">
+                                                    <input type="hidden" name="dentist_id" value="{{ $selectedDentistId }}">
                                                     <button type="submit"
                                                         class="slot-btn w-100 {{ $isUnavailable ? 'is-unavailable' : 'is-available' }}"
                                                         {{ $isPast ? 'disabled' : '' }}>
@@ -266,7 +330,10 @@
                                         @if ($isPast)
                                             This date has already passed — slots are locked.
                                         @else
-                                            Appointment slots show the patient and are locked. Only open or manually unavailable slots can be edited.
+                                            Individual slots holding an appointment can't be toggled. To clear the
+                                            whole day, use the <strong>Day open</strong> switch above — it cancels
+                                            every pending/booked appointment for this dentist that day and notifies
+                                            the patient(s).
                                         @endif
                                     </div>
                                 </div>

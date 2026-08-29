@@ -212,16 +212,16 @@ p {
 
 /* CONTENT */
 .content-wrap {
-  max-width: 960px;
+  max-width: 1180px;
   margin: 0 auto;
-  padding: 40px 16px 80px;
+  padding: 40px 24px 80px;
 }
 
-/* ---------- Settings tab layout (User Information / Security) ---------- */
+/* ---------- Settings tab layout (User Information / Security / Configuration) ---------- */
 .settings-layout {
   display: grid;
-  grid-template-columns: 240px 1fr;
-  gap: 24px;
+  grid-template-columns: 250px minmax(0, 1fr);
+  gap: 28px;
   align-items: start;
 }
 
@@ -297,7 +297,7 @@ p {
   display: none;
 }
 
-@media (max-width: 860px) {
+@media (max-width: 920px) {
   .settings-layout {
     grid-template-columns: 1fr;
   }

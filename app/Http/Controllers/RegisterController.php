@@ -7,6 +7,7 @@ use App\Mail\OtpMail;
 use App\Models\PatientInfo;
 use App\Models\SystemSetting;
 use App\Models\UserAccount;
+use App\Services\ActivityLogService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Mail;
@@ -14,6 +15,10 @@ use Illuminate\Support\Facades\RateLimiter;
 
 class RegisterController extends Controller
 {
+    public function __construct(protected ActivityLogService $activityLog)
+    {
+    }
+
     public function create()
     {
         return view('login_signup.signup', [
@@ -135,6 +140,8 @@ class RegisterController extends Controller
             collect($pending)->except(['Email', 'Password'])->toArray(),
             ['UserID' => $user->UserID]
         ));
+
+        $this->activityLog->log('Create', "Registered a new patient account ({$user->Email}).", $user->UserID);
 
         session()->forget(['pending_registration', 'otp_code', 'otp_email', 'otp_attempts', 'show_otp']);
 

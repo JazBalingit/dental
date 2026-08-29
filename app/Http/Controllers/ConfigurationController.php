@@ -3,21 +3,31 @@
 namespace App\Http\Controllers;
 
 use App\Models\ActivityLog;
-use App\Models\AuditLog;
 use App\Models\Service;
 use App\Models\ServiceCategory;
 use App\Models\SystemSetting;
-use App\Services\AuditLogService;
+use App\Services\ActivityLogService;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
 
 class ConfigurationController extends Controller
 {
-    public function __construct(protected AuditLogService $auditLog)
+    public function __construct(protected ActivityLogService $activityLog)
     {
     }
 
-    protected array $actionTypes = ['Create', 'Edit', 'Archive', 'Unarchive', 'Approve', 'Decline', 'Complete', 'Cancel'];
+    /**
+     * Every distinct ActivityType the unified trail can hold — drives the
+     * "filter by type" dropdown on the Activity Logs tab. 'Login' covers
+     * both the sign-in and its later sign-out on the same row.
+     */
+    protected array $actionTypes = [
+        'Login', 'Logout', 'Failed Login',
+        'Password Changed', 'Failed Password Change',
+        'Appointment Booked', 'Appointment Cancelled', 'Appointment Rescheduled', 'Failed Booking',
+        'Profile Updated',
+        'Create', 'Edit', 'Archive', 'Unarchive', 'Approve', 'Decline', 'Complete', 'Cancel',
+    ];
 
     protected function guard()
     {
@@ -36,8 +46,7 @@ class ConfigurationController extends Controller
 
         $serviceSearch = $request->query('serviceSearch');
         $activitySearch = $request->query('activitySearch');
-        $auditSearch = $request->query('auditSearch');
-        $auditType = $request->query('auditType');
+        $activityType = $request->query('activityType');
 
         $activeServices = Service::with('category')->where('IsArchived', false);
         $archivedServices = Service::with('category')->where('IsArchived', true);
@@ -50,40 +59,38 @@ class ConfigurationController extends Controller
             $archivedServices->where($filter);
         }
 
-        $activeActivity = ActivityLog::with(['userAccount.patientInfo', 'userAccount.staffInfo'])->where('IsArchived', false);
-        $archivedActivity = ActivityLog::with(['userAccount.patientInfo', 'userAccount.staffInfo'])->where('IsArchived', true);
-        if ($activitySearch) {
-            $filter = function ($q) use ($activitySearch) {
-                $q->whereHas('userAccount', function ($u) use ($activitySearch) {
-                    $u->where('Email', 'like', "%{$activitySearch}%")
-                        ->orWhereHas('patientInfo', function ($p) use ($activitySearch) {
-                            $p->where('FirstName', 'like', "%{$activitySearch}%")->orWhere('LastName', 'like', "%{$activitySearch}%");
-                        })
-                        ->orWhereHas('staffInfo', function ($s) use ($activitySearch) {
-                            $s->where('FirstName', 'like', "%{$activitySearch}%")->orWhere('LastName', 'like', "%{$activitySearch}%");
+        // The single system-wide trail: login/logout sessions, failed
+        // logins, password changes, and every admin/staff/patient action.
+        $buildActivity = function (bool $archived) use ($activitySearch, $activityType) {
+            $q = ActivityLog::with(['userAccount.patientInfo', 'userAccount.staffInfo'])
+                ->where('IsArchived', $archived);
+
+            if ($activityType) {
+                $q->where('ActivityType', $activityType);
+            }
+
+            if ($activitySearch) {
+                $q->where(function ($outer) use ($activitySearch) {
+                    $outer->where('ActorName', 'like', "%{$activitySearch}%")
+                        ->orWhere('Description', 'like', "%{$activitySearch}%")
+                        ->orWhere('ActivityType', 'like', "%{$activitySearch}%")
+                        ->orWhereHas('userAccount', function ($u) use ($activitySearch) {
+                            $u->where('Email', 'like', "%{$activitySearch}%")
+                                ->orWhereHas('patientInfo', function ($p) use ($activitySearch) {
+                                    $p->where('FirstName', 'like', "%{$activitySearch}%")->orWhere('LastName', 'like', "%{$activitySearch}%");
+                                })
+                                ->orWhereHas('staffInfo', function ($s) use ($activitySearch) {
+                                    $s->where('FirstName', 'like', "%{$activitySearch}%")->orWhere('LastName', 'like', "%{$activitySearch}%");
+                                });
                         });
                 });
-            };
-            $activeActivity->where($filter);
-            $archivedActivity->where($filter);
-        }
+            }
 
-        $activeAudit = AuditLog::with('staffAccount.staffInfo')->where('IsArchived', false);
-        $archivedAudit = AuditLog::with('staffAccount.staffInfo')->where('IsArchived', true);
-        if ($auditType) {
-            $activeAudit->where('ActionType', $auditType);
-            $archivedAudit->where('ActionType', $auditType);
-        }
-        if ($auditSearch) {
-            $filter = function ($q) use ($auditSearch) {
-                $q->where('Description', 'like', "%{$auditSearch}%")
-                    ->orWhereHas('staffAccount.staffInfo', function ($s) use ($auditSearch) {
-                        $s->where('FirstName', 'like', "%{$auditSearch}%")->orWhere('LastName', 'like', "%{$auditSearch}%");
-                    });
-            };
-            $activeAudit->where($filter);
-            $archivedAudit->where($filter);
-        }
+            return $q->orderByRaw('COALESCE(LoggedInTime, created_at) DESC');
+        };
+
+        $activeActivity = $buildActivity(false);
+        $archivedActivity = $buildActivity(true);
 
         $logoPath = public_path('images/puspus_logo.png');
 
@@ -102,17 +109,13 @@ class ConfigurationController extends Controller
             'categories' => ServiceCategory::withCount('services')->orderBy('DisplayOrder')->orderBy('Name')->get(),
             'services' => $activeServices->orderBy('ServiceName')->paginate(10, ['*'], 'services_page')->withQueryString(),
             'archivedServices' => $archivedServices->orderBy('ServiceName')->paginate(10, ['*'], 'services_archived_page')->withQueryString(),
-            'activityLogs' => $activeActivity->orderByDesc('LoggedInTime')->paginate(10, ['*'], 'activity_page')->withQueryString(),
-            'archivedActivityLogs' => $archivedActivity->orderByDesc('LoggedInTime')->paginate(10, ['*'], 'activity_archived_page')->withQueryString(),
-            'auditLogs' => $activeAudit->orderByDesc('created_at')->paginate(10, ['*'], 'audit_page')->withQueryString(),
-            'archivedAuditLogs' => $archivedAudit->orderByDesc('created_at')->paginate(10, ['*'], 'audit_archived_page')->withQueryString(),
+            'activityLogs' => $activeActivity->paginate(15, ['*'], 'activity_page')->withQueryString(),
+            'archivedActivityLogs' => $archivedActivity->paginate(15, ['*'], 'activity_archived_page')->withQueryString(),
             'servicesTab' => $request->query('servicesTab') === 'archived' ? 'archived' : 'active',
             'activityTab' => $request->query('activityTab') === 'archived' ? 'archived' : 'active',
-            'auditTab' => $request->query('auditTab') === 'archived' ? 'archived' : 'active',
             'serviceSearch' => $serviceSearch,
             'activitySearch' => $activitySearch,
-            'auditSearch' => $auditSearch,
-            'auditType' => $auditType,
+            'activityType' => $activityType,
             'actionTypes' => $this->actionTypes,
             'logoVersion' => file_exists($logoPath) ? filemtime($logoPath) : time(),
         ]);
@@ -142,7 +145,7 @@ class ConfigurationController extends Controller
             SystemSetting::set('about_image', '/images/' . $filename);
         }
 
-        $this->auditLog->log('Edit', 'Updated the About section information.');
+        $this->activityLog->log('Edit', 'Updated the About section information.');
 
         return redirect()->route('configuration', ['settingsTab' => 'about'])->with('success', 'System information updated.');
     }
@@ -161,7 +164,7 @@ class ConfigurationController extends Controller
         SystemSetting::set('privacy_policy_content', $data['privacy_policy'] ?? '');
         SystemSetting::set('legal_terms_content', $data['legal_terms'] ?? '');
 
-        $this->auditLog->log('Edit', 'Updated the Privacy Policy and Legal Terms.');
+        $this->activityLog->log('Edit', 'Updated the Privacy Policy and Legal Terms.');
 
         return redirect()->route('configuration', ['settingsTab' => 'privacy'])->with('success', 'Privacy and legal terms updated.');
     }
@@ -194,7 +197,7 @@ class ConfigurationController extends Controller
 
         SystemSetting::set('appt_step_count', count($steps));
 
-        $this->auditLog->log('Edit', 'Updated the Appointment Process steps.');
+        $this->activityLog->log('Edit', 'Updated the Appointment Process steps.');
 
         return redirect()->route('configuration', ['settingsTab' => 'appointment'])->with('success', 'Appointment process updated.');
     }
@@ -211,7 +214,7 @@ class ConfigurationController extends Controller
 
         $request->file('logo')->move(public_path('images'), 'puspus_logo.png');
 
-        $this->auditLog->log('Edit', 'Changed the system logo.');
+        $this->activityLog->log('Edit', 'Changed the system logo.');
 
         return redirect()->route('configuration')->with('success', 'Logo updated successfully.');
     }
@@ -237,7 +240,7 @@ class ConfigurationController extends Controller
             'IsArchived' => false,
         ]);
 
-        $this->auditLog->log('Create', "Added a new service: {$data['service_name']}.");
+        $this->activityLog->log('Create', "Added a new service: {$data['service_name']}.");
 
         return redirect()->route('configuration')->with('success', 'Service added.');
     }
@@ -263,7 +266,7 @@ class ConfigurationController extends Controller
             'DurationMinutes' => $data['duration_minutes'],
         ]);
 
-        $this->auditLog->log('Edit', "Edited service: {$data['service_name']}.");
+        $this->activityLog->log('Edit', "Edited service: {$data['service_name']}.");
 
         return redirect()->route('configuration')->with('success', 'Service updated.');
     }
@@ -277,7 +280,7 @@ class ConfigurationController extends Controller
         $service = Service::findOrFail($id);
         $service->update(['IsArchived' => true]);
 
-        $this->auditLog->log('Archive', "Archived service: {$service->ServiceName}.");
+        $this->activityLog->log('Archive', "Archived service: {$service->ServiceName}.");
 
         return redirect()->route('configuration')->with('success', 'Service archived.');
     }
@@ -291,7 +294,7 @@ class ConfigurationController extends Controller
         $service = Service::findOrFail($id);
         $service->update(['IsArchived' => false]);
 
-        $this->auditLog->log('Unarchive', "Unarchived service: {$service->ServiceName}.");
+        $this->activityLog->log('Unarchive', "Unarchived service: {$service->ServiceName}.");
 
         return redirect()->route('configuration')->with('success', 'Service restored.');
     }
@@ -313,7 +316,7 @@ class ConfigurationController extends Controller
             'DisplayOrder' => (int) ServiceCategory::max('DisplayOrder') + 1,
         ]);
 
-        $this->auditLog->log('Create', "Added a new service category: {$data['name']}.");
+        $this->activityLog->log('Create', "Added a new service category: {$data['name']}.");
 
         return redirect()->route('configuration', ['settingsTab' => 'services'])->with('success', 'Category added.');
     }
@@ -335,7 +338,7 @@ class ConfigurationController extends Controller
             'Icon' => $data['icon'] ?? null,
         ]);
 
-        $this->auditLog->log('Edit', "Edited service category: {$data['name']}.");
+        $this->activityLog->log('Edit', "Edited service category: {$data['name']}.");
 
         return redirect()->route('configuration', ['settingsTab' => 'services'])->with('success', 'Category updated.');
     }
@@ -354,7 +357,7 @@ class ConfigurationController extends Controller
         $category = ServiceCategory::findOrFail($id);
         $category->delete();
 
-        $this->auditLog->log('Edit', "Deleted service category: {$category->Name}.");
+        $this->activityLog->log('Edit', "Deleted service category: {$category->Name}.");
 
         return redirect()->route('configuration', ['settingsTab' => 'services'])->with('success', 'Category deleted.');
     }
@@ -367,7 +370,7 @@ class ConfigurationController extends Controller
 
         ActivityLog::findOrFail($id)->update(['IsArchived' => true]);
 
-        $this->auditLog->log('Archive', "Archived activity log entry #{$id}.");
+        $this->activityLog->log('Archive', "Archived activity log entry #{$id}.");
 
         return redirect()->route('configuration')->with('success', 'Activity log archived.');
     }
@@ -380,34 +383,8 @@ class ConfigurationController extends Controller
 
         ActivityLog::findOrFail($id)->update(['IsArchived' => false]);
 
-        $this->auditLog->log('Unarchive', "Restored activity log entry #{$id}.");
+        $this->activityLog->log('Unarchive', "Restored activity log entry #{$id}.");
 
         return redirect()->route('configuration')->with('success', 'Activity log restored.');
-    }
-
-    public function archiveAuditLog($id)
-    {
-        if ($redirect = $this->guard()) {
-            return $redirect;
-        }
-
-        AuditLog::findOrFail($id)->update(['IsArchived' => true]);
-
-        $this->auditLog->log('Archive', "Archived audit log entry #{$id}.");
-
-        return redirect()->route('configuration')->with('success', 'Audit log archived.');
-    }
-
-    public function unarchiveAuditLog($id)
-    {
-        if ($redirect = $this->guard()) {
-            return $redirect;
-        }
-
-        AuditLog::findOrFail($id)->update(['IsArchived' => false]);
-
-        $this->auditLog->log('Unarchive', "Restored audit log entry #{$id}.");
-
-        return redirect()->route('configuration')->with('success', 'Audit log restored.');
     }
 }

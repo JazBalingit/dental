@@ -4,18 +4,29 @@
 namespace App\Http\Controllers;
 
 use App\Mail\OtpMail;
+use App\Models\ActivityLog;
 use App\Models\PatientInfo;
 use App\Models\UserAccount;
+use App\Services\ActivityLogService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Mail;
 
 class SettingsController extends Controller
 {
+    public function __construct(protected ActivityLogService $activityLog)
+    {
+    }
+
     /**
-     * Renders the merged Settings page: "User Information" (formerly the
-     * standalone Profile page) and "Security" (change password) live here
-     * as tabs. $activeTab picks which one is shown on load.
+     * Renders the merged Settings page. Three tabs:
+     *  - "User Information" (formerly the standalone Profile page)
+     *  - "Security" (change password)
+     *  - "Configuration" — a read-only view of this patient's own slice of
+     *    the system activity trail (their logins/logouts, failed login
+     *    attempts on their account, password changes, appointments booked /
+     *    cancelled / rescheduled, and profile edits).
+     * $activeTab picks which one is shown on load.
      */
     public function edit(Request $request)
     {
@@ -25,12 +36,34 @@ class SettingsController extends Controller
 
         $user = UserAccount::findOrFail(session('user_id'));
         $patientInfo = PatientInfo::where('UserID', $user->UserID)->firstOrFail();
-        $activeTab = $request->query('tab') === 'security' ? 'security' : 'profile';
+        $activeTab = in_array($request->query('tab'), ['security', 'configuration'], true)
+            ? $request->query('tab')
+            : 'profile';
+
+        $search = $request->query('search');
+        $type = $request->query('type');
+
+        $logs = ActivityLog::where('UserID', $user->UserID)
+            ->where('IsArchived', false)
+            ->when($type, fn ($q) => $q->where('ActivityType', $type))
+            ->when($search, fn ($q) => $q->where(fn ($w) => $w
+                ->where('Description', 'like', "%{$search}%")
+                ->orWhere('ActivityType', 'like', "%{$search}%")))
+            ->orderByRaw('COALESCE(LoggedInTime, created_at) DESC')
+            ->paginate(15, ['*'], 'activity_page')
+            ->withQueryString();
+
+        $activityTypes = ActivityLog::where('UserID', $user->UserID)
+            ->distinct()->orderBy('ActivityType')->pluck('ActivityType');
 
         return view('users.settings', [
             'user' => $user,
             'patientInfo' => $patientInfo,
             'activeTab' => $activeTab,
+            'logs' => $logs,
+            'activitySearch' => $search,
+            'activityType' => $type,
+            'activityTypes' => $activityTypes,
         ]);
     }
 
@@ -52,11 +85,14 @@ class SettingsController extends Controller
         $user = UserAccount::findOrFail(session('user_id'));
 
         if (!Hash::check($data['current_password'], $user->Password)) {
+            $this->activityLog->log('Failed Password Change', 'Entered the wrong current password when trying to change it (Settings → Security).', $user->UserID);
             return redirect()->route('settings', ['tab' => 'security'])->with('password_error', 'Your current password is incorrect.');
         }
 
         $user->Password = Hash::make($data['password']);
         $user->save();
+
+        $this->activityLog->log('Password Changed', 'Changed account password (Settings → Security).', $user->UserID);
 
         return redirect()->route('settings', ['tab' => 'security'])->with('password_updated', true);
     }
@@ -115,6 +151,7 @@ class SettingsController extends Controller
         }
 
         if ($request->code !== session('settings_reset_code')) {
+            $this->activityLog->log('Failed Password Change', 'Entered an incorrect email reset code (Settings → Security).', session('user_id'));
             return redirect()->route('settings', ['tab' => 'security'])
                 ->with('show_settings_reset_modal', true)
                 ->with('settings_reset_error', 'Incorrect code. Please try again.');
@@ -123,6 +160,8 @@ class SettingsController extends Controller
         $user = UserAccount::findOrFail(session('user_id'));
         $user->Password = Hash::make($request->password);
         $user->save();
+
+        $this->activityLog->log('Password Changed', 'Changed account password using an email reset code (Settings → Security).', $user->UserID);
 
         session()->forget(['settings_reset_code', 'show_settings_reset_modal']);
 

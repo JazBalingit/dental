@@ -70,6 +70,8 @@ Route::post('/forgot-password/cancel', [LoginController::class, 'cancelReset'])-
 Route::post('/profile', [ProfileController::class, 'update'])->name('userProfile.update');
 
 // ---- Settings / Change Password ----
+// The "Configuration" tab (patient's own activity trail) lives here too:
+// /settings?tab=configuration
 Route::get('/settings', [SettingsController::class, 'edit'])->name('settings');
 Route::post('/settings/update-password', [SettingsController::class, 'updatePassword'])->name('settings.password.update');
 Route::post('/settings/send-reset-code', [SettingsController::class, 'sendResetCode'])->name('settings.reset.send');
@@ -124,8 +126,6 @@ Route::post('/configuration/categories/{id}/update', [ConfigurationController::c
 Route::post('/configuration/categories/{id}/delete', [ConfigurationController::class, 'destroyCategory'])->name('configuration.categories.destroy');
 Route::post('/configuration/activity-logs/{id}/archive', [ConfigurationController::class, 'archiveActivityLog'])->name('configuration.activityLogs.archive');
 Route::post('/configuration/activity-logs/{id}/unarchive', [ConfigurationController::class, 'unarchiveActivityLog'])->name('configuration.activityLogs.unarchive');
-Route::post('/configuration/audit-logs/{id}/archive', [ConfigurationController::class, 'archiveAuditLog'])->name('configuration.auditLogs.archive');
-Route::post('/configuration/audit-logs/{id}/unarchive', [ConfigurationController::class, 'unarchiveAuditLog'])->name('configuration.auditLogs.unarchive');
 Route::post('/configuration/about', [ConfigurationController::class, 'updateAboutInfo'])->name('configuration.about.update');
 Route::post('/configuration/privacy-legal', [ConfigurationController::class, 'updatePrivacyLegal'])->name('configuration.privacyLegal.update');
 Route::post('/configuration/appointment-steps', [ConfigurationController::class, 'updateAppointmentSteps'])->name('configuration.appointmentSteps.update');

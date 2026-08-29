@@ -38,7 +38,7 @@
                 <a href="{{ route('appointments') }}" class="active"><i class="bi bi-clipboard2-check"></i> Appointments</a>
                 <a href="{{ route('patientRecords') }}"><i class="bi bi-folder2-open"></i> Patient Records</a>
                 <div class="nav-section">System</div>
-                <a href="{{ route('configuration') }}"><i class="bi bi-sliders2"></i> Settings</a>
+                <a href="{{ route('configuration') }}"><i class="bi bi-sliders2"></i> Configuration</a>
             </nav>
             @include('partials.admin-profile-badge')
         </aside>
@@ -144,6 +144,7 @@
                                 <tr>
                                     <th>Date &amp; Time</th>
                                     <th>Patient</th>
+                                    <th>Dentist</th>
                                     <th>Treatment</th>
                                     <th>Approved At</th>
                                     <th>Status</th>
@@ -169,6 +170,7 @@
                                                 <span class="pill pill-muted">Walk-in</span>
                                             @endif
                                         </td>
+                                        <td>{{ $appt->dentist_name }}</td>
                                         <td>{{ $appt->TypeOfAppointment ?: ($appt->service->ServiceName ?? '—') }}</td>
                                         <td>{{ $appt->ApprovedAt ? $appt->ApprovedAt->format('M j, Y g:i A') : '—' }}</td>
                                         <td><span class="pill {{ $pillClass }}">{{ $appt->Status }}</span></td>
@@ -187,7 +189,7 @@
                                     </tr>
                                 @empty
                                     <tr>
-                                        <td colspan="6" class="text-center text-muted-2 py-4">No appointments found.</td>
+                                        <td colspan="7" class="text-center text-muted-2 py-4">No appointments found.</td>
                                     </tr>
                                 @endforelse
                             </tbody>

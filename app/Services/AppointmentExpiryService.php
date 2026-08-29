@@ -16,9 +16,9 @@ class AppointmentExpiryService
      * Any appointment still Pending once its scheduled date/time has passed
      * was never reviewed in time — decline it automatically, release its
      * held slot, and let the patient know so they can book again instead of
-     * waiting on a request nobody will act on anymore. No audit log entry
-     * is written for this — it's a system action, not a staff one, and
-     * tbl_auditLogs.StaffID is a required foreign key to a real account.
+     * waiting on a request nobody will act on anymore. No activity log
+     * entry is written for this — it's a system action, not one taken by
+     * any signed-in user.
      */
     public function expireStalePending(): int
     {
@@ -75,6 +75,7 @@ class AppointmentExpiryService
         for ($offset = 0; $start !== false && $offset < $duration && isset($times[$start + $offset]); $offset++) {
             $time = $times[$start + $offset];
             $stillHeld = Appointment::whereKeyNot($appointment->AppointmentID)
+                ->where('DentistID', $appointment->DentistID)
                 ->whereDate('AppointmentDate', $appointment->AppointmentDate)
                 ->whereIn('Status', ['Pending', 'Approved'])->get()
                 ->contains(function ($other) use ($times, $time) {
@@ -84,7 +85,10 @@ class AppointmentExpiryService
                 });
 
             if (!$stillHeld) {
-                DentistSchedule::where('Date', $appointment->AppointmentDate->format('Y-m-d'))->where('Time', $time)->update(['Status' => 'Available']);
+                DentistSchedule::where('DentistID', $appointment->DentistID)
+                    ->where('Date', $appointment->AppointmentDate->format('Y-m-d'))
+                    ->where('Time', $time)
+                    ->update(['Status' => 'Available']);
             }
         }
     }

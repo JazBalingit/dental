@@ -6,7 +6,7 @@ use App\Models\Appointment;
 use App\Models\DentistSchedule;
 use App\Models\PatientRecord;
 use App\Services\AppointmentExpiryService;
-use App\Services\AuditLogService;
+use App\Services\ActivityLogService;
 use App\Services\NotificationService;
 use Illuminate\Http\Request;
 
@@ -14,7 +14,7 @@ class AppointmentsController extends Controller
 {
     public function __construct(
         protected NotificationService $notifications,
-        protected AuditLogService $auditLog,
+        protected ActivityLogService $activityLog,
         protected AppointmentExpiryService $appointmentExpiry
     ) {
     }
@@ -39,7 +39,7 @@ class AppointmentsController extends Controller
         $status = $request->query('status');
         $search = $request->query('search');
 
-        $query = Appointment::with(['patientInfo', 'service'])
+        $query = Appointment::with(['patientInfo', 'service', 'dentist.staffInfo'])
             ->orderByRaw('ApprovedAt IS NULL')
             ->orderByDesc('ApprovedAt')
             ->orderByDesc('AppointmentDate')
@@ -83,7 +83,12 @@ class AppointmentsController extends Controller
             return $redirect;
         }
 
-        $appointment = Appointment::with(['patientInfo.userAccount', 'service'])->where('Status', 'Approved')->findOrFail($id);
+        $appointment = Appointment::with(['patientInfo.userAccount', 'service'])->where('Status', 'Approved')->find($id);
+
+        if (!$appointment) {
+            return redirect()->route('appointments')
+                ->with('error', 'Only an approved appointment can be marked complete — this one\'s status has already changed.');
+        }
 
         $appointment->Status = 'Completed';
         $appointment->save();
@@ -120,7 +125,7 @@ class AppointmentsController extends Controller
             'Completed'
         );
 
-        $this->auditLog->log('Complete', "Marked {$patientName}'s appointment as completed.");
+        $this->activityLog->log('Complete', "Marked {$patientName}'s appointment as completed.");
 
         return redirect()->route('appointments')->with('success', 'Appointment marked as completed.');
     }
@@ -137,7 +142,12 @@ class AppointmentsController extends Controller
 
         $appointment = Appointment::with(['patientInfo.userAccount'])
             ->whereIn('Status', ['Pending', 'Approved'])
-            ->findOrFail($id);
+            ->find($id);
+
+        if (!$appointment) {
+            return redirect()->route('appointments')
+                ->with('error', 'That appointment can no longer be cancelled — its status has already changed.');
+        }
 
         $this->releaseAppointmentSlots($appointment);
 
@@ -167,7 +177,7 @@ class AppointmentsController extends Controller
             'Cancelled'
         );
 
-        $this->auditLog->log('Cancel', "Cancelled {$patientName}'s appointment. Reason: {$data['reason']}");
+        $this->activityLog->log('Cancel', "Cancelled {$patientName}'s appointment. Reason: {$data['reason']}");
 
         return redirect()->route('appointments')->with('success', 'Appointment cancelled.');
     }
@@ -186,6 +196,7 @@ class AppointmentsController extends Controller
         for ($offset = 0; $start !== false && $offset < $duration && isset($times[$start + $offset]); $offset++) {
             $time = $times[$start + $offset];
             $stillHeld = Appointment::whereKeyNot($appointment->AppointmentID)
+                ->where('DentistID', $appointment->DentistID)
                 ->whereDate('AppointmentDate', $appointment->AppointmentDate)
                 ->whereIn('Status', ['Pending', 'Approved'])->get()
                 ->contains(function ($other) use ($times, $time) {
@@ -194,7 +205,10 @@ class AppointmentsController extends Controller
                     return $otherStart !== false && in_array($time, array_slice($times, $otherStart, $otherDuration), true);
                 });
             if (!$stillHeld) {
-                DentistSchedule::where('Date', $appointment->AppointmentDate->format('Y-m-d'))->where('Time', $time)->update(['Status' => 'Available']);
+                DentistSchedule::where('DentistID', $appointment->DentistID)
+                    ->where('Date', $appointment->AppointmentDate->format('Y-m-d'))
+                    ->where('Time', $time)
+                    ->update(['Status' => 'Available']);
             }
         }
     }

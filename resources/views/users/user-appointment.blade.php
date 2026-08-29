@@ -172,6 +172,7 @@
                 <div class="appt-detail">
                     <h3>{{ $current->TypeOfAppointment ?: ($current->service->ServiceName ?? '') }}</h3>
                     <div class="appt-meta">
+                        <span><i class="fas fa-user-md"></i> {{ $current->dentist_name }}</span>
                         <span><i class="fas fa-calendar"></i> {{ $current->AppointmentDate->format('F j, Y') }}</span>
                         <span><i class="fas fa-clock"></i> {{ \Carbon\Carbon::createFromFormat('H:i', $current->AppointmentTime)->format('g:i A') }}</span>
                         <span><i class="fas fa-hourglass-half"></i> {{ $current->duration_label }}</span>
@@ -216,7 +217,7 @@
                         </tr>
                     </thead>
                     <tbody>
-                        @forelse($history as $appointment)<tr><td style="font-weight:600;color:#0f4c7a">{{ $appointment->AppointmentDate->format('M j, Y') }}</td><td>{{ \Carbon\Carbon::createFromFormat('H:i', $appointment->AppointmentTime)->format('g:i A') }}</td><td><span class="service-tag">{{ $appointment->TypeOfAppointment ?: ($appointment->service->ServiceName ?? '') }}</span></td><td>Pus-Pus Britanico Dental Clinic</td><td><span class="badge-pill {{ $appointment->Status === 'Completed' ? 'badge-completed' : ($appointment->Status === 'Declined' ? 'badge-cancelled' : 'badge-scheduled') }}">{{ $appointment->Status === 'Approved' ? 'Booked' : $appointment->Status }}</span></td></tr>@empty<tr><td colspan="5" class="text-center text-muted">No appointments found.</td></tr>@endforelse
+                        @forelse($history as $appointment)<tr><td style="font-weight:600;color:#0f4c7a">{{ $appointment->AppointmentDate->format('M j, Y') }}</td><td>{{ \Carbon\Carbon::createFromFormat('H:i', $appointment->AppointmentTime)->format('g:i A') }}</td><td><span class="service-tag">{{ $appointment->TypeOfAppointment ?: ($appointment->service->ServiceName ?? '') }}</span></td><td>{{ $appointment->dentist_name }}</td><td><span class="badge-pill {{ $appointment->Status === 'Completed' ? 'badge-completed' : ($appointment->Status === 'Declined' ? 'badge-cancelled' : 'badge-scheduled') }}">{{ $appointment->Status === 'Approved' ? 'Booked' : $appointment->Status }}</span></td></tr>@empty<tr><td colspan="5" class="text-center text-muted">No appointments found.</td></tr>@endforelse
                     </tbody>
                 </table>
             </div>

@@ -95,19 +95,43 @@
     }
 </style>
 
+@php
+    $bookBaseUrl = $calendarMode === 'select' ? route('walkIn') : route('landingPage');
+    $bookHash = $calendarMode === 'select' ? '' : '#appointment';
+@endphp
 <div class="content">
     <div class="schedule-wrap booking-calendar">
-        <div class="schedule-toolbar">
+        <div class="schedule-toolbar flex-wrap gap-2">
             <div>
                 <h4>Doctor Schedule</h4>
-                <div class="small text-muted-2">{{ $bookCurrent->format('F Y') }}</div>
+                <div class="small text-muted-2">
+                    {{ $bookCurrent->format('F Y') }}
+                    @if ($bookSelectedDentist)
+                        · with <strong>{{ $bookSelectedDentist->display_name }}</strong>
+                    @endif
+                </div>
             </div>
 
-            @if ($calendarMode === 'post')
-                <div class="d-flex align-items-center gap-2">
-                    <a href="{{ route('landingPage') }}?bookMonth={{ $bookCurrent->copy()->subMonth()->format('Y-m') }}#appointment"
+            <div class="d-flex align-items-center gap-2 flex-wrap">
+                {{-- Dentist filter — each dentist keeps their own availability. --}}
+                @if ($bookDentists->isNotEmpty())
+                    <select id="{{ $calendarMode === 'select' ? 'wiBookDentist' : 'bookDentistSelect' }}"
+                        class="form-select form-select-sm" style="width: 200px;"
+                        @if ($calendarMode === 'post')
+                            onchange="window.location.href='{{ $bookBaseUrl }}?bookMonth={{ $bookCurrent->format('Y-m') }}&dentist=' + this.value + '{{ $bookHash }}'"
+                        @endif>
+                        @foreach ($bookDentists as $dentist)
+                            <option value="{{ $dentist->UserID }}" {{ (int) $bookSelectedDentistId === (int) $dentist->UserID ? 'selected' : '' }}>
+                                {{ $dentist->display_name }}
+                            </option>
+                        @endforeach
+                    </select>
+                @endif
+
+                @if ($calendarMode === 'post')
+                    <a href="{{ $bookBaseUrl }}?bookMonth={{ $bookCurrent->copy()->subMonth()->format('Y-m') }}&dentist={{ $bookSelectedDentistId }}{{ $bookHash }}"
                         class="btn btn-outline-secondary btn-sm" aria-label="Previous month"><i class="bi bi-chevron-left"></i></a>
-                    <form method="GET" action="{{ route('landingPage') }}#appointment" id="bookMonthForm"
+                    <form method="GET" action="{{ $bookBaseUrl }}{{ $bookHash }}" id="bookMonthForm"
                         class="d-flex align-items-center gap-2">
                         <select name="bookMonthNum" id="bookMonthNum" class="form-select form-select-sm" style="width: 140px;">
                             @foreach (range(1, 12) as $m)
@@ -119,13 +143,13 @@
                         <input type="number" name="bookYear" id="bookYear" class="form-control form-control-sm"
                             style="width: 100px;" min="2000" max="2100" value="{{ $bookCurrent->year }}">
                         <input type="hidden" name="bookMonth" id="bookMonth" value="{{ $bookCurrent->format('Y-m') }}">
+                        <input type="hidden" name="dentist" value="{{ $bookSelectedDentistId }}">
                         <button type="submit" class="btn btn-brand btn-sm">Go</button>
                     </form>
-                    <a href="{{ route('landingPage') }}?bookMonth={{ $bookCurrent->copy()->addMonth()->format('Y-m') }}#appointment"
+                    <a href="{{ $bookBaseUrl }}?bookMonth={{ $bookCurrent->copy()->addMonth()->format('Y-m') }}&dentist={{ $bookSelectedDentistId }}{{ $bookHash }}"
                         class="btn btn-outline-secondary btn-sm" aria-label="Next month"><i class="bi bi-chevron-right"></i></a>
-                </div>
-            @else
-                <div class="d-flex align-items-center gap-2">
+                @else
+                    <input type="hidden" id="wiSelectedDentist" value="{{ $bookSelectedDentistId }}">
                     <button type="button" id="wiBookMonthPrev" class="btn btn-outline-secondary btn-sm"
                         data-month="{{ $bookCurrent->copy()->subMonth()->format('Y-m') }}" aria-label="Previous month"><i class="bi bi-chevron-left"></i></button>
                     <select id="wiBookMonthNum" class="form-select form-select-sm" style="width: 140px;">
@@ -140,8 +164,8 @@
                     <button type="button" id="wiBookMonthGo" class="btn btn-brand btn-sm">Go</button>
                     <button type="button" id="wiBookMonthNext" class="btn btn-outline-secondary btn-sm"
                         data-month="{{ $bookCurrent->copy()->addMonth()->format('Y-m') }}" aria-label="Next month"><i class="bi bi-chevron-right"></i></button>
-                </div>
-            @endif
+                @endif
+            </div>
         </div>
 
         <div class="month-grid p-3">
@@ -173,6 +197,23 @@
                         $isFullyClosed = $takenSlots->count() === count($bookSlots);
                         $availableCount = count($bookSlots) - $takenSlots->count();
                         $isPast = $d->lt(\Carbon\Carbon::parse($bookToday));
+
+                        // "Day is over" = a past date, or it's today and every slot's start
+                        // time has already gone by (e.g. it's past 6 PM). Used to say
+                        // "Date has passed" instead of "Closed".
+                        $allSlotsPassed = $dateStr === now()->format('Y-m-d')
+                            && collect($bookSlots)->every(fn ($l, $t) => \Carbon\Carbon::parse($dateStr . ' ' . $t)->lt(now()));
+                        $dayIsOver = $isPast || $allSlotsPassed;
+
+                        // Completed appointments on this day (distinct).
+                        $completedThatDay = collect($bookOccupiedSlots)
+                            ->filter(fn ($a, $key) => str_starts_with($key, $dateStr . '_') && $a->Status === 'Completed')
+                            ->unique(fn ($a) => $a->AppointmentID)
+                            ->count();
+                        $myCompletedThatDay = collect($bookOccupiedSlots)
+                            ->contains(fn ($a, $key) => str_starts_with($key, $dateStr . '_')
+                                && $a->Status === 'Completed'
+                                && $a->PatientID === $bookCurrentPatientId);
                     @endphp
 
                     @if ($inMonth && !$isSunday && !$isFullyClosed)
@@ -180,7 +221,10 @@
                             class="day-cell border-0 text-start p-0 w-100 d-block {{ $dateStr === $bookToday ? 'today' : '' }}"
                             data-bs-toggle="modal" data-bs-target="#bookDay{{ $d->format('Ymd') }}{{ $calendarMode === 'select' ? 'Wi' : '' }}">
                             <div class="n" style="margin-left: 8px;">{{ $d->day }}</div>
-                            @if ($calendarMode === 'post' && $isPast)
+                            @if ($calendarMode === 'post' && $myCompletedThatDay)
+                                {{-- The patient already had a visit this day — just say so. --}}
+                                <span class="ev ev-completed">Appointment completed</span>
+                            @elseif ($calendarMode === 'post' && $dayIsOver)
                                 {{-- A day that's already passed can't be booked, so an available-slot
                                      count would be meaningless — say plainly why there's nothing to book. --}}
                                 <span class="ev ev-unavailable">Date has passed</span>
@@ -190,6 +234,13 @@
                                 <span class="ev {{ $takenSlots->count() > 0 ? 'ev-pending' : 'ev-booked' }}">
                                     {{ $availableCount }} slot{{ $availableCount === 1 ? '' : 's' }} available
                                 </span>
+                            @elseif ($dayIsOver)
+                                {{-- Walk-in calendar, past day: collapse the per-slot list into a
+                                     single completed summary instead of a wall of time chips. --}}
+                                <span class="ev ev-past">Date passed</span>
+                                @if ($completedThatDay > 0)
+                                    <span class="ev ev-completed">{{ $completedThatDay }} appointment{{ $completedThatDay === 1 ? '' : 's' }} completed</span>
+                                @endif
                             @else
                                 @foreach ($takenSlots->take(3) as $time => $label)
                                     @php
@@ -219,7 +270,15 @@
                     @elseif ($inMonth && ($isSunday || $isFullyClosed))
                         <button type="button" class="day-cell day-off border-0 text-start p-0 w-100 d-block" disabled>
                             <div class="n" style="margin-left: 8px;">{{ $d->day }}</div>
-                            <span class="ev ev-unavailable">Closed</span>
+                            @if ($isSunday)
+                                <span class="ev ev-unavailable">Closed</span>
+                            @elseif ($calendarMode === 'post' && $myCompletedThatDay)
+                                <span class="ev ev-completed">Appointment completed</span>
+                            @elseif ($dayIsOver)
+                                <span class="ev ev-unavailable">Date has passed</span>
+                            @else
+                                <span class="ev ev-unavailable">Fully booked</span>
+                            @endif
                         </button>
                     @else
                         <button class="day-cell border-0 text-start p-0 w-100 d-block disabled" disabled>
@@ -252,6 +311,9 @@
             $dateStr = $d->format('Y-m-d');
             $daySlots = $bookSchedules[$dateStr] ?? collect();
             $isPast = $d->lt(\Carbon\Carbon::parse($bookToday));
+            $allSlotsPassed = $dateStr === now()->format('Y-m-d')
+                && collect($bookSlots)->every(fn ($l, $t) => \Carbon\Carbon::parse($dateStr . ' ' . $t)->lt(now()));
+            $dayIsOver = $isPast || $allSlotsPassed;
         @endphp
 
         <div class="modal fade" id="bookDay{{ $d->format('Ymd') }}{{ $calendarMode === 'select' ? 'Wi' : '' }}" tabindex="-1" aria-hidden="true">
@@ -262,7 +324,7 @@
                         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                     </div>
                     <div class="modal-body pt-2">
-                        @if ($isPast)
+                        @if ($dayIsOver)
                             <p class="text-muted-2 small">This date has already passed.</p>
                         @else
                             <div class="book-slots-view">
@@ -393,6 +455,13 @@
 
                                     <div class="rounded-3 p-3 mb-3" style="background:#fafbfa;border:1px solid #edf1ee;">
                                         <div class="d-flex align-items-center gap-3 py-2 border-bottom" style="border-color:#e5e9e6 !important;">
+                                            <i class="bi bi-person-badge fs-5" style="color:var(--brand-700);width:22px;"></i>
+                                            <div>
+                                                <div class="small text-muted-2">Dentist</div>
+                                                <div class="fw-semibold">{{ $bookSelectedDentist?->display_name ?? '—' }}</div>
+                                            </div>
+                                        </div>
+                                        <div class="d-flex align-items-center gap-3 py-2 border-bottom" style="border-color:#e5e9e6 !important;">
                                             <i class="bi bi-clipboard2-pulse fs-5" style="color:var(--brand-700);width:22px;"></i>
                                             <div>
                                                 <div class="small text-muted-2">Service(s)</div>
@@ -426,6 +495,7 @@
                                         @csrf
                                         <input type="hidden" name="date" class="book-confirm-date-input">
                                         <input type="hidden" name="time" class="book-confirm-time-input">
+                                        <input type="hidden" name="dentist_id" value="{{ $bookSelectedDentistId }}">
                                         <div class="book-confirm-service-inputs"></div>
                                         <button type="button" class="btn btn-ghost book-confirm-back-btn"><i class="bi bi-arrow-left me-1"></i>Back</button>
                                         <button type="submit" class="btn btn-brand flex-grow-1"><i class="bi bi-check2-circle me-1"></i>Confirm Booking</button>

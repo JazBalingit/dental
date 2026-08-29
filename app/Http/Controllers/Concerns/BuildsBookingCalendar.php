@@ -41,20 +41,31 @@ trait BuildsBookingCalendar
         $startDay = $current->copy()->startOfMonth()->startOfWeek(Carbon::MONDAY);
         $endDay = $current->copy()->endOfMonth()->endOfWeek(Carbon::SUNDAY);
 
-        $schedules = DentistSchedule::whereBetween('Date', [
-            $startDay->format('Y-m-d'),
-            $endDay->format('Y-m-d'),
-        ])
+        // Which dentist's grid are we looking at? Each dentist keeps an
+        // independent schedule; a booking is always with one specific
+        // dentist. Default to the first active dentist.
+        $dentists = UserAccount::dentists()->get();
+        $requestedDentist = $request->query('dentist');
+        $selectedDentist = $dentists->firstWhere('UserID', (int) $requestedDentist) ?? $dentists->first();
+        $selectedDentistId = $selectedDentist?->UserID;
+
+        $schedules = DentistSchedule::where('DentistID', $selectedDentistId)
+            ->whereBetween('Date', [
+                $startDay->format('Y-m-d'),
+                $endDay->format('Y-m-d'),
+            ])
             ->get()
             ->groupBy(fn($row) => $row->Date->format('Y-m-d'))
             ->map(fn($rows) => $rows->keyBy('Time'));
 
-        // Pull appointments in range so we can label taken slots as
-        // Booked (Approved), Pending, or Completed instead of just "Not Available".
-        $appointments = Appointment::with('service')->whereBetween('AppointmentDate', [
-            $startDay->format('Y-m-d'),
-            $endDay->format('Y-m-d'),
-        ])
+        // Pull this dentist's appointments in range so we can label taken
+        // slots as Booked (Approved), Pending, or Completed.
+        $appointments = Appointment::with('service')
+            ->where('DentistID', $selectedDentistId)
+            ->whereBetween('AppointmentDate', [
+                $startDay->format('Y-m-d'),
+                $endDay->format('Y-m-d'),
+            ])
             ->whereIn('Status', ['Pending', 'Approved', 'Completed'])
             ->get();
 
@@ -98,6 +109,9 @@ trait BuildsBookingCalendar
             'bookToday' => now()->format('Y-m-d'),
             'services' => Service::orderBy('ServiceName')->get(),
             'bookCurrentPatientId' => UserAccount::with('patientInfo')->find(session('user_id'))?->patientInfo?->PatientID,
+            'bookDentists' => $dentists,
+            'bookSelectedDentist' => $selectedDentist,
+            'bookSelectedDentistId' => $selectedDentistId,
         ];
     }
 
@@ -121,7 +135,7 @@ trait BuildsBookingCalendar
      *         full block isn't available (runs past closing, or another
      *         appointment already holds one of the slots).
      */
-    protected function reserveSlotBlock(string $date, string $startTime, int $slotsNeeded): array
+    protected function reserveSlotBlock(string $date, string $startTime, int $slotsNeeded, int $dentistId): array
     {
         $slotTimes = DentistSchedule::slotTimes();
         $startIndex = array_search($startTime, $slotTimes, true);
@@ -141,7 +155,7 @@ trait BuildsBookingCalendar
 
         $rows = [];
         foreach ($times as $time) {
-            $schedule = DentistSchedule::firstOrCreate(['Date' => $date, 'Time' => $time], ['Status' => 'Available']);
+            $schedule = DentistSchedule::firstOrCreate(['DentistID' => $dentistId, 'Date' => $date, 'Time' => $time], ['Status' => 'Available']);
 
             if ($schedule->Status !== 'Available') {
                 $conflictLabel = Carbon::createFromFormat('H:i', $time)->format('g:i A');

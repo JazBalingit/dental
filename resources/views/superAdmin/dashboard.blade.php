@@ -68,7 +68,7 @@
         <a href="{{ route('appointments') }}"><i class="bi bi-clipboard2-check"></i> Appointments</a>
         <a href="{{ route('patientRecords') }}"><i class="bi bi-folder2-open"></i> Patient Records</a>
         <div class="nav-section">System</div>
-        <a href="{{ route('configuration') }}"><i class="bi bi-sliders2"></i> Settings</a>
+        <a href="{{ route('configuration') }}"><i class="bi bi-sliders2"></i> Configuration</a>
       </nav>
       @include('partials.admin-profile-badge')
     </aside>
@@ -216,29 +216,33 @@
           <div class="col-xl-6">
             <div class="card-soft h-100">
               <div class="card-header d-flex justify-content-between">
-                Notifications <a href="#" class="small text-decoration-none" style="color: var(--brand-700);"
-                  data-bs-toggle="modal" data-bs-target="#allNotificationsModal">View all</a>
+                Activity Logs <a href="{{ route('configuration', ['settingsTab' => 'activity']) }}"
+                  class="small text-decoration-none" style="color: var(--brand-700);">View all</a>
               </div>
               <div class="card-body p-0">
                 <ul class="list-group list-group-flush">
-                  @php
-                    $dashPill = fn ($type) => match ($type) {
-                        'success' => 'pill-success',
-                        'danger' => 'pill-danger',
-                        'warning' => 'pill-warning',
-                        default => 'pill-info',
-                    };
-                  @endphp
-                  @forelse ($adminNotifications->take(4) as $n)
+                  @forelse ($recentActivity as $log)
+                    @php
+                      $ua = $log->userAccount;
+                      $isStaff = $ua?->AccountType === 'Staff';
+                      $info = $isStaff ? $ua?->staffInfo : $ua?->patientInfo;
+                      $actor = $log->ActorName
+                          ?: ($info ? trim($info->FirstName . ' ' . $info->LastName) : ($ua->Email ?? 'Unknown'));
+                      $when = $log->LoggedInTime ?? $log->created_at;
+                      $isFail = str_starts_with($log->ActivityType, 'Failed');
+                      $pill = $isFail ? 'pill-danger' : ($isStaff ? 'pill-info' : 'pill-success');
+                    @endphp
                     <li class="list-group-item d-flex align-items-center gap-3 py-3 px-3">
                       <div class="flex-fill">
-                        <div class="fw-semibold">{{ $n->Title }}</div>
-                        <div class="small text-muted-2">{{ $n->Message }} • {{ $n->created_at->diffForHumans() }}</div>
+                        <div class="fw-semibold">{{ $actor }}</div>
+                        <div class="small text-muted-2">
+                          {{ $log->Description ?: $log->ActivityType }} • {{ optional($when)->diffForHumans() ?? '—' }}
+                        </div>
                       </div>
-                      <span class="pill {{ $dashPill($n->Type) }}">{{ $n->Status ?? ucfirst($n->Type) }}</span>
+                      <span class="pill {{ $pill }}">{{ $log->ActivityType }}</span>
                     </li>
                   @empty
-                    <li class="list-group-item py-3 px-3 text-muted-2 small">No notifications yet.</li>
+                    <li class="list-group-item py-3 px-3 text-muted-2 small">No activity recorded yet.</li>
                   @endforelse
                 </ul>
               </div>

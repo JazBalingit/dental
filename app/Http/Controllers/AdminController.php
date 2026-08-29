@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\ActivityLog;
 use App\Models\Appointment;
 use App\Models\DentistSchedule;
 use App\Models\PatientInfo;
@@ -33,6 +34,11 @@ class AdminController extends Controller
             'treatmentDonut' => $this->patientsByTreatmentDonut(),
             'serviceBars' => $this->appointmentsByServiceBars(),
             'adminName' => $this->currentAdminName(),
+            'recentActivity' => ActivityLog::with(['userAccount.patientInfo', 'userAccount.staffInfo'])
+                ->where('IsArchived', false)
+                ->orderByRaw('COALESCE(LoggedInTime, created_at) DESC')
+                ->limit(6)
+                ->get(),
         ]);
     }
 
@@ -89,8 +95,11 @@ class AdminController extends Controller
                 $dateKey = $cursor->format('Y-m-d');
                 $rows = $schedules->get($dateKey, collect());
                 $occupiedCount = collect($slots)->filter(fn ($time) => isset($occupied[$dateKey . '_' . $time]))->count();
-                $manualUnavailable = $rows->where('Status', 'Not Available')->count();
-                $total += $totalSlotsPerDay - max($occupiedCount, $manualUnavailable);
+                // Distinct times any dentist has marked Not Available — kept
+                // per-time so multiple dentists closing the same slot only
+                // counts once toward "the clinic has nothing open here".
+                $manualUnavailable = $rows->where('Status', 'Not Available')->pluck('Time')->unique()->count();
+                $total += max(0, $totalSlotsPerDay - max($occupiedCount, $manualUnavailable));
             }
             $cursor->addDay();
         }

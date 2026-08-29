@@ -14,6 +14,24 @@
         href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Poppins:wght@500;600;700&display=swap"
         rel="stylesheet">
     <link rel="stylesheet" href="/css/settings.css">
+    <style>
+        .cfg-table { width: 100%; border-collapse: collapse; font-size: 14px; }
+        .cfg-table th, .cfg-table td { padding: 12px 14px; text-align: left; border-bottom: 1px solid #eef2ee; vertical-align: top; }
+        .cfg-table th { font-size: 12px; text-transform: uppercase; letter-spacing: .04em; color: #6b7280; background: #f8faf8; }
+        .cfg-table tr:last-child td { border-bottom: 0; }
+        .cfg-badge { display: inline-block; padding: 3px 10px; border-radius: 999px; font-size: 12px; font-weight: 600; white-space: nowrap; }
+        .cfg-badge.ok { background: rgba(59,217,101,.12); color: #0f7a33; }
+        .cfg-badge.fail { background: rgba(239,68,68,.12); color: #b91c1c; }
+        .cfg-badge.neutral { background: rgba(59,130,246,.12); color: #1d4ed8; }
+        .cfg-toolbar { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 16px; }
+        .cfg-toolbar input, .cfg-toolbar select { height: 40px; border: 1px solid #d7e0d7; border-radius: 10px; padding: 0 12px; }
+        .cfg-toolbar input { min-width: 220px; }
+        .cfg-pager { display: flex; gap: 6px; justify-content: flex-end; margin-top: 14px; flex-wrap: wrap; }
+        .cfg-pager a { padding: 6px 11px; border: 1px solid #d7e0d7; border-radius: 8px; color: #0f7a23; text-decoration: none; font-size: 13px; }
+        .cfg-pager a.active { background: #0f7a23; color: #fff; border-color: #0f7a23; }
+        .cfg-empty { text-align: center; color: #6b7280; padding: 40px 0; }
+        .cfg-when { white-space: nowrap; color: #4b5563; }
+    </style>
 </head>
 
 <body>
@@ -132,6 +150,10 @@
                     <button type="button" class="settings-tab-btn {{ $activeTab === 'security' ? 'active' : '' }}"
                         data-tab="security">
                         <i class="fas fa-shield-halved"></i> Security
+                    </button>
+                    <button type="button" class="settings-tab-btn {{ $activeTab === 'configuration' ? 'active' : '' }}"
+                        data-tab="configuration">
+                        <i class="fas fa-list-check"></i> Configuration
                     </button>
                 </nav>
             </aside>
@@ -366,6 +388,97 @@
                                     <i class="fas fa-envelope"></i> Send Reset Code
                                 </button>
                             </form>
+                        </div>
+                    </div>
+                </div>
+
+                {{-- ===================== CONFIGURATION (ACTIVITY LOG) ===================== --}}
+                <div class="settings-pane" id="pane-configuration" @if($activeTab !== 'configuration') hidden @endif>
+                    <div class="section-card">
+                        <div class="card-hd">
+                            <div class="card-hd-icon"><i class="fas fa-list-check"></i></div>
+                            <div>
+                                <h4>Your Activity Log</h4>
+                                <p>A record of your sign-ins and sign-outs, failed login attempts on your account,
+                                    password changes, appointments you booked / cancelled / rescheduled, and profile
+                                    edits.</p>
+                            </div>
+                        </div>
+                        <div class="card-bd">
+                            <form method="GET" action="{{ route('settings') }}" class="cfg-toolbar">
+                                <input type="hidden" name="tab" value="configuration">
+                                <select name="type" onchange="this.form.submit()">
+                                    <option value="">All activity</option>
+                                    @foreach ($activityTypes as $t)
+                                        <option value="{{ $t }}" {{ $activityType === $t ? 'selected' : '' }}>{{ $t }}
+                                        </option>
+                                    @endforeach
+                                </select>
+                                <input type="text" name="search" value="{{ $activitySearch }}"
+                                    placeholder="Search details...">
+                                <button type="submit" class="btn-outline-sm"><i class="fas fa-search"></i> Search</button>
+                                @if ($activitySearch || $activityType)
+                                    <a href="{{ route('settings', ['tab' => 'configuration']) }}" class="btn-outline-sm"><i
+                                            class="fas fa-times"></i> Clear</a>
+                                @endif
+                            </form>
+
+                            <div class="table-responsive">
+                                <table class="cfg-table">
+                                    <thead>
+                                        <tr>
+                                            <th>Activity</th>
+                                            <th>Details</th>
+                                            <th>When</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        @forelse ($logs as $log)
+                                            @php
+                                                $isFail = str_starts_with($log->ActivityType, 'Failed');
+                                                $isSession = in_array($log->ActivityType, ['Login', 'Logout']);
+                                                $cls = $isFail ? 'fail' : ($isSession ? 'neutral' : 'ok');
+                                                $when = $log->LoggedInTime ?? $log->created_at;
+                                            @endphp
+                                            <tr>
+                                                <td><span class="cfg-badge {{ $cls }}">{{ $log->ActivityType }}</span>
+                                                </td>
+                                                <td>
+                                                    {{ $log->Description ?: '—' }}
+                                                    @if ($log->ActivityType === 'Login' && $log->LoggedOutTime)
+                                                        <div class="small text-muted">Signed out
+                                                            {{ $log->LoggedOutTime->format('M j, Y g:i A') }}</div>
+                                                    @endif
+                                                </td>
+                                                <td class="cfg-when">
+                                                    {{ optional($when)->format('M j, Y g:i A') ?? '—' }}</td>
+                                            </tr>
+                                        @empty
+                                            <tr>
+                                                <td colspan="3" class="cfg-empty">No activity recorded yet.</td>
+                                            </tr>
+                                        @endforelse
+                                    </tbody>
+                                </table>
+                            </div>
+
+                            @if ($logs->hasPages())
+                                <div class="cfg-pager">
+                                    @if ($logs->previousPageUrl())
+                                        <a href="{{ $logs->previousPageUrl() }}"><i class="fas fa-chevron-left"></i></a>
+                                    @endif
+                                    @for ($i = 1; $i <= $logs->lastPage(); $i++)
+                                        <a href="{{ $logs->url($i) }}"
+                                            class="{{ $logs->currentPage() === $i ? 'active' : '' }}">{{ $i }}</a>
+                                    @endfor
+                                    @if ($logs->nextPageUrl())
+                                        <a href="{{ $logs->nextPageUrl() }}"><i class="fas fa-chevron-right"></i></a>
+                                    @endif
+                                </div>
+                            @endif
+
+                            <p class="field-hint mt-3"><i class="fas fa-info-circle"></i> Showing {{ $logs->count() }} of
+                                {{ $logs->total() }} entries.</p>
                         </div>
                     </div>
                 </div>

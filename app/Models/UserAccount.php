@@ -46,4 +46,39 @@ class UserAccount extends Model
     {
         return $this->hasMany(Notification::class, 'UserID', 'UserID');
     }
+
+    public function dentistSchedules()
+    {
+        return $this->hasMany(DentistSchedule::class, 'DentistID', 'UserID');
+    }
+
+    /**
+     * Every active dentist (staff account, Position = 'Dentist'), with the
+     * name info the filter dropdowns render. Ordered so the same dentist is
+     * always the default first option.
+     */
+    public function scopeDentists($query)
+    {
+        return $query->where('AccountType', 'Staff')
+            ->where('Position', 'Dentist')
+            ->where('IsArchived', false)
+            ->with('staffInfo')
+            ->orderBy('UserID');
+    }
+
+    /**
+     * "Dr. Jane Cruz" for a dentist account, falling back to the email.
+     */
+    public function getDisplayNameAttribute(): string
+    {
+        $info = $this->staffInfo;
+
+        if ($info) {
+            $name = trim($info->FirstName . ' ' . $info->LastName);
+
+            return $this->Position === 'Dentist' ? "Dr. {$name}" : $name;
+        }
+
+        return $this->Email;
+    }
 }

@@ -8,13 +8,14 @@ use App\Models\Service;
 use App\Models\ServiceCategory;
 use App\Models\SystemSetting;
 use App\Models\UserAccount;
+use App\Services\ActivityLogService;
 use App\Services\NotificationService;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 
 class UserController extends Controller
 {
-    public function __construct(protected NotificationService $notifications)
+    public function __construct(protected NotificationService $notifications, protected ActivityLogService $activityLog)
     {
     }
 
@@ -57,13 +58,13 @@ class UserController extends Controller
         $status = $request->query('status');
         $search = $request->query('search');
 
-        $history = Appointment::with('service')->where('PatientID', $patientId)
+        $history = Appointment::with(['service', 'dentist.staffInfo'])->where('PatientID', $patientId)
             ->when($status, fn ($q) => $q->where('Status', $status))
             ->when($search, fn ($q) => $q->whereHas('service', fn ($s) => $s->where('ServiceName', 'like', "%{$search}%")))
             ->orderByDesc('AppointmentDate')->orderByDesc('AppointmentTime')
             ->paginate(10)->withQueryString();
 
-        $current = Appointment::with('service')->where('PatientID', $patientId)
+        $current = Appointment::with(['service', 'dentist.staffInfo'])->where('PatientID', $patientId)
             ->whereIn('Status', ['Pending', 'Approved'])
             ->whereDate('AppointmentDate', '>=', today())
             ->orderBy('AppointmentDate')->orderBy('AppointmentTime')->first();
@@ -76,11 +77,22 @@ class UserController extends Controller
         if (!session('user_id')) return redirect()->route('login');
         $user = UserAccount::with('patientInfo')->findOrFail(session('user_id'));
         abort_unless($user->patientInfo && $appointment->PatientID === $user->patientInfo->PatientID, 403);
-        abort_unless(in_array($appointment->Status, ['Pending', 'Approved']), 422);
-
-        $this->releaseAppointmentSlots($appointment);
 
         $isReschedule = $request->input('action') === 'reschedule';
+
+        // The appointment may already be cancelled/completed/declined — e.g.
+        // a stale page still showing the button, a double submit, or the
+        // back button. Don't blow up with a raw 422; just tell them.
+        if (!in_array($appointment->Status, ['Pending', 'Approved'], true)) {
+            $target = $isReschedule ? route('landingPage') . '#appointment' : route('userAppointment');
+
+            return redirect()->to($target)->with(
+                'success',
+                'That appointment is no longer active — it may have already been ' . strtolower($appointment->Status) . '.'
+            );
+        }
+
+        $this->releaseAppointmentSlots($appointment);
         $appointment->Status = 'Cancelled';
         $appointment->save();
 
@@ -125,6 +137,12 @@ class UserController extends Controller
         $action = $isReschedule ? 'rescheduled' : 'cancelled';
         $message = "Appointment {$action}. The time slot is available again.";
 
+        $this->activityLog->log(
+            $isReschedule ? 'Appointment Rescheduled' : 'Appointment Cancelled',
+            ($isReschedule ? 'Started a reschedule of' : 'Cancelled') . " the appointment on {$dateLabel} at {$timeLabel}.",
+            $user->UserID
+        );
+
         // Rescheduling is meant to drop the patient right back on the booking
         // calendar so they can immediately pick a new slot, regardless of
         // whether they started the reschedule from the landing page or the
@@ -144,6 +162,7 @@ class UserController extends Controller
         for ($offset = 0; $start !== false && $offset < $duration && isset($times[$start + $offset]); $offset++) {
             $time = $times[$start + $offset];
             $stillHeld = Appointment::whereKeyNot($appointment->AppointmentID)
+                ->where('DentistID', $appointment->DentistID)
                 ->whereDate('AppointmentDate', $appointment->AppointmentDate)
                 ->whereIn('Status', ['Pending', 'Approved'])->get()
                 ->contains(function ($other) use ($times, $time) {
@@ -151,7 +170,12 @@ class UserController extends Controller
                     $otherDuration = $other->duration_slots;
                     return $otherStart !== false && in_array($time, array_slice($times, $otherStart, $otherDuration), true);
                 });
-            if (!$stillHeld) DentistSchedule::where('Date', $appointment->AppointmentDate->format('Y-m-d'))->where('Time', $time)->update(['Status' => 'Available']);
+            if (!$stillHeld) {
+                DentistSchedule::where('DentistID', $appointment->DentistID)
+                    ->where('Date', $appointment->AppointmentDate->format('Y-m-d'))
+                    ->where('Time', $time)
+                    ->update(['Status' => 'Available']);
+            }
         }
     }
 }

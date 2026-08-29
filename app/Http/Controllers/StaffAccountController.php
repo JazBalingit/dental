@@ -5,14 +5,14 @@ namespace App\Http\Controllers;
 
 use App\Models\StaffInfo;
 use App\Models\UserAccount;
-use App\Services\AuditLogService;
+use App\Services\ActivityLogService;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 
 class StaffAccountController extends Controller
 {
-    public function __construct(protected AuditLogService $auditLog)
+    public function __construct(protected ActivityLogService $activityLog)
     {
     }
 
@@ -120,7 +120,7 @@ class StaffAccountController extends Controller
             'ProfilePicture' => $photoPath,
         ]);
 
-        $this->auditLog->log('Create', "Added a new staff account: {$data['first_name']} {$data['last_name']} ({$data['email']}).");
+        $this->activityLog->log('Create', "Added a new staff account: {$data['first_name']} {$data['last_name']} ({$data['email']}).");
 
         return redirect()->route('staffAcc')->with('success', 'Staff account created successfully.');
     }
@@ -175,7 +175,7 @@ class StaffAccountController extends Controller
 
         $info->update($updates);
 
-        $this->auditLog->log('Edit', "Edited staff account: {$data['first_name']} {$data['last_name']} ({$data['email']}).");
+        $this->activityLog->log('Edit', "Edited staff account: {$data['first_name']} {$data['last_name']} ({$data['email']}).");
 
         return redirect()->route('staffAcc')->with('success', 'Staff account updated successfully.');
     }
@@ -190,7 +190,7 @@ class StaffAccountController extends Controller
         UserAccount::where('AccountType', 'Staff')->where('UserID', $id)->update(['IsArchived' => true]);
 
         $name = $account?->staffInfo ? trim($account->staffInfo->FirstName . ' ' . $account->staffInfo->LastName) : $account?->Email;
-        $this->auditLog->log('Archive', "Archived staff account: {$name}.");
+        $this->activityLog->log('Archive', "Archived staff account: {$name}.");
 
         return redirect()->route('staffAcc')->with('success', 'Account archived. This staff member can no longer log in.');
     }
@@ -205,7 +205,7 @@ class StaffAccountController extends Controller
         UserAccount::where('AccountType', 'Staff')->where('UserID', $id)->update(['IsArchived' => false]);
 
         $name = $account?->staffInfo ? trim($account->staffInfo->FirstName . ' ' . $account->staffInfo->LastName) : $account?->Email;
-        $this->auditLog->log('Unarchive', "Unarchived staff account: {$name}.");
+        $this->activityLog->log('Unarchive', "Unarchived staff account: {$name}.");
 
         return redirect()->route('staffAcc')->with('success', 'Account restored. This staff member can log in again.');
     }
@@ -238,7 +238,7 @@ class StaffAccountController extends Controller
         $account->save();
 
         $name = $account->staffInfo ? trim($account->staffInfo->FirstName . ' ' . $account->staffInfo->LastName) : $account->Email;
-        $this->auditLog->log('Edit', "Changed the password for staff account: {$name}.");
+        $this->activityLog->log('Edit', "Changed the password for staff account: {$name}.");
 
         return redirect()->route('staffAcc')->with('success', 'Password updated successfully.');
     }

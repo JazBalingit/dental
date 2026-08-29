@@ -6,7 +6,7 @@ namespace App\Http\Controllers;
 use App\Models\Appointment;
 use App\Models\DentistSchedule;
 use App\Services\AppointmentExpiryService;
-use App\Services\AuditLogService;
+use App\Services\ActivityLogService;
 use App\Services\NotificationService;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
@@ -15,7 +15,7 @@ class AppointmentApprovalController extends Controller
 {
     public function __construct(
         protected NotificationService $notifications,
-        protected AuditLogService $auditLog,
+        protected ActivityLogService $activityLog,
         protected AppointmentExpiryService $appointmentExpiry
     ) {
     }
@@ -40,7 +40,7 @@ class AppointmentApprovalController extends Controller
         $status = $request->query('status');
         $search = $request->query('search');
 
-        $query = Appointment::with(['patientInfo', 'service', 'schedule'])
+        $query = Appointment::with(['patientInfo', 'service', 'schedule', 'dentist.staffInfo'])
             ->orderByDesc('created_at');
 
         if ($status && in_array($status, ['Pending', 'Approved', 'Declined', 'Completed'])) {
@@ -83,7 +83,12 @@ class AppointmentApprovalController extends Controller
             return $redirect;
         }
 
-        $appointment = Appointment::with(['patientInfo.userAccount'])->findOrFail($id);
+        $appointment = Appointment::with(['patientInfo.userAccount'])->find($id);
+
+        if (!$appointment || $appointment->Status !== 'Pending') {
+            return redirect()->route('appointmentApproval')
+                ->with('error', 'That request is no longer pending — it may have already been actioned.');
+        }
 
         // The full block of slots this appointment needs was already
         // reserved (Not Available) the moment it was booked — DurationHours
@@ -98,7 +103,7 @@ class AppointmentApprovalController extends Controller
 
         $p = $appointment->patientInfo;
         $patientName = $p ? trim($p->FirstName . ' ' . $p->LastName) : 'A patient';
-        $this->auditLog->log('Approve', "Approved {$patientName}'s appointment.");
+        $this->activityLog->log('Approve', "Approved {$patientName}'s appointment.");
 
         return redirect()->route('appointmentApproval')->with('success', 'Appointment approved.');
     }
@@ -113,7 +118,12 @@ class AppointmentApprovalController extends Controller
             'reason' => 'required|string|max:500',
         ]);
 
-        $appointment = Appointment::with(['patientInfo.userAccount'])->findOrFail($id);
+        $appointment = Appointment::with(['patientInfo.userAccount'])->find($id);
+
+        if (!$appointment || !in_array($appointment->Status, ['Pending', 'Approved'], true)) {
+            return redirect()->route('appointmentApproval')
+                ->with('error', 'That request is no longer active — it may have already been actioned.');
+        }
 
         $appointment->Status = 'Declined';
         $appointment->DeclineReason = $data['reason'];
@@ -133,7 +143,7 @@ class AppointmentApprovalController extends Controller
 
         $p = $appointment->patientInfo;
         $patientName = $p ? trim($p->FirstName . ' ' . $p->LastName) : 'A patient';
-        $this->auditLog->log('Decline', "Declined {$patientName}'s appointment. Reason: {$data['reason']}");
+        $this->activityLog->log('Decline', "Declined {$patientName}'s appointment. Reason: {$data['reason']}");
 
         return redirect()->route('appointmentApproval')->with('success', 'Appointment declined.');
     }
@@ -154,6 +164,7 @@ class AppointmentApprovalController extends Controller
         for ($offset = 0; $start !== false && $offset < $duration && isset($times[$start + $offset]); $offset++) {
             $time = $times[$start + $offset];
             $stillHeld = Appointment::whereKeyNot($appointment->AppointmentID)
+                ->where('DentistID', $appointment->DentistID)
                 ->whereDate('AppointmentDate', $appointment->AppointmentDate)
                 ->whereIn('Status', ['Pending', 'Approved'])->get()
                 ->contains(function ($other) use ($times, $time) {
@@ -163,7 +174,10 @@ class AppointmentApprovalController extends Controller
                 });
 
             if (!$stillHeld) {
-                DentistSchedule::where('Date', $appointment->AppointmentDate->format('Y-m-d'))->where('Time', $time)->update(['Status' => 'Available']);
+                DentistSchedule::where('DentistID', $appointment->DentistID)
+                    ->where('Date', $appointment->AppointmentDate->format('Y-m-d'))
+                    ->where('Time', $time)
+                    ->update(['Status' => 'Available']);
             }
         }
     }

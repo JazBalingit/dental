@@ -8,6 +8,7 @@ use App\Models\Appointment;
 use App\Models\DentistSchedule;
 use App\Models\Service;
 use App\Models\UserAccount;
+use App\Services\ActivityLogService;
 use App\Services\NotificationService;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
@@ -17,7 +18,7 @@ class AppointmentBookingController extends Controller
 {
     use BuildsBookingCalendar;
 
-    public function __construct(protected NotificationService $notifications)
+    public function __construct(protected NotificationService $notifications, protected ActivityLogService $activityLog)
     {
     }
 
@@ -30,9 +31,17 @@ class AppointmentBookingController extends Controller
         $data = $request->validate([
             'date' => 'required|date',
             'time' => 'required|string',
+            'dentist_id' => 'required|integer',
             'service_ids' => 'required|array|min:1',
             'service_ids.*' => 'distinct|exists:tbl_services,ServiceID',
         ]);
+
+        $dentist = UserAccount::dentists()->where('UserID', $data['dentist_id'])->first();
+
+        if (!$dentist) {
+            return redirect()->to(route('landingPage') . '#appointment')
+                ->with('booking_error', 'Please choose a dentist for your appointment.');
+        }
 
         $user = UserAccount::with('patientInfo')->findOrFail(session('user_id'));
 
@@ -75,10 +84,11 @@ class AppointmentBookingController extends Controller
 
             // Reserve every slot the total service duration needs — either
             // the whole block flips to Not Available, or none of it does.
-            $scheduleRows = $this->reserveSlotBlock($data['date'], $data['time'], $slotsNeeded);
+            $scheduleRows = $this->reserveSlotBlock($data['date'], $data['time'], $slotsNeeded, $dentist->UserID);
 
             $appointment = Appointment::create([
                 'PatientID' => $user->patientInfo->PatientID,
+                'DentistID' => $dentist->UserID,
                 'ScheduleID' => $scheduleRows[0]->ScheduleID,
                 'ServiceID' => $services->first()?->ServiceID,
                 'AppointmentDate' => $data['date'],
@@ -110,6 +120,8 @@ class AppointmentBookingController extends Controller
                 false
             );
 
+            $this->activityLog->log('Failed Booking', "Appointment booking failed: {$failureMessage}", $user->UserID);
+
             return redirect()->to(route('landingPage') . '#appointment')
                 ->with('booking_error', $failureMessage);
         }
@@ -127,9 +139,10 @@ class AppointmentBookingController extends Controller
         );
 
         $patientName = trim(($user->patientInfo->FirstName ?? '') . ' ' . ($user->patientInfo->LastName ?? ''));
+        $dentistLabel = $dentist->display_name;
         $this->notifications->notifyAdmins(
             'New Appointment',
-            "{$patientName} has booked an appointment.",
+            "{$patientName} has booked an appointment with {$dentistLabel}.",
             'info',
             $appointment->AppointmentID,
             'Pending'
@@ -137,7 +150,10 @@ class AppointmentBookingController extends Controller
 
         $durationLabel = DentistSchedule::formatSlotDuration($slotsNeeded);
 
+        $serviceList = $services->pluck('ServiceName')->implode(', ');
+        $this->activityLog->log('Appointment Booked', "Booked an appointment with {$dentistLabel} for {$dateLabel} at {$timeLabel} ({$durationLabel}) — {$serviceList}.", $user->UserID);
+
         return redirect()->to(route('landingPage') . '#appointment')
-            ->with('booking_success', "Booked! {$dateLabel} at {$timeLabel} for {$durationLabel} — status: Pending.");
+            ->with('booking_success', "Booked with {$dentistLabel}! {$dateLabel} at {$timeLabel} for {$durationLabel} — status: Pending.");
     }
 }

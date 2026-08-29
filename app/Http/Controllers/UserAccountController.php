@@ -4,13 +4,13 @@ namespace App\Http\Controllers;
 
 use App\Models\PatientInfo;
 use App\Models\UserAccount;
-use App\Services\AuditLogService;
+use App\Services\ActivityLogService;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 
 class UserAccountController extends Controller
 {
-    public function __construct(protected AuditLogService $auditLog)
+    public function __construct(protected ActivityLogService $activityLog)
     {
     }
 
@@ -119,7 +119,7 @@ class UserAccountController extends Controller
 
         $info->update($updates);
 
-        $this->auditLog->log('Edit', "Edited user account: {$data['first_name']} {$data['last_name']} ({$data['email']}).");
+        $this->activityLog->log('Edit', "Edited user account: {$data['first_name']} {$data['last_name']} ({$data['email']}).");
 
         return redirect()->route('userAcc')->with('success', 'User account updated successfully.');
     }
@@ -134,7 +134,7 @@ class UserAccountController extends Controller
         UserAccount::where('AccountType', 'User')->where('UserID', $id)->update(['IsArchived' => true]);
 
         $name = $account?->patientInfo ? trim($account->patientInfo->FirstName . ' ' . $account->patientInfo->LastName) : $account?->Email;
-        $this->auditLog->log('Archive', "Archived user account: {$name}.");
+        $this->activityLog->log('Archive', "Archived user account: {$name}.");
 
         return redirect()->route('userAcc')->with('success', 'Account archived. This user can no longer log in.');
     }
@@ -149,7 +149,7 @@ class UserAccountController extends Controller
         UserAccount::where('AccountType', 'User')->where('UserID', $id)->update(['IsArchived' => false]);
 
         $name = $account?->patientInfo ? trim($account->patientInfo->FirstName . ' ' . $account->patientInfo->LastName) : $account?->Email;
-        $this->auditLog->log('Unarchive', "Unarchived user account: {$name}.");
+        $this->activityLog->log('Unarchive', "Unarchived user account: {$name}.");
 
         return redirect()->route('userAcc')->with('success', 'Account restored. This user can log in again.');
     }

@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Controllers\Concerns\ManagesOtp;
 use App\Mail\OtpMail;
 use App\Models\UserAccount;
 use App\Services\ActivityLogService;
@@ -9,9 +10,12 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\RateLimiter;
+use Illuminate\Validation\Rules\Password;
 
 class StaffProfileController extends Controller
 {
+    use ManagesOtp;
+
     public function __construct(protected ActivityLogService $activityLog)
     {
     }
@@ -21,16 +25,9 @@ class StaffProfileController extends Controller
      * admin), not just staff. Route names stay staffProfile* for backward
      * compatibility: EnsureStaffIsVerified's allowlist references these
      * exact names to let an unverified staff account reach only this page.
+     *
+     * Access control is the 'admin' route middleware (routes/web.php).
      */
-    protected function guard()
-    {
-        if (!session('user_id') || session('user_role') !== 'admin') {
-            return redirect()->route('login')->with('login_error', 'Please log in to continue.');
-        }
-
-        return null;
-    }
-
     protected function currentStaff(): UserAccount
     {
         return UserAccount::with('staffInfo')->findOrFail(session('user_id'));
@@ -38,10 +35,6 @@ class StaffProfileController extends Controller
 
     public function edit(Request $request)
     {
-        if ($redirect = $this->guard()) {
-            return $redirect;
-        }
-
         $staff = $this->currentStaff();
         $activeTab = $request->query('tab') === 'security' ? 'security' : 'profile';
 
@@ -50,14 +43,18 @@ class StaffProfileController extends Controller
 
     public function sendVerification(Request $request)
     {
-        if ($redirect = $this->guard()) {
-            return $redirect;
-        }
-
         $staff = $this->currentStaff();
 
         if ($staff->EmailVerifiedAt) {
             return redirect()->route('staffProfile')->with('success', 'Your email is already verified.');
+        }
+
+        // Must wait 60 seconds between sends.
+        if ($this->otpResendTooSoon('staff_verify')) {
+            $wait = $this->otpWaitLabel($this->otpResendRetryAfter('staff_verify'));
+            return redirect()->route('staffProfile')
+                ->with('show_staff_verify', true)
+                ->with('error', "Please wait {$wait} before requesting another code.");
         }
 
         $throttleKey = 'staff-verify:' . $staff->UserID;
@@ -67,10 +64,8 @@ class StaffProfileController extends Controller
         }
         RateLimiter::hit($throttleKey, 600);
 
-        $code = (string) random_int(100000, 999999);
-
+        $code = $this->issueOtp('staff_verify');
         session([
-            'staff_verify_code' => $code,
             'staff_verify_attempts' => 0,
             'show_staff_verify' => true,
         ]);
@@ -82,21 +77,25 @@ class StaffProfileController extends Controller
 
     public function verifyEmail(Request $request)
     {
-        if ($redirect = $this->guard()) {
-            return $redirect;
-        }
-
         $request->validate(['code' => 'required|string']);
 
         if (!session()->has('staff_verify_code')) {
             return redirect()->route('staffProfile')->with('error', 'Your verification code expired. Please request a new one.');
         }
 
-        if ($request->code !== session('staff_verify_code')) {
+        // The code is only good for 5 minutes.
+        if ($this->otpExpired('staff_verify')) {
+            $this->clearOtp('staff_verify');
+            session()->forget('show_staff_verify');
+            return redirect()->route('staffProfile')->with('error', 'Your verification code expired. Please request a new one.');
+        }
+
+        if (!$this->otpMatches('staff_verify', $request->code)) {
             $attempts = session('staff_verify_attempts', 0) + 1;
 
             if ($attempts >= 5) {
-                session()->forget(['staff_verify_code', 'staff_verify_attempts', 'show_staff_verify']);
+                $this->clearOtp('staff_verify');
+                session()->forget('show_staff_verify');
                 return redirect()->route('staffProfile')->with('error', 'Too many incorrect attempts. Please request a new code.');
             }
 
@@ -111,17 +110,14 @@ class StaffProfileController extends Controller
         $staff->EmailVerifiedAt = now();
         $staff->save();
 
-        session()->forget(['staff_verify_code', 'staff_verify_attempts', 'show_staff_verify']);
+        $this->clearOtp('staff_verify');
+        session()->forget('show_staff_verify');
 
         return redirect()->route('staffProfile')->with('success', 'Email verified! You can now change your password.');
     }
 
     public function updatePassword(Request $request)
     {
-        if ($redirect = $this->guard()) {
-            return $redirect;
-        }
-
         // The super admin authenticates against .env credentials, not a
         // stored hash — there's no real password here to change. The
         // Security tab is hidden for this session already; this is just
@@ -138,12 +134,14 @@ class StaffProfileController extends Controller
 
         $data = $request->validate([
             'current_password' => 'required|string',
-            'password' => 'required|string|min:8|confirmed',
+            'password' => ['required', 'confirmed', Password::defaults()],
         ]);
 
         if (!Hash::check($data['current_password'], $staff->Password)) {
             $this->activityLog->log('Failed Password Change', 'Entered the wrong current password when trying to change it (My Profile → Security).', $staff->UserID);
-            return redirect()->route('staffProfile')->with('error', 'Your current password is incorrect.');
+            return redirect()->route('staffProfile', ['tab' => 'security'])
+                ->withInput($request->only('current_password', 'password', 'password_confirmation'))
+                ->with('error', 'Your current password is incorrect.');
         }
 
         $staff->Password = Hash::make($data['password']);

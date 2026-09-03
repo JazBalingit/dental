@@ -203,15 +203,27 @@
                                         <div class="row g-3">
                                             <div class="col-md-4">
                                                 <label class="form-label">Current password</label>
-                                                <div class="input-icon"><i class="bi bi-lock"></i><input type="password" name="current_password" class="form-control" required></div>
+                                                <div class="pw-field">
+                                                    <input type="checkbox" class="pw-toggle-checkbox" id="pwSpCur">
+                                                    <div class="input-icon"><i class="bi bi-lock"></i><input type="text" name="current_password" class="form-control pw-mask" required value="{{ old('current_password') }}" autocomplete="current-password"></div>
+                                                    <label for="pwSpCur" class="pw-eye-btn" aria-label="Show or hide password"><i class="bi bi-eye"></i><i class="bi bi-eye-slash"></i></label>
+                                                </div>
                                             </div>
                                             <div class="col-md-4">
                                                 <label class="form-label">New password</label>
-                                                <div class="input-icon"><i class="bi bi-key"></i><input type="password" name="password" class="form-control" minlength="8" required></div>
+                                                <div class="pw-field">
+                                                    <input type="checkbox" class="pw-toggle-checkbox" id="pwSpNew">
+                                                    <div class="input-icon"><i class="bi bi-key"></i><input type="text" name="password" class="form-control pw-mask" minlength="8" required value="{{ old('password') }}" autocomplete="new-password"></div>
+                                                    <label for="pwSpNew" class="pw-eye-btn" aria-label="Show or hide password"><i class="bi bi-eye"></i><i class="bi bi-eye-slash"></i></label>
+                                                </div>
                                             </div>
                                             <div class="col-md-4">
                                                 <label class="form-label">Confirm new password</label>
-                                                <div class="input-icon"><i class="bi bi-shield-lock"></i><input type="password" name="password_confirmation" class="form-control" required></div>
+                                                <div class="pw-field">
+                                                    <input type="checkbox" class="pw-toggle-checkbox" id="pwSpConfirm">
+                                                    <div class="input-icon"><i class="bi bi-shield-lock"></i><input type="text" name="password_confirmation" class="form-control pw-mask" required value="{{ old('password_confirmation') }}" autocomplete="new-password"></div>
+                                                    <label for="pwSpConfirm" class="pw-eye-btn" aria-label="Show or hide password"><i class="bi bi-eye"></i><i class="bi bi-eye-slash"></i></label>
+                                                </div>
                                             </div>
                                         </div>
                                         <div class="d-flex justify-content-end mt-3">

@@ -134,6 +134,12 @@ trait BuildsBookingCalendar
      * @throws \RuntimeException with a patient-facing explanation if the
      *         full block isn't available (runs past closing, or another
      *         appointment already holds one of the slots).
+     *
+     * MUST be called inside a DB transaction (both callers already do): every
+     * slot row is read with SELECT ... FOR UPDATE so two people booking the
+     * same slot at the same instant can't both see it as "Available" and both
+     * flip it. The unique (DentistID, Date, Time) index on tbl_dentistschedule
+     * covers the race on first-time row creation.
      */
     protected function reserveSlotBlock(string $date, string $startTime, int $slotsNeeded, int $dentistId): array
     {
@@ -155,9 +161,32 @@ trait BuildsBookingCalendar
 
         $rows = [];
         foreach ($times as $time) {
-            $schedule = DentistSchedule::firstOrCreate(['DentistID' => $dentistId, 'Date' => $date, 'Time' => $time], ['Status' => 'Available']);
+            // Lock the row for the rest of the transaction. If it doesn't
+            // exist yet, create it (the unique index makes a concurrent
+            // duplicate insert fail and roll the whole booking back), then
+            // re-select it with the lock held.
+            $schedule = DentistSchedule::where('DentistID', $dentistId)
+                ->where('Date', $date)
+                ->where('Time', $time)
+                ->lockForUpdate()
+                ->first();
 
-            if ($schedule->Status !== 'Available') {
+            if (!$schedule) {
+                DentistSchedule::create([
+                    'DentistID' => $dentistId,
+                    'Date' => $date,
+                    'Time' => $time,
+                    'Status' => 'Available',
+                ]);
+
+                $schedule = DentistSchedule::where('DentistID', $dentistId)
+                    ->where('Date', $date)
+                    ->where('Time', $time)
+                    ->lockForUpdate()
+                    ->first();
+            }
+
+            if (!$schedule || $schedule->Status !== 'Available') {
                 $conflictLabel = Carbon::createFromFormat('H:i', $time)->format('g:i A');
                 throw new \RuntimeException(
                     "Booking failed: your total service duration is {$durationLabel}, but {$conflictLabel} on this day is already booked. Please choose a start time with your full {$durationLabel} available."

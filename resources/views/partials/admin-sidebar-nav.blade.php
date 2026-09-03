@@ -1,6 +1,11 @@
 {{--
-    Super-admin sidebar navigation. Single source of truth — every admin
-    page includes this so the menu can't drift between screens.
+    Admin-panel sidebar navigation. Single source of truth — every admin
+    page (both the superAdmin/* and admin/* copies) includes this so the
+    menu can't drift between screens.
+
+    The super admin sees the full menu. A staff/dentist session
+    (no session('is_super_admin')) doesn't get Staff Accounts or the
+    System section — those pages are guarded to the super admin anyway.
 
     Usage: @include('partials.admin-sidebar-nav', ['active' => 'dashboard'])
     where $active matches one of the keys below.
@@ -17,8 +22,10 @@
 
   <div class="nav-section">User Management</div>
   <a href="{{ route('userAcc') }}" @class(['active' => $active === 'userAcc'])><i class="bi bi-person-vcard"></i> User Accounts</a>
-  <a href="{{ route('staffAcc') }}" @class(['active' => $active === 'staffAcc'])><i class="bi bi-person-badge"></i> Staff Accounts</a>
+  @if (session('is_super_admin'))
+    <a href="{{ route('staffAcc') }}" @class(['active' => $active === 'staffAcc'])><i class="bi bi-person-badge"></i> Staff Accounts</a>
 
-  <div class="nav-section">System</div>
-  <a href="{{ route('configuration') }}" @class(['active' => $active === 'configuration'])><i class="bi bi-sliders2"></i> Configuration</a>
+    <div class="nav-section">System</div>
+    <a href="{{ route('configuration') }}" @class(['active' => $active === 'configuration'])><i class="bi bi-sliders2"></i> Configuration</a>
+  @endif
 </nav>

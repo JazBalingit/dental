@@ -3,6 +3,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Controllers\Concerns\ManagesOtp;
 use App\Mail\OtpMail;
 use App\Models\UserAccount;
 use App\Services\ActivityLogService;
@@ -11,9 +12,12 @@ use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Str;
+use Illuminate\Validation\Rules\Password;
 
 class LoginController extends Controller
 {
+    use ManagesOtp;
+
     public function __construct(protected ActivityLogService $activityLog)
     {
     }
@@ -34,7 +38,9 @@ class LoginController extends Controller
 
         if (RateLimiter::tooManyAttempts($throttleKey, 5)) {
             $seconds = RateLimiter::availableIn($throttleKey);
-            return redirect()->route('login')->with('login_error', "Too many failed attempts. Please try again in {$seconds} seconds.");
+            return redirect()->route('login')
+                ->withInput($request->only('email', 'password'))
+                ->with('login_error', "Too many failed attempts. Please try again in {$seconds} seconds.");
         }
 
         if ($this->loginAsSuperAdmin($request, $data)) {
@@ -47,7 +53,9 @@ class LoginController extends Controller
         if (!$user || $user->IsArchived || !Hash::check($data['password'], $user->Password)) {
             RateLimiter::hit($throttleKey, 60);
             $this->activityLog->failedLogin($data['email'], $user?->UserID);
-            return redirect()->route('login')->with('login_error', 'Incorrect email or password.');
+            return redirect()->route('login')
+                ->withInput($request->only('email', 'password'))
+                ->with('login_error', 'Incorrect email or password.');
         }
 
         RateLimiter::clear($throttleKey);
@@ -154,14 +162,12 @@ class LoginController extends Controller
         }
         RateLimiter::hit($throttleKey, 600);
 
-        $code = (string) random_int(100000, 999999);
-
         session([
             'reset_email' => $data['email'],
-            'reset_code' => $code,
             'reset_attempts' => 0,
             'show_reset_form' => true,
         ]);
+        $code = $this->issueOtp('reset');
         session()->forget('reset_error');
 
         Mail::to($data['email'])->send(new OtpMail($code));
@@ -178,6 +184,14 @@ class LoginController extends Controller
             return redirect()->route('login')->with('reset_expired', true);
         }
 
+        // Must wait 60 seconds between sends.
+        if ($this->otpResendTooSoon('reset')) {
+            $wait = $this->otpWaitLabel($this->otpResendRetryAfter('reset'));
+            return redirect()->route('login')
+                ->with('show_reset_form', true)
+                ->with('reset_error', "Please wait {$wait} before requesting another code.");
+        }
+
         $throttleKey = 'reset-send:' . strtolower(session('reset_email'));
         if (RateLimiter::tooManyAttempts($throttleKey, 3)) {
             $seconds = RateLimiter::availableIn($throttleKey);
@@ -187,9 +201,9 @@ class LoginController extends Controller
         }
         RateLimiter::hit($throttleKey, 600);
 
-        $code = (string) random_int(100000, 999999);
+        $code = $this->issueOtp('reset');
 
-        session(['reset_code' => $code, 'reset_attempts' => 0, 'show_reset_form' => true]);
+        session(['reset_attempts' => 0, 'show_reset_form' => true]);
         session()->forget('reset_error');
 
         Mail::to(session('reset_email'))->send(new OtpMail($code));
@@ -205,7 +219,7 @@ class LoginController extends Controller
     {
         $validator = \Illuminate\Support\Facades\Validator::make($request->all(), [
             'code' => 'required|string',
-            'password' => 'required|string|min:8|confirmed',
+            'password' => ['required', 'confirmed', Password::defaults()],
         ]);
 
         if ($validator->fails()) {
@@ -218,20 +232,29 @@ class LoginController extends Controller
             return redirect()->route('login')->with('reset_expired', true);
         }
 
-        if ($request->code !== session('reset_code')) {
+        // A reset code is only good for 5 minutes.
+        if ($this->otpExpired('reset')) {
+            session()->forget(['reset_email', 'reset_attempts', 'show_reset_form']);
+            $this->clearOtp('reset');
+            return redirect()->route('login')->with('reset_expired', true);
+        }
+
+        if (!$this->otpMatches('reset', $request->code)) {
             $attempts = session('reset_attempts', 0) + 1;
 
             $wrongCodeUser = UserAccount::where('Email', session('reset_email'))->first();
             $this->activityLog->log('Failed Password Change', "Incorrect reset code entered for \"" . session('reset_email') . "\".", $wrongCodeUser?->UserID);
 
             if ($attempts >= 5) {
-                session()->forget(['reset_email', 'reset_code', 'reset_attempts', 'show_reset_form']);
+                session()->forget(['reset_email', 'reset_attempts', 'show_reset_form']);
+                $this->clearOtp('reset');
                 return redirect()->route('login')->with('reset_expired', true);
             }
 
             session(['reset_attempts' => $attempts]);
 
             return redirect()->route('login')
+                ->withInput($request->only('password', 'password_confirmation'))
                 ->with('show_reset_form', true)
                 ->with('reset_error', 'Incorrect code. Please try again.');
         }
@@ -247,7 +270,8 @@ class LoginController extends Controller
 
         $this->activityLog->log('Password Changed', 'Reset password using an email verification code (from the login page).', $user->UserID);
 
-        session()->forget(['reset_email', 'reset_code', 'reset_attempts', 'show_reset_form']);
+        session()->forget(['reset_email', 'reset_attempts', 'show_reset_form']);
+        $this->clearOtp('reset');
 
         return redirect()->route('login')->with('password_reset', true);
     }
@@ -259,7 +283,8 @@ class LoginController extends Controller
      */
     public function cancelReset(Request $request)
     {
-        session()->forget(['reset_email', 'reset_code', 'reset_attempts', 'show_reset_form']);
+        session()->forget(['reset_email', 'reset_attempts', 'show_reset_form']);
+        $this->clearOtp('reset');
 
         return redirect()->route('login');
     }

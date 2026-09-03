@@ -12,21 +12,10 @@ class ReportController extends Controller
 {
     protected const TYPES = ['appointments', 'patients', 'schedule', 'summary'];
 
-    protected function guard()
-    {
-        if (!session('user_id') || session('user_role') !== 'admin') {
-            return redirect()->route('login')->with('login_error', 'Please log in as an administrator to continue.');
-        }
-
-        return null;
-    }
+    // Access control (logged-in admin only) is the 'admin' route middleware.
 
     public function generate(Request $request)
     {
-        if ($redirect = $this->guard()) {
-            return $redirect;
-        }
-
         $type = in_array($request->query('type'), self::TYPES, true) ? $request->query('type') : 'appointments';
         $range = $request->query('range', 'week');
         [$start, $end, $rangeLabel] = $this->resolveRange($range, $request->query('from'), $request->query('to'));
@@ -109,10 +98,12 @@ class ReportController extends Controller
 
             if ($includeCharts) {
                 $data['scheduleBreakdown'] = $this->scheduleBreakdown($start, $end);
+                $data['scheduleByDentist'] = $this->scheduleByDentist($start, $end);
             }
 
             if ($includePatientDetails) {
                 $data['scheduleList'] = (clone $schedule)
+                    ->with('dentist.staffInfo')
                     ->orderBy('Date')
                     ->orderBy('Time')
                     ->get();
@@ -249,6 +240,29 @@ class ReportController extends Controller
         return $rows->map(fn ($r) => [
             'label' => $r->Status,
             'count' => (int) $r->cnt,
+            'pct' => max(4, (int) round($r->cnt / $max * 100)),
+        ])->values()->all();
+    }
+
+    /**
+     * Slot counts per dentist within the range — how many total slots each
+     * dentist has on their schedule, and how many of those are booked.
+     */
+    protected function scheduleByDentist(?Carbon $start, ?Carbon $end): array
+    {
+        $rows = $this->scheduleQuery($start, $end)
+            ->selectRaw('DentistID, COUNT(*) as cnt, SUM(Status <> "Available") as booked')
+            ->groupBy('DentistID')
+            ->orderByDesc('cnt')
+            ->with('dentist.staffInfo')
+            ->get();
+
+        $max = max(1, $rows->max('cnt') ?? 1);
+
+        return $rows->map(fn ($r) => [
+            'label' => $r->dentist?->display_name ?? 'Unassigned',
+            'count' => (int) $r->cnt,
+            'booked' => (int) $r->booked,
             'pct' => max(4, (int) round($r->cnt / $max * 100)),
         ])->values()->all();
     }

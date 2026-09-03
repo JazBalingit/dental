@@ -76,72 +76,46 @@
             {{-- ===================== SYSTEM INFORMATION ===================== --}}
             <div class="settings-pane" data-settings-pane="about" @if ($settingsTab !== 'about') hidden @endif>
 
-              <!-- LOGO -->
-              <div class="card-soft mb-4">
-                <div class="card-header d-flex align-items-center justify-content-between">
-                  <span><i class="bi bi-image me-2" style="color: var(--brand-700);"></i> Change Clinic Logo</span>
-                  <span class="pill pill-info">JPG / PNG / SVG • Max 2MB</span>
-                </div>
-                <div class="card-body">
-                  <form method="POST" action="{{ route('configuration.logo') }}" enctype="multipart/form-data">
-                    @csrf
-                    <div class="row g-4 align-items-center">
-                      <div class="col-md-3 text-center">
-                        <div class="logo-preview mx-auto">
-                          <img src="{{ asset('images/puspus_logo.png') }}?v={{ $logoVersion }}" alt="Current logo"
-                            style="max-width:100%; max-height:100%;">
-                        </div>
-                        <div class="small text-muted-2 mt-2">Current logo</div>
-                      </div>
-                      <div class="col-md-9">
-                        <label class="upload-zone d-block" style="cursor:pointer;">
-                          <i class="bi bi-cloud-arrow-up-fill mb-2 d-block"></i>
-                          <div class="fw-semibold" id="logoFileLabel">Drag & drop your new logo here</div>
-                          <div class="small text-muted-2 mb-3">or click to browse from your computer</div>
-                          <span class="btn btn-brand px-4"><i class="bi bi-folder2-open me-1"></i> Browse Files</span>
-                          <input type="file" name="logo" id="logoInput" accept=".jpg,.jpeg,.png,.svg" class="d-none"
-                            required>
-                        </label>
-                        <div class="d-flex gap-2 mt-3 justify-content-end">
-                          <button type="reset" class="btn btn-ghost px-3">Reset</button>
-                          <button type="submit" class="btn btn-brand px-3">Save Changes</button>
-                        </div>
-                      </div>
-                    </div>
-                  </form>
-                </div>
-              </div>
-
-              <!-- ABOUT SECTION INFO -->
               <div class="card-soft">
-                <div class="card-header d-flex align-items-center justify-content-between">
-                  <span><i class="bi bi-geo-alt me-2" style="color: var(--brand-700);"></i> About Section</span>
-                  <span class="small text-muted-2">Shown on the landing page's "About the Clinic" section</span>
+                <div class="card-header d-flex align-items-center justify-content-between flex-wrap gap-2">
+                  <span><i class="bi bi-buildings me-2" style="color: var(--brand-700);"></i> Clinic Branding &amp; Information</span>
+                  <span class="small text-muted-2">Logo, landing-page photos &amp; the public clinic details</span>
                 </div>
                 <div class="card-body">
                   <form method="POST" action="{{ route('configuration.about.update') }}" enctype="multipart/form-data">
                     @csrf
-                    <div class="row g-4 align-items-center mb-3">
-                      <div class="col-md-3 text-center">
-                        <div class="logo-preview mx-auto" style="width:120px;height:90px;">
-                          <img src="{{ $aboutInfo['image'] }}" alt="About section image"
-                            style="max-width:100%; max-height:100%; object-fit:cover;">
-                        </div>
-                        <div class="small text-muted-2 mt-2">Current image</div>
-                      </div>
-                      <div class="col-md-9">
-                        <label class="upload-zone d-block" style="cursor:pointer;">
-                          <i class="bi bi-cloud-arrow-up-fill mb-2 d-block"></i>
-                          <div class="fw-semibold" id="aboutImageFileLabel">Drag & drop a new photo here</div>
-                          <div class="small text-muted-2 mb-3">or click to browse from your computer</div>
-                          <span class="btn btn-brand px-4"><i class="bi bi-folder2-open me-1"></i> Browse Files</span>
-                          <input type="file" name="about_image" id="aboutImageInput" accept=".jpg,.jpeg,.png"
-                            class="d-none">
-                        </label>
-                      </div>
+
+                    <div class="section-label"><i class="bi bi-images"></i> Images</div>
+                    <div class="cfg-img-grid">
+                      @include('partials.config-image-field', [
+                        'name' => 'logo',
+                        'label' => 'Clinic Logo',
+                        'current' => asset('images/puspus_logo.png') . '?v=' . $logoVersion,
+                        'desc' => 'Appears in the sidebar and page headers. JPG, PNG or SVG.',
+                        'accept' => '.jpg,.jpeg,.png,.svg',
+                        'fit' => 'contain',
+                      ])
+                      @include('partials.config-image-field', [
+                        'name' => 'hero_image',
+                        'label' => 'Landing Page Image',
+                        'current' => $aboutInfo['heroImage'],
+                        'desc' => 'The large background photo at the top of the landing page.',
+                      ])
+                      @include('partials.config-image-field', [
+                        'name' => 'about_image',
+                        'label' => 'About Section Image',
+                        'current' => $aboutInfo['image'],
+                        'desc' => 'The photo shown next to the map in the “About the Clinic” section.',
+                      ])
                     </div>
 
+                    <div class="section-label mt-4"><i class="bi bi-card-text"></i> About the Clinic</div>
                     <div class="row g-3">
+                      <div class="col-12">
+                        <label class="form-label">Description</label>
+                        <textarea name="about_description" class="form-control" rows="3"
+                          placeholder="A short welcome paragraph shown beside the map on the landing page.">{{ old('about_description', $aboutInfo['description']) }}</textarea>
+                      </div>
                       <div class="col-12">
                         <label class="form-label">Address</label>
                         <div class="input-icon"><i class="bi bi-geo-alt"></i><input type="text" name="address"
@@ -153,16 +127,70 @@
                             name="operating_days" class="form-control"
                             value="{{ old('operating_days', $aboutInfo['operatingDays']) }}" required></div>
                       </div>
-                      <div class="col-md-6">
-                        <label class="form-label">Operating Hours</label>
-                        <div class="input-icon"><i class="bi bi-clock"></i><input type="text" name="operating_hours"
-                            class="form-control" value="{{ old('operating_hours', $aboutInfo['operatingHours']) }}"
-                            required></div>
+                    </div>
+
+                    @php $clinicHours = \App\Models\DentistSchedule::clinicHours(); @endphp
+                    <div class="section-label mt-4"><i class="bi bi-clock"></i> Appointment Booking Hours</div>
+                    <p class="small text-muted-2 mb-3">Sets the open→close window every appointment slot grid is built
+                      from — booking calendar, walk-ins, and the dentist schedule. Slots are 30 minutes. The public
+                      “Operating Hours” line on the landing page is generated from this.</p>
+                    <div class="row g-3">
+                      <div class="col-md-3 col-6">
+                        <label class="form-label">Opening Time</label>
+                        <input type="time" name="booking_open_time" class="form-control" step="1800" required
+                          value="{{ old('booking_open_time', $clinicHours['open']) }}">
+                      </div>
+                      <div class="col-md-3 col-6">
+                        <label class="form-label">Closing Time</label>
+                        <input type="time" name="booking_close_time" class="form-control" step="1800" required
+                          value="{{ old('booking_close_time', $clinicHours['close']) }}">
+                      </div>
+                      <div class="col-md-6 d-flex align-items-end">
+                        <div class="form-check">
+                          <input type="hidden" name="lunch_enabled" value="0">
+                          <input type="checkbox" class="form-check-input" id="lunchEnabledToggle" name="lunch_enabled"
+                            value="1" {{ old('lunch_enabled', $clinicHours['lunchEnabled'] ? '1' : '0') === '1' ? 'checked' : '' }}>
+                          <label class="form-check-label" for="lunchEnabledToggle">Close for a lunch break</label>
+                        </div>
+                      </div>
+                      <div class="col-md-3 col-6">
+                        <label class="form-label">Lunch Start</label>
+                        <input type="time" name="booking_lunch_start" class="form-control" step="1800"
+                          value="{{ old('booking_lunch_start', $clinicHours['lunchStart']) }}">
+                      </div>
+                      <div class="col-md-3 col-6">
+                        <label class="form-label">Lunch End</label>
+                        <input type="time" name="booking_lunch_end" class="form-control" step="1800"
+                          value="{{ old('booking_lunch_end', $clinicHours['lunchEnd']) }}">
                       </div>
                     </div>
 
-                    <div class="d-flex justify-content-end mt-3">
-                      <button type="submit" class="btn btn-brand px-3">Save Changes</button>
+                    <div class="section-label mt-4"><i class="bi bi-telephone"></i> Contact Details</div>
+                    <p class="small text-muted-2 mb-3">Shown in the landing page “Contact Us” section and the footer. The
+                      email is also where “Contact Us” form messages are delivered.</p>
+                    <div class="row g-3">
+                      <div class="col-md-6">
+                        <label class="form-label">Phone</label>
+                        <div class="input-icon"><i class="bi bi-telephone"></i><input type="text" name="contact_phone"
+                            class="form-control" value="{{ old('contact_phone', $aboutInfo['phone']) }}"
+                            placeholder="(02) 8404-5642"></div>
+                      </div>
+                      <div class="col-md-6">
+                        <label class="form-label">Mobile</label>
+                        <div class="input-icon"><i class="bi bi-phone"></i><input type="text" name="contact_mobile"
+                            class="form-control" value="{{ old('contact_mobile', $aboutInfo['mobile']) }}"
+                            placeholder="+63 9XX XXX XXXX"></div>
+                      </div>
+                      <div class="col-12">
+                        <label class="form-label">Clinic Email <span class="text-muted-2">(receives Contact Us messages)</span></label>
+                        <div class="input-icon"><i class="bi bi-envelope"></i><input type="email" name="contact_email"
+                            class="form-control" value="{{ old('contact_email', $aboutInfo['email']) }}"
+                            placeholder="clinic@example.com" required></div>
+                      </div>
+                    </div>
+
+                    <div class="d-flex justify-content-end mt-4">
+                      <button type="submit" class="btn btn-brand px-4"><i class="bi bi-floppy me-1"></i> Save Changes</button>
                     </div>
                   </form>
                 </div>
@@ -774,16 +802,21 @@
 
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
   <script>
-    document.getElementById('logoInput')?.addEventListener('change', function () {
-      if (this.files[0]) {
-        document.getElementById('logoFileLabel').textContent = 'Selected: ' + this.files[0].name;
-      }
-    });
-
-    document.getElementById('aboutImageInput')?.addEventListener('change', function () {
-      if (this.files[0]) {
-        document.getElementById('aboutImageFileLabel').textContent = 'Selected: ' + this.files[0].name;
-      }
+    // Image tiles — preview the chosen file and show its name.
+    document.querySelectorAll('[data-cfg-img]').forEach(function (input) {
+      input.addEventListener('change', function () {
+        var file = this.files && this.files[0];
+        if (!file) return;
+        var card = this.closest('.cfg-img-card');
+        var img = card.querySelector('.cfg-img-preview img');
+        var picked = card.querySelector('[data-cfg-filename]');
+        img.classList.remove('is-broken');
+        img.src = URL.createObjectURL(file);
+        if (picked) {
+          picked.querySelector('span').textContent = file.name;
+          picked.hidden = false;
+        }
+      });
     });
 
     (function () {

@@ -20,21 +20,8 @@ class AppointmentApprovalController extends Controller
     ) {
     }
 
-    protected function guard()
-    {
-        if (!session('user_id') || session('user_role') !== 'admin') {
-            return redirect()->route('login')->with('login_error', 'Please log in as an administrator to continue.');
-        }
-
-        return null;
-    }
-
     public function index(Request $request)
     {
-        if ($redirect = $this->guard()) {
-            return $redirect;
-        }
-
         $this->appointmentExpiry->expireStalePending();
 
         $status = $request->query('status');
@@ -69,7 +56,7 @@ class AppointmentApprovalController extends Controller
             'declined' => Appointment::where('Status', 'Declined')->count(),
         ];
 
-        return view('superAdmin.appointment-approval', [
+        return $this->panelView('appointment-approval', [
             'appointments' => $appointments,
             'stats' => $stats,
             'status' => $status,
@@ -79,10 +66,6 @@ class AppointmentApprovalController extends Controller
 
     public function approve(Request $request, $id)
     {
-        if ($redirect = $this->guard()) {
-            return $redirect;
-        }
-
         $appointment = Appointment::with(['patientInfo.userAccount'])->find($id);
 
         if (!$appointment || $appointment->Status !== 'Pending') {
@@ -110,10 +93,6 @@ class AppointmentApprovalController extends Controller
 
     public function decline(Request $request, $id)
     {
-        if ($redirect = $this->guard()) {
-            return $redirect;
-        }
-
         $data = $request->validate([
             'reason' => 'required|string|max:500',
         ]);

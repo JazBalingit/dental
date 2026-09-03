@@ -139,7 +139,9 @@
     </form>
   @endif
 
-  <script type="application/json" class="odontogram-seed">{!! $seed->toJson() !!}</script>
-  <script type="application/json" class="odontogram-colors">{!! json_encode(OdontogramTooth::CONDITION_COLORS) !!}</script>
-  <script type="application/json" class="odontogram-condlabels">{!! json_encode(OdontogramTooth::CONDITIONS) !!}</script>
+  {{-- @json() escapes <, >, &, ' and " so a tooth Description containing
+       "</script>..." can't break out of these blocks (stored-XSS guard). --}}
+  <script type="application/json" class="odontogram-seed">@json($seed)</script>
+  <script type="application/json" class="odontogram-colors">@json(OdontogramTooth::CONDITION_COLORS)</script>
+  <script type="application/json" class="odontogram-condlabels">@json(OdontogramTooth::CONDITIONS)</script>
 </div>

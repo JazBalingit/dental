@@ -85,6 +85,11 @@
                                             </a>
                                         </li>
                                         <li>
+                                            <a class="dropdown-item small" href="{{ route('myRecords') }}">
+                                                <i class="bi bi-folder2-open me-2"></i>My Dental Records
+                                            </a>
+                                        </li>
+                                        <li>
                                             <a class="dropdown-item small" href="{{ route('settings') }}">
                                                 <i class="bi bi-gear me-2"></i>Settings
                                             </a>
@@ -127,6 +132,7 @@
             <div class="subnav-inner">
                 <a href="{{ route('userAppointment') }}" class="subnav-link"><i class="fas fa-calendar-check"></i>
                     Appointments</a>
+                <a href="{{ route('myRecords') }}" class="subnav-link"><i class="fas fa-folder-open"></i>My Records</a>
                 <a href="{{ route('settings') }}" class="subnav-link active"><i class="fas fa-gear"></i>
                     Settings</a>
             </div>
@@ -313,7 +319,8 @@
                                         <input type="checkbox" class="pw-toggle-checkbox" id="pwCheckCur">
                                         <div class="fw">
                                             <input type="text" class="fc pw-mask" name="current_password"
-                                                placeholder="Enter your current password" required>
+                                                placeholder="Enter your current password" required
+                                                value="{{ old('current_password') }}">
                                             <label for="pwCheckCur" class="eye-btn">
                                                 <i class="fas fa-eye"></i><i class="fas fa-eye-slash"></i>
                                             </label>
@@ -331,7 +338,8 @@
                                         <input type="checkbox" class="pw-toggle-checkbox" id="pwCheckNew">
                                         <div class="fw">
                                             <input type="text" class="fc pw-mask" name="password"
-                                                placeholder="Create a strong new password" required minlength="8">
+                                                placeholder="Create a strong new password" required minlength="8"
+                                                value="{{ old('password') }}">
                                             <label for="pwCheckNew" class="eye-btn">
                                                 <i class="fas fa-eye"></i><i class="fas fa-eye-slash"></i>
                                             </label>
@@ -345,7 +353,8 @@
                                         <input type="checkbox" class="pw-toggle-checkbox" id="pwCheckConfirm">
                                         <div class="fw">
                                             <input type="text" class="fc pw-mask" name="password_confirmation"
-                                                placeholder="Re-enter your new password" required>
+                                                placeholder="Re-enter your new password" required
+                                                value="{{ old('password_confirmation') }}">
                                             <label for="pwCheckConfirm" class="eye-btn">
                                                 <i class="fas fa-eye"></i><i class="fas fa-eye-slash"></i>
                                             </label>
@@ -574,13 +583,13 @@
                         <label class="fl">Verification code</label>
                         <input type="text" name="code" class="fc text-center mb-3" maxlength="6"
                                inputmode="numeric" pattern="[0-9]*" placeholder="••••••" required
-                               style="letter-spacing: 6px; font-size: 1.25rem;">
+                               value="{{ old('code') }}" style="letter-spacing: 6px; font-size: 1.25rem;">
 
                         <label class="fl">New password</label>
                         <div class="pw-field mb-3">
                             <input type="checkbox" class="pw-toggle-checkbox" id="pwCheckModalNew">
                             <div class="fw">
-                                <input type="text" name="password" class="fc pw-mask" placeholder="••••••••" required minlength="8">
+                                <input type="text" name="password" class="fc pw-mask" placeholder="••••••••" required minlength="8" value="{{ old('password') }}">
                                 <label for="pwCheckModalNew" class="eye-btn">
                                     <i class="fas fa-eye"></i><i class="fas fa-eye-slash"></i>
                                 </label>
@@ -591,7 +600,7 @@
                         <div class="pw-field mb-3">
                             <input type="checkbox" class="pw-toggle-checkbox" id="pwCheckModalConfirm">
                             <div class="fw">
-                                <input type="text" name="password_confirmation" class="fc pw-mask" placeholder="••••••••" required>
+                                <input type="text" name="password_confirmation" class="fc pw-mask" placeholder="••••••••" required value="{{ old('password_confirmation') }}">
                                 <label for="pwCheckModalConfirm" class="eye-btn">
                                     <i class="fas fa-eye"></i><i class="fas fa-eye-slash"></i>
                                 </label>

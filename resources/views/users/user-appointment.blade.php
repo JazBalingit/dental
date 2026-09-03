@@ -65,6 +65,11 @@
                                             </a>
                                         </li>
                                         <li>
+                                            <a class="dropdown-item small" href="{{ route('myRecords') }}">
+                                                <i class="bi bi-folder2-open me-2"></i>My Dental Records
+                                            </a>
+                                        </li>
+                                        <li>
                                             <a class="dropdown-item small" href="{{ route('settings') }}">
                                                 <i class="bi bi-gear me-2"></i>Settings
                                             </a>
@@ -107,6 +112,7 @@
             <div class="subnav-inner">
                 <a href="{{ route('userAppointment') }}" class="subnav-link active"><i
                         class="fas fa-calendar-check"></i>Appointments</a>
+                <a href="{{ route('myRecords') }}" class="subnav-link"><i class="fas fa-folder-open"></i>My Records</a>
                 <a href="{{ route('settings') }}" class="subnav-link"><i class="fas fa-gear"></i>
                     Settings</a>
             </div>

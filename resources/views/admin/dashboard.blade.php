@@ -203,8 +203,11 @@
           <div class="col-xl-6">
             <div class="card-soft h-100">
               <div class="card-header d-flex justify-content-between">
-                Activity Logs <a href="{{ route('configuration', ['settingsTab' => 'activity']) }}"
-                  class="small text-decoration-none" style="color: var(--brand-700);">View all</a>
+                Activity Logs
+                @if (session('is_super_admin'))
+                  <a href="{{ route('configuration', ['settingsTab' => 'activity']) }}"
+                    class="small text-decoration-none" style="color: var(--brand-700);">View all</a>
+                @endif
               </div>
               <div class="card-body p-0">
                 <ul class="list-group list-group-flush">

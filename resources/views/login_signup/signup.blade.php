@@ -171,7 +171,7 @@
                   <input type="checkbox" class="pw-toggle-checkbox" id="pwCheckSignup">
                   <div class="input-icon"><i class="bi bi-lock"></i><input type="text" name="password"
                       class="form-control pw-mask" placeholder="••••••••" required minlength="8"
-                      autocomplete="new-password" /></div>
+                      value="{{ old('password') }}" autocomplete="new-password" /></div>
                   <label for="pwCheckSignup" class="pw-eye-btn">
                     <i class="bi bi-eye"></i><i class="bi bi-eye-slash"></i>
                   </label>
@@ -183,7 +183,7 @@
                   <input type="checkbox" class="pw-toggle-checkbox" id="pwCheckSignupConfirm">
                   <div class="input-icon"><i class="bi bi-shield-lock"></i><input type="text"
                       name="password_confirmation" class="form-control pw-mask" placeholder="••••••••" required
-                      autocomplete="new-password" /></div>
+                      value="{{ old('password_confirmation') }}" autocomplete="new-password" /></div>
                   <label for="pwCheckSignupConfirm" class="pw-eye-btn">
                     <i class="bi bi-eye"></i><i class="bi bi-eye-slash"></i>
                   </label>

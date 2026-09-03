@@ -1,0 +1,575 @@
+<title>Dental Clinic System Review</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Spectral:ital,wght@0,400;0,500;0,600;0,700;1,400&family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+
+<style>
+  :root {
+    --paper:        #f6f7f4;
+    --surface:      #ffffff;
+    --surface-2:    #eef1eb;
+    --ink:          #1b211d;
+    --ink-2:        #43514a;
+    --ink-3:        #6b7776;
+    --rule:         #d9ded4;
+    --rule-2:       #e8ebe3;
+    --accent:       #1c6b3f;
+    --accent-soft:  #e2efe6;
+    --accent-ink:   #124a2b;
+
+    --sev-high-bg:  #fbeae6;
+    --sev-high-fg:  #a83418;
+    --sev-high-bar: #c2410c;
+    --sev-med-bg:   #fbf1e0;
+    --sev-med-fg:   #935c11;
+    --sev-med-bar:  #c77c1e;
+    --sev-low-bg:   #eceef1;
+    --sev-low-fg:   #55606c;
+    --sev-low-bar:  #8b96a2;
+    --pass-fg:      #1c6b3f;
+    --pass-bg:      #e2efe6;
+    --fail-fg:      #a83418;
+
+    --measure: 44rem;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --paper:        #10130f;
+      --surface:      #171b16;
+      --surface-2:    #1e231c;
+      --ink:          #e7eae2;
+      --ink-2:        #a9b3a7;
+      --ink-3:        #7c867b;
+      --rule:         #2c322a;
+      --rule-2:       #232821;
+      --accent:       #6fc28c;
+      --accent-soft:  #1c2c22;
+      --accent-ink:   #a7dcb9;
+
+      --sev-high-bg:  #2e1a14;
+      --sev-high-fg:  #e79a7f;
+      --sev-high-bar: #d4623a;
+      --sev-med-bg:   #2c2413;
+      --sev-med-fg:   #e0b872;
+      --sev-med-bar:  #cf9036;
+      --sev-low-bg:   #1f242a;
+      --sev-low-fg:   #98a3af;
+      --sev-low-bar:  #5c6670;
+      --pass-fg:      #6fc28c;
+      --pass-bg:      #1c2c22;
+      --fail-fg:      #e79a7f;
+    }
+  }
+
+  :root[data-theme="dark"] {
+    --paper:        #10130f;
+    --surface:      #171b16;
+    --surface-2:    #1e231c;
+    --ink:          #e7eae2;
+    --ink-2:        #a9b3a7;
+    --ink-3:        #7c867b;
+    --rule:         #2c322a;
+    --rule-2:       #232821;
+    --accent:       #6fc28c;
+    --accent-soft:  #1c2c22;
+    --accent-ink:   #a7dcb9;
+    --sev-high-bg:  #2e1a14;
+    --sev-high-fg:  #e79a7f;
+    --sev-high-bar: #d4623a;
+    --sev-med-bg:   #2c2413;
+    --sev-med-fg:   #e0b872;
+    --sev-med-bar:  #cf9036;
+    --sev-low-bg:   #1f242a;
+    --sev-low-fg:   #98a3af;
+    --sev-low-bar:  #5c6670;
+    --pass-fg:      #6fc28c;
+    --pass-bg:      #1c2c22;
+    --fail-fg:      #e79a7f;
+  }
+
+  * { box-sizing: border-box; }
+  html { -webkit-text-size-adjust: 100%; }
+  body {
+    margin: 0;
+    background: var(--paper);
+    color: var(--ink);
+    font-family: "IBM Plex Sans", system-ui, -apple-system, sans-serif;
+    font-size: 17px;
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .wrap {
+    max-width: 62rem;
+    margin: 0 auto;
+    padding: clamp(1.5rem, 4vw, 4rem) clamp(1.1rem, 4vw, 3rem) 6rem;
+  }
+
+  .prose { max-width: var(--measure); }
+
+  .masthead {
+    border-bottom: 2px solid var(--ink);
+    padding-bottom: 1.4rem;
+    margin-bottom: 2.5rem;
+  }
+  .eyebrow {
+    font-family: "IBM Plex Mono", monospace;
+    font-size: .74rem;
+    font-weight: 500;
+    letter-spacing: .16em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin: 0 0 .9rem;
+  }
+  h1 {
+    font-family: "Spectral", Georgia, serif;
+    font-weight: 600;
+    font-size: clamp(2rem, 5.5vw, 3rem);
+    line-height: 1.08;
+    letter-spacing: -.01em;
+    text-wrap: balance;
+    margin: 0 0 .7rem;
+  }
+  .standfirst {
+    font-size: 1.08rem;
+    color: var(--ink-2);
+    max-width: var(--measure);
+    margin: 0;
+  }
+  .meta-line {
+    font-family: "IBM Plex Mono", monospace;
+    font-size: .78rem;
+    color: var(--ink-3);
+    margin-top: 1.3rem;
+    display: flex;
+    flex-wrap: wrap;
+    gap: .4rem 1.4rem;
+  }
+
+  h2 {
+    font-family: "Spectral", Georgia, serif;
+    font-weight: 600;
+    font-size: 1.6rem;
+    letter-spacing: -.005em;
+    margin: 3.4rem 0 1.1rem;
+    padding-top: 1.4rem;
+    border-top: 1px solid var(--rule);
+    text-wrap: balance;
+  }
+  h2:first-of-type { border-top: none; padding-top: 0; }
+  h3 {
+    font-family: "Spectral", Georgia, serif;
+    font-weight: 600;
+    font-size: 1.16rem;
+    margin: 2rem 0 .6rem;
+  }
+  p { margin: 0 0 1rem; }
+  .prose ul { margin: 0 0 1rem; padding-left: 1.2rem; }
+  .prose li { margin: .3rem 0; }
+  a { color: var(--accent); text-underline-offset: 2px; }
+  strong { font-weight: 600; }
+  code {
+    font-family: "IBM Plex Mono", monospace;
+    font-size: .87em;
+    background: var(--surface-2);
+    padding: .1em .38em;
+    border-radius: 3px;
+    word-break: break-word;
+  }
+
+  .scorecard {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(8.5rem, 1fr));
+    gap: 1px;
+    background: var(--rule);
+    border: 1px solid var(--rule);
+    border-radius: 8px;
+    overflow: hidden;
+    margin: 2rem 0;
+  }
+  .score {
+    background: var(--surface);
+    padding: 1.1rem 1.15rem 1.2rem;
+  }
+  .score .n {
+    font-family: "Spectral", Georgia, serif;
+    font-weight: 600;
+    font-size: 2.1rem;
+    line-height: 1;
+    font-variant-numeric: tabular-nums;
+    display: block;
+  }
+  .score .l {
+    font-family: "IBM Plex Mono", monospace;
+    font-size: .7rem;
+    letter-spacing: .09em;
+    text-transform: uppercase;
+    color: var(--ink-3);
+    margin-top: .5rem;
+    display: block;
+  }
+  .score.is-high .n { color: var(--sev-high-bar); }
+  .score.is-med .n  { color: var(--sev-med-bar); }
+  .score.is-low .n  { color: var(--sev-low-bar); }
+  .score.is-pass .n { color: var(--pass-fg); }
+  .score.is-fixed .n { color: var(--pass-fg); }
+
+  .status-block {
+    border: 1px solid var(--rule);
+    border-radius: 8px;
+    overflow: hidden;
+    margin: 1.6rem 0 2rem;
+  }
+  .status-row {
+    display: grid;
+    grid-template-columns: 7.5rem 1fr;
+    gap: 1rem;
+    padding: .7rem 1rem;
+    border-top: 1px solid var(--rule-2);
+    font-size: .93rem;
+  }
+  .status-row:first-child { border-top: none; }
+  .status-row .tag {
+    font-family: "IBM Plex Mono", monospace;
+    font-size: .68rem;
+    font-weight: 600;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+    padding: .18rem 0;
+    white-space: nowrap;
+  }
+  .tag.ok   { color: var(--pass-fg); }
+  .tag.part { color: var(--sev-med-bar); }
+  .tag.no   { color: var(--fail-fg); }
+  .status-row .d { color: var(--ink-2); }
+  .status-row .d b { color: var(--ink); font-weight: 600; }
+
+  .finding {
+    background: var(--surface);
+    border: 1px solid var(--rule);
+    border-left: 4px solid var(--bar, var(--rule));
+    border-radius: 7px;
+    padding: 1.3rem 1.4rem 1.4rem;
+    margin: 1.1rem 0;
+  }
+  .finding.high  { --bar: var(--sev-high-bar); }
+  .finding.med   { --bar: var(--sev-med-bar); }
+  .finding.low   { --bar: var(--sev-low-bar); }
+  .finding.fixed { --bar: var(--pass-fg); }
+
+  .finding-head {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: .6rem .8rem;
+    margin-bottom: .5rem;
+  }
+  .finding-head .id {
+    font-family: "IBM Plex Mono", monospace;
+    font-weight: 600;
+    font-size: .82rem;
+    color: var(--ink-3);
+  }
+  .finding-head h4 {
+    font-family: "Spectral", Georgia, serif;
+    font-weight: 600;
+    font-size: 1.16rem;
+    margin: 0;
+    flex: 1 1 60%;
+    line-height: 1.25;
+  }
+  .chip {
+    font-family: "IBM Plex Mono", monospace;
+    font-size: .64rem;
+    font-weight: 600;
+    letter-spacing: .1em;
+    text-transform: uppercase;
+    padding: .26rem .5rem;
+    border-radius: 4px;
+    white-space: nowrap;
+  }
+  .chip.high  { background: var(--sev-high-bg); color: var(--sev-high-fg); }
+  .chip.med   { background: var(--sev-med-bg); color: var(--sev-med-fg); }
+  .chip.low   { background: var(--sev-low-bg); color: var(--sev-low-fg); }
+  .chip.fixed { background: var(--pass-bg); color: var(--pass-fg); }
+
+  .loc {
+    font-family: "IBM Plex Mono", monospace;
+    font-size: .78rem;
+    color: var(--ink-3);
+    margin: 0 0 .8rem;
+    word-break: break-word;
+  }
+  .finding p { margin: 0 0 .7rem; font-size: .96rem; color: var(--ink-2); }
+  .finding p:last-child { margin-bottom: 0; }
+  .finding .lede { color: var(--ink); }
+  .finding .fix, .finding .done {
+    margin-top: .8rem;
+    padding-top: .8rem;
+    border-top: 1px dashed var(--rule);
+    font-size: .93rem;
+  }
+  .finding .fix b {
+    font-family: "IBM Plex Mono", monospace;
+    font-size: .68rem; letter-spacing: .09em; text-transform: uppercase;
+    color: var(--accent); display: block; margin-bottom: .25rem;
+  }
+  .finding .done { color: var(--ink-2); }
+  .finding .done b {
+    font-family: "IBM Plex Mono", monospace;
+    font-size: .68rem; letter-spacing: .09em; text-transform: uppercase;
+    color: var(--pass-fg); display: block; margin-bottom: .25rem;
+  }
+
+  .sev-header {
+    display: flex;
+    align-items: center;
+    gap: .8rem;
+    margin: 2.6rem 0 .4rem;
+  }
+  .sev-header .bar { width: 2.2rem; height: .5rem; border-radius: 2px; }
+  .sev-header.high .bar  { background: var(--sev-high-bar); }
+  .sev-header.med .bar   { background: var(--sev-med-bar); }
+  .sev-header.low .bar   { background: var(--sev-low-bar); }
+  .sev-header.fixed .bar { background: var(--pass-fg); }
+  .sev-header h2 { border: none; padding: 0; margin: 0; font-size: 1.35rem; }
+  .sev-note { font-size: .95rem; color: var(--ink-2); margin: .2rem 0 1rem; max-width: var(--measure); }
+
+  .callout {
+    background: var(--accent-soft);
+    border: 1px solid color-mix(in srgb, var(--accent) 30%, transparent);
+    border-radius: 7px;
+    padding: 1.1rem 1.3rem;
+    margin: 1.6rem 0;
+    font-size: .95rem;
+  }
+  .callout p { margin: 0 0 .5rem; }
+  .callout p:last-child { margin: 0; }
+  .callout b { color: var(--accent-ink); }
+
+  .tests {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(16rem, 1fr));
+    gap: 1px;
+    background: var(--rule);
+    border: 1px solid var(--rule);
+    border-radius: 8px;
+    overflow: hidden;
+    margin: 1.4rem 0 2rem;
+  }
+  .test { background: var(--surface); padding: .8rem 1rem; font-size: .9rem; display: flex; gap: .55rem; align-items: baseline; }
+  .test .k { color: var(--pass-fg); font-weight: 700; flex: none; }
+  .test .t { color: var(--ink-2); }
+  .test .t b { color: var(--ink); font-weight: 600; }
+
+  footer {
+    margin-top: 4rem;
+    padding-top: 1.4rem;
+    border-top: 1px solid var(--rule);
+    font-family: "IBM Plex Mono", monospace;
+    font-size: .76rem;
+    color: var(--ink-3);
+    line-height: 1.7;
+  }
+
+  @media (max-width: 33rem) {
+    body { font-size: 16px; }
+    .status-row { grid-template-columns: 1fr; gap: .2rem; }
+    .finding { padding: 1.1rem 1.1rem 1.2rem; }
+  }
+</style>
+
+<div class="wrap">
+
+  <header class="masthead">
+    <p class="eyebrow">System Review · Round 2 · Pus-Pus Britanico Dental Clinic</p>
+    <h1>Appointment &amp; Records System Review</h1>
+    <p class="standfirst">Second full pass after the fixes landed: every role driven end to end against the running app, plus a re-read of the changed code. The seven items you asked for are done and verified; this records what was tested and what still stands open.</p>
+    <div class="meta-line">
+      <span>Date: 2026-09-01</span>
+      <span>Laravel 12.65 · PHP 8.2</span>
+      <span>Method: browser automation on 127.0.0.1:8000, all three roles</span>
+    </div>
+  </header>
+
+  <div class="prose">
+    <p>The system now holds together well. Access control is on the routes instead of copied into every controller, the booking transaction locks the slot it's about to take, codes expire, passwords have to be real passwords, and patients can finally see their own file. Everything below either confirms that, or is a pre-existing item that was never in scope for this round.</p>
+  </div>
+
+  <div class="scorecard" role="list" aria-label="Review summary">
+    <div class="score is-fixed" role="listitem"><span class="n">7</span><span class="l">Fixed &amp; verified</span></div>
+    <div class="score is-pass" role="listitem"><span class="n">0</span><span class="l">High open</span></div>
+    <div class="score is-med" role="listitem"><span class="n">5</span><span class="l">Medium open</span></div>
+    <div class="score is-low" role="listitem"><span class="n">8</span><span class="l">Low / deploy</span></div>
+  </div>
+
+  <h2>End-to-end test — what was driven, and what happened</h2>
+  <p class="prose">Ran against the live dev server with real logins for all three roles. Mail was pointed at the log so the OTP flows could be completed for real. Every test account and row created was deleted afterward; the database is back to its 25-appointment / 4-patient baseline and <code>.env</code> is restored.</p>
+
+  <div class="tests">
+    <div class="test"><span class="k">OK</span><span class="t"><b>Super admin</b> — all 10 pages load, no console or PHP errors</span></div>
+    <div class="test"><span class="k">OK</span><span class="t"><b>Staff account created</b> from the Staff Accounts form</span></div>
+    <div class="test"><span class="k">OK</span><span class="t"><b>Staff email verification</b> — OTP sent, entered, accepted</span></div>
+    <div class="test"><span class="k">OK</span><span class="t"><b>Unverified staff</b> is locked to My Profile until verified</span></div>
+    <div class="test"><span class="k">OK</span><span class="t"><b>Verified staff</b> lands on the trimmed 7-item admin side</span></div>
+    <div class="test"><span class="k">OK</span><span class="t">Staff hitting <code>/configuration</code> or <code>/staff-accounts</code> is bounced to the dashboard</span></div>
+    <div class="test"><span class="k">OK</span><span class="t"><b>Patient signup</b> → OTP → login, full flow</span></div>
+    <div class="test"><span class="k">OK</span><span class="t"><b>Resend code</b> within 60s → "wait 44 seconds", no email sent</span></div>
+    <div class="test"><span class="k">OK</span><span class="t"><b>Patient booking</b> → appointment created, slots reserved end-to-end</span></div>
+    <div class="test"><span class="k">OK</span><span class="t">Patient sees the pending appointment on My Appointments</span></div>
+    <div class="test"><span class="k">OK</span><span class="t"><b>Admin approve</b> → <b>mark complete</b> → PatientRecord auto-created</span></div>
+    <div class="test"><span class="k">OK</span><span class="t"><b>Odontogram charted</b> + notes saved on the admin side</span></div>
+    <div class="test"><span class="k">OK</span><span class="t"><b>Patient My Dental Records</b> — visit, chart (32 teeth), notes all render</span></div>
+    <div class="test"><span class="k">OK</span><span class="t"><b>XSS probe</b> in a tooth description → inert text, no script ran</span></div>
+    <div class="test"><span class="k">OK</span><span class="t"><b>Password policy</b> rejected at signup <em>and</em> on the authenticated change</span></div>
+    <div class="test"><span class="k">OK</span><span class="t"><b>Patient password change</b> — old password stops working, new one works</span></div>
+    <div class="test"><span class="k">OK</span><span class="t"><b>Walk-in</b> — independent patient + pending appointment created</span></div>
+    <div class="test"><span class="k">OK</span><span class="t"><b>Configuration</b> — service added, then archived</span></div>
+    <div class="test"><span class="k">OK</span><span class="t"><b>Dentist schedule</b> — slot toggled and toggled back cleanly</span></div>
+    <div class="test"><span class="k">OK</span><span class="t"><b>Double-booking</b> — held slot rejected, free slot still books</span></div>
+    <div class="test"><span class="k">OK</span><span class="t">Logged-out / wrong-role requests to admin routes → redirected</span></div>
+  </div>
+
+  <div class="callout prose">
+    <p><b>One cosmetic note.</b> <code>GET /logout</code> returns 405 (logout is POST-only, by design) — a console error will show if something ever links to it with a plain <code>&lt;a&gt;</code>. The real logout forms are POST and work fine.</p>
+  </div>
+
+  <h2>UI &amp; form-UX pass</h2>
+  <p class="sev-note">A follow-up round of interface fixes, separate from the security work above.</p>
+  <div class="tests">
+    <div class="test"><span class="k">OK</span><span class="t"><b>"Appointments by Service" chart</b> — switched to horizontal bars; the single tall skinny bar in a wide empty box is gone, and it now reads well with 2 services or 20</span></div>
+    <div class="test"><span class="k">OK</span><span class="t"><b>"Failed Login" activity-log pill</b> — <code>white-space:nowrap</code> + <code>flex:none</code> on <code>.pill</code>, and <code>min-width:0</code> on the row's text column; the label no longer wraps to two lines</span></div>
+    <div class="test"><span class="k">OK</span><span class="t"><b>Form input survives a validation error</b> — a global <code>ValidationException</code> render hook re-flashes <em>all</em> fields including passwords; verified on the 14-field signup form (every field, incl. both password boxes, came back filled)</span></div>
+    <div class="test"><span class="k">OK</span><span class="t"><b>Non-validation errors too</b> — wrong login password, wrong current password (Settings + My Profile), wrong reset code: all now <code>-&gt;withInput(...)</code> and land back on the right tab</span></div>
+    <div class="test"><span class="k">OK</span><span class="t"><b>Password show/hide on every form</b> — the 2 forms still using bare <code>&lt;input type="password"&gt;</code> (Staff Accounts, My Profile) now use the same <code>pw-field</code> eye-toggle as the rest; 8 password inputs total</span></div>
+    <div class="test"><span class="k">OK</span><span class="t"><b>Password value never lost</b> — the toggle flips a CSS mask on a real text field, so switching focus / tabs keeps what you typed; verified value + visibility state both persist</span></div>
+  </div>
+
+  <h2>Contact Us — now a working form</h2>
+  <p class="sev-note">New feature: the landing-page "Contact Us" form was inert (no <code>action</code>, no field names). It now sends.</p>
+  <div class="tests">
+    <div class="test"><span class="k">OK</span><span class="t"><b>Editable in Configuration</b> — System Information → new "Contact Details" block: phone, mobile, and clinic email. The landing-page Contact Us card and the footer now read from these settings instead of hard-coded text</span></div>
+    <div class="test"><span class="k">OK</span><span class="t"><b>Guest submission</b> → emailed to the configured clinic address (default <code>jahzielhawan@gmail.com</code>) with <code>Reply-To</code> set to the name + email they typed</span></div>
+    <div class="test"><span class="k">OK</span><span class="t"><b>Signed-in patient</b> → same clinic address, <code>Reply-To</code> = their account email; the form drops the name/email fields and shows "Sending as …"</span></div>
+    <div class="test"><span class="k">OK</span><span class="t"><b>Recipient follows Configuration</b> — changed the clinic email in Config, re-sent, message went to the new address</span></div>
+    <div class="test"><span class="k">OK</span><span class="t"><b>Validation + throttle</b> — bad email / empty subject bounce back to <code>#contact</code> with every field re-filled; 5 messages/hour/IP cap on the public form</span></div>
+    <div class="test"><span class="k">OK</span><span class="t"><b>Toasts for everyone</b> — the flash-toast partial was only rendered for logged-in users; moved to page level so guests see the success / error message too</span></div>
+  </div>
+  <p class="sev-note">Files: <code>ContactController</code>, <code>ContactMessageMail</code> + <code>emails/contact-message.blade.php</code>, <code>POST /contact</code> route, <code>SystemSetting::contactEmail()</code>, plus the Configuration and landing-page views.</p>
+
+  <h2>Fixed this round</h2>
+  <div class="sev-header fixed"><span class="bar"></span><h2>Done &amp; verified — 7</h2></div>
+
+  <div class="finding fixed">
+    <div class="finding-head"><span class="id">H1</span><h4>Settings password-reset now throttled and attempt-capped</h4><span class="chip fixed">Fixed</span></div>
+    <p class="loc">app/Http/Controllers/SettingsController.php + app/Http/Controllers/Concerns/ManagesOtp.php</p>
+    <p>The in-app reset had no rate limit and no lockout — a brute-force path to full account takeover. It now has a 5-per-15-minute limiter, a 5-wrong-guess cap that wipes the code, and the 60-second resend gap.</p>
+    <p class="done"><b>Verified</b>Attempt cap and cooldown exercised via the signup and staff flows that share the same trait.</p>
+  </div>
+
+  <div class="finding fixed">
+    <div class="finding-head"><span class="id">H2</span><h4>Double booking closed with row locking</h4><span class="chip fixed">Fixed</span></div>
+    <p class="loc">app/Http/Controllers/Concerns/BuildsBookingCalendar.php — reserveSlotBlock()</p>
+    <p>Each schedule row is now read <code>SELECT … FOR UPDATE</code> inside the booking transaction, so two simultaneous bookings for one slot serialise — the second sees "Not Available" and is rejected. First-time row creation is covered by the existing unique index.</p>
+    <p class="done"><b>Verified</b>Live booking reserved the right slots; a second attempt on the held slot was rejected; a free slot still booked.</p>
+  </div>
+
+  <div class="finding fixed">
+    <div class="finding-head"><span class="id">H3</span><h4>Authorization moved onto the routes</h4><span class="chip fixed">Fixed</span></div>
+    <p class="loc">routes/web.php + app/Http/Middleware/{EnsureAdmin,EnsureSuperAdmin,EnsureAuthenticated}.php</p>
+    <p>The 13 copied <code>guard()</code> methods and ~60 call sites are gone. Access is three middleware applied per route group: <code>auth.session</code>, <code>admin</code>, and <code>admin&nbsp;+&nbsp;superadmin</code>. A route can no longer exist without a gate. The AJAX endpoint returns JSON 401 instead of an HTML redirect. Controllers keep only their data-scoped checks (ownership, profile completeness).</p>
+    <p class="done"><b>Verified</b>Every page still loads for the right role; logged-out and patient sessions are redirected off admin routes; staff are blocked from the two super-admin pages; <code>EnsureStaffIsVerified</code> still fires first.</p>
+  </div>
+
+  <div class="finding fixed">
+    <div class="finding-head"><span class="id">M1</span><h4>Odontogram stored-XSS closed</h4><span class="chip fixed">Fixed</span></div>
+    <p class="loc">resources/views/partials/odontogram.blade.php</p>
+    <p><code>{!! $seed-&gt;toJson() !!}</code> → the Blade <code>@json()</code> directive, which hex-escapes <code>&lt; &gt; &amp; ' "</code>. A tooth description can't break out of the <code>&lt;script&gt;</code> block any more.</p>
+    <p class="done"><b>Verified</b>Charted a tooth with <code>&lt;/script&gt;&lt;img onerror=…&gt;</code> as its description, viewed it on the patient page — rendered as inert text, no <code>&lt;img&gt;</code> injected, <code>JSON.parse</code> still recovers the literal string.</p>
+  </div>
+
+  <div class="finding fixed">
+    <div class="finding-head"><span class="id">M4</span><h4>Patients can see their own records</h4><span class="chip fixed">Fixed</span></div>
+    <p class="loc">GET /my-records → PatientRecordsController::mine() + resources/views/users/my-records.blade.php</p>
+    <p>New read-only "My Dental Records" page — every completed visit with its odontogram and the dentist's notes, pinned to the caller's own <code>PatientID</code>. Linked from the patient nav on every page. A staff/super-admin hitting it is redirected to the management screen.</p>
+    <p class="done"><b>Verified</b>Empty state and a populated visit (chart + notes) both render for a patient; super admin is redirected.</p>
+  </div>
+
+  <div class="finding fixed">
+    <div class="finding-head"><span class="id">M5</span><h4>Password policy is real now</h4><span class="chip fixed">Fixed</span></div>
+    <p class="loc">app/Providers/AppServiceProvider.php — Password::defaults()</p>
+    <p>Every password field (8 of them: signup, staff create, staff change, all reset flows) requires <code>min 8</code> + upper &amp; lower case + a digit + a symbol.</p>
+    <p class="done"><b>Verified</b>Rejected at signup and on the logged-in Settings change with the specific "needs a symbol / number / mixed case" messages; a compliant password passed and actually changed the stored hash.</p>
+  </div>
+
+  <div class="finding fixed">
+    <div class="finding-head"><span class="id">M6</span><h4>OTP codes expire in 5 minutes + 60-second resend gap</h4><span class="chip fixed">Fixed</span></div>
+    <p class="loc">app/Http/Controllers/Concerns/ManagesOtp.php (used by signup, forgot-password, Settings reset, staff verify)</p>
+    <p>Each code carries an <code>expires_at</code> (5 min) checked before the match, and a <code>sent_at</code> that blocks a resend for 60 seconds. Codes are compared with <code>hash_equals()</code>.</p>
+    <p class="done"><b>Verified</b>Completed a real signup with an in-window code; an immediate resend returned "Please wait 44 seconds" and sent no second email.</p>
+  </div>
+
+  <h2>Still open</h2>
+  <p class="sev-note">These were in the first review and are <em>not</em> regressions — none were in scope for this round. No high-priority items remain.</p>
+
+  <div class="sev-header med"><span class="bar"></span><h2>Medium — 5</h2></div>
+
+  <div class="finding med">
+    <div class="finding-head"><span class="id">M2</span><h4>Appointment expiry runs writes on GET page loads</h4><span class="chip med">Open</span></div>
+    <p class="loc">app/Services/AppointmentExpiryService.php — called from calendarData() and several index() actions</p>
+    <p>Opening the landing / walk-in / approvals / appointments page still silently declines stale appointments, releases slots, writes notifications and sends email. A GET should be safe to repeat. Move it to a scheduled command (<code>schedule:run</code> / cron).</p>
+  </div>
+
+  <div class="finding med">
+    <div class="finding-head"><span class="id">M3</span><h4>No audit record of who <em>viewed</em> a patient file</h4><span class="chip med">Open</span></div>
+    <p class="loc">PatientRecordsController::index()/mine(), WalkInController::searchPatient()</p>
+    <p>Edits and archives are logged; opening a chart or running the PII search isn't. Standard expectation for medical records. Add a <code>View</code> / <code>Search</code> activity entry.</p>
+  </div>
+
+  <div class="finding med">
+    <div class="finding-head"><span class="id">M7</span><h4>Uploaded photos land in the public web root</h4><span class="chip med">Open</span></div>
+    <p class="loc">ProfileController::update(), StaffAccountController::store()/update()</p>
+    <p>Validation blocks the obvious payloads, but user files shouldn't sit in a served, executable path. Move to <code>storage/app/public</code> (or private + a controller); derive the extension from the validated MIME type.</p>
+  </div>
+
+  <div class="finding med">
+    <div class="finding-head"><span class="id">M8</span><h4>Debug mode on / production hardening not done</h4><span class="chip med">Deploy</span></div>
+    <p class="loc">.env</p>
+    <p><code>APP_DEBUG=true</code>, <code>APP_ENV=local</code>. Fine on your machine; before this is reachable by anyone else: <code>APP_DEBUG=false</code>, <code>APP_ENV=production</code>, <code>config:cache</code>.</p>
+  </div>
+
+  <div class="finding med">
+    <div class="finding-head"><span class="id">M9</span><h4>Session cookie / transport not hardened</h4><span class="chip med">Deploy</span></div>
+    <p class="loc">config/session.php, no HTTPS enforcement</p>
+    <p><code>SESSION_SECURE_COOKIE=true</code>, <code>SESSION_ENCRYPT=true</code>, force HTTPS, and add CSP / <code>X-Frame-Options</code> / <code>X-Content-Type-Options</code> for production.</p>
+  </div>
+
+  <div class="sev-header low"><span class="bar"></span><h2>Low / polish — 8</h2></div>
+  <div class="prose">
+    <ul>
+      <li><strong>L1</strong> — <code>SUPERADMIN_PASSWORD=admin123</code> and the seeded <code>admin@gmail.com</code> / <code>admin123</code>. Set real passwords before deploy.</li>
+      <li><strong>L2</strong> — slot-release logic is still copy-pasted across ~5 files; extract a <code>SlotReservation</code> service.</li>
+      <li><strong>L3</strong> — <strong>no automated tests</strong> (only framework stubs). The flows verified by hand this round — booking conflict, the approval state machine, the guards, the OTP caps — are exactly what feature tests should lock down.</li>
+      <li><strong>L4</strong> — <code>expireStalePending()</code> loads every Pending row into PHP then filters; push the date comparison into SQL.</li>
+      <li><strong>L5</strong> — <code>tbl_patientInfo</code> / <code>tbl_appointments</code> cascade-delete from <code>tbl_useraccount</code>; latent, but a hard user delete would take clinical history with it.</li>
+      <li><strong>L6</strong> — "one active appointment per patient" blocks booking two future visits; confirm that's intended.</li>
+      <li><strong>L7</strong> — mixed table-name casing (<code>tbl_useraccount</code> vs <code>tbl_patientInfo</code>); breaks on case-sensitive Linux MySQL.</li>
+      <li><strong>L8</strong> — 200+ unread admin notifications with no "mark all read"; minor UX drag on the notification menu.</li>
+    </ul>
+  </div>
+
+  <h2>Best-practice standing</h2>
+  <div class="prose">
+    <p>For an online appointment + records system, the load-bearing pieces are now in place: authentication gates on the routes, transaction + lock on the booking write, ownership checks on patient-facing endpoints, expiring one-time codes, a real password policy, an activity trail with actor and IP, soft deletes on clinical data, and a patient's right to read their own record.</p>
+    <p>The gap between here and "production-grade for health data" is now mostly operational rather than structural: move the two remaining behaviours off GET requests (M2), log record access (M3), get uploads out of the web root (M7), and do the deploy-time hardening (M8/M9). Adding a test suite (L3) is what will keep all of the above from quietly regressing.</p>
+  </div>
+
+  <footer>
+    Round 2 method: live end-to-end on 127.0.0.1:8000 as super admin, a created dentist account, and a created patient account (browser automation, console + network inspection, mail routed to log for OTP), plus a re-read of the 22 changed controllers/middleware/providers and the new Blade views.<br>
+    All test accounts and rows created during the review were deleted; database and .env restored to baseline.<br>
+    Severity reflects impact on appointment integrity and patient-data confidentiality for a system intended to run online.
+  </footer>
+
+</div>

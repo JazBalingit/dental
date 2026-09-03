@@ -51,7 +51,10 @@
     .report-stat .label { font-size: .75rem; color: var(--ink-500); font-weight: 600; text-transform: uppercase; letter-spacing: .02em; }
     .report-stat .value { font-family: 'Poppins', sans-serif; font-size: 1.4rem; color: var(--ink-900); font-weight: 700; }
     .report-chart { display: flex; flex-direction: column; gap: .5rem; }
+    .report-subtitle { font-size: .8rem; font-weight: 700; color: var(--ink-700); text-transform: uppercase; letter-spacing: .03em; margin: 1.1rem 0 .55rem; }
     .report-bar-row { display: grid; grid-template-columns: 90px 1fr 40px; align-items: center; gap: .65rem; font-size: .82rem; }
+    .report-chart.wide .report-bar-row { grid-template-columns: 150px 1fr 96px; }
+    .report-bar-note { color: var(--ink-500); font-weight: 500; font-size: .74rem; white-space: nowrap; }
     .report-bar-track { background: var(--ink-100); border-radius: 999px; height: 10px; overflow: hidden; }
     .report-bar-fill { background: linear-gradient(90deg, var(--brand-700), var(--brand-500)); height: 100%; border-radius: 999px; }
     .report-bar-label { color: var(--ink-700); font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
@@ -208,6 +211,7 @@
           </div>
 
           @if (!empty($scheduleBreakdown))
+            <div class="report-subtitle">Slots by Status</div>
             <div class="report-chart mb-3">
               @foreach ($scheduleBreakdown as $row)
                 <div class="report-bar-row">
@@ -219,19 +223,33 @@
             </div>
           @endif
 
+          @if (!empty($scheduleByDentist))
+            <div class="report-subtitle">Slots by Dentist</div>
+            <div class="report-chart wide mb-3">
+              @foreach ($scheduleByDentist as $row)
+                <div class="report-bar-row">
+                  <div class="report-bar-label">{{ $row['label'] }}</div>
+                  <div class="report-bar-track"><div class="report-bar-fill" style="width: {{ $row['pct'] }}%"></div></div>
+                  <div class="report-bar-value">{{ $row['count'] }} <span class="report-bar-note">({{ $row['booked'] }} booked)</span></div>
+                </div>
+              @endforeach
+            </div>
+          @endif
+
           @if (isset($scheduleList))
             @if ($scheduleList->isEmpty())
               <div class="report-empty">No schedule slots found for this range.</div>
             @else
               <table class="report-table">
                 <thead>
-                  <tr><th>Date</th><th>Time</th><th>Status</th></tr>
+                  <tr><th>Date</th><th>Time</th><th>Dentist</th><th>Status</th></tr>
                 </thead>
                 <tbody>
                   @foreach ($scheduleList as $s)
                     <tr>
                       <td>{{ optional($s->Date)->format('M j, Y') }}</td>
                       <td>{{ $s->Time }}</td>
+                      <td>{{ $s->dentist_name }}</td>
                       <td><span class="pill-mini {{ $statusPill($s->Status) }}">{{ $s->Status }}</span></td>
                     </tr>
                   @endforeach

@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Http\Controllers\Concerns\RedirectsToPatientRecord;
 use App\Models\PatientRecord;
+use App\Models\UserAccount;
 use App\Services\ActivityLogService;
 use Illuminate\Http\Request;
 
@@ -15,21 +16,47 @@ class PatientRecordsController extends Controller
     {
     }
 
-    protected function guard()
+    // Staff-side access control is the 'admin' route middleware (routes/web.php).
+    // The patient-facing mine() action below is on the 'auth.session' group and
+    // scopes strictly to the caller's own PatientID.
+
+    /**
+     * A patient's read-only view of their OWN dental history — every
+     * completed visit, its treatment, the dentist's notes, and the
+     * odontogram charted that day. Never shows another patient's data:
+     * the query is pinned to the logged-in account's PatientID.
+     */
+    public function mine(Request $request)
     {
-        if (!session('user_id') || session('user_role') !== 'admin') {
-            return redirect()->route('login')->with('login_error', 'Please log in as an administrator to continue.');
+        $user = UserAccount::with('patientInfo')->find(session('user_id'));
+
+        // Staff / dentist / super-admin accounts have no patient file — send
+        // them to the full management screen instead.
+        if (!$user || !$user->patientInfo) {
+            if (session('user_role') === 'admin') {
+                return redirect()->route('patientRecords');
+            }
+            abort(403, 'Your patient profile is incomplete.');
         }
 
-        return null;
+        $patientId = $user->patientInfo->PatientID;
+
+        $records = PatientRecord::with(['service', 'odontogramTeeth', 'appointment.dentist.staffInfo'])
+            ->where('PatientID', $patientId)
+            ->where('IsArchived', false)
+            ->orderByDesc('VisitDate')
+            ->orderByDesc('VisitTime')
+            ->paginate(10)
+            ->withQueryString();
+
+        return view('users.my-records', [
+            'records' => $records,
+            'patientInfo' => $user->patientInfo,
+        ]);
     }
 
     public function index(Request $request)
     {
-        if ($redirect = $this->guard()) {
-            return $redirect;
-        }
-
         $search = $request->query('search');
 
         $activeQuery = PatientRecord::with(['patientInfo', 'service', 'odontogramTeeth'])->where('IsArchived', false);
@@ -49,7 +76,7 @@ class PatientRecordsController extends Controller
 
         $tab = $request->query('tab') === 'archived' ? 'archived' : 'active';
 
-        return view('superAdmin.patient-records', [
+        return $this->panelView('patient-records', [
             'records' => $activeQuery->orderByDesc('created_at')->paginate(10, ['*'], 'page')->withQueryString(),
             'archivedRecords' => $archivedQuery->orderByDesc('created_at')->paginate(10, ['*'], 'archived_page')->withQueryString(),
             'search' => $search,
@@ -59,10 +86,6 @@ class PatientRecordsController extends Controller
 
     public function updateNotes(Request $request, $id)
     {
-        if ($redirect = $this->guard()) {
-            return $redirect;
-        }
-
         $data = $request->validate([
             'notes' => 'nullable|string|max:2000',
         ]);
@@ -78,10 +101,6 @@ class PatientRecordsController extends Controller
 
     public function archive($id)
     {
-        if ($redirect = $this->guard()) {
-            return $redirect;
-        }
-
         $record = PatientRecord::with('patientInfo')->findOrFail($id);
         $record->update(['IsArchived' => true]);
 
@@ -93,10 +112,6 @@ class PatientRecordsController extends Controller
 
     public function unarchive($id)
     {
-        if ($redirect = $this->guard()) {
-            return $redirect;
-        }
-
         $record = PatientRecord::with('patientInfo')->findOrFail($id);
         $record->update(['IsArchived' => false]);
 

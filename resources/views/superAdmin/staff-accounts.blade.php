@@ -356,13 +356,23 @@
                         <div class="row g-3 mb-3">
                             <div class="col-md-6">
                                 <label class="form-label">Password</label>
-                                <div class="input-icon"><i class="bi bi-lock"></i><input type="password" name="password"
-                                        class="form-control" placeholder="••••••••" required minlength="8" /></div>
+                                <div class="pw-field">
+                                    <input type="checkbox" class="pw-toggle-checkbox" id="pwAddNew">
+                                    <div class="input-icon"><i class="bi bi-lock"></i><input type="text" name="password"
+                                            class="form-control pw-mask" placeholder="••••••••" required minlength="8"
+                                            value="{{ $addFailed ? old('password') : '' }}" autocomplete="new-password" /></div>
+                                    <label for="pwAddNew" class="pw-eye-btn" aria-label="Show or hide password"><i class="bi bi-eye"></i><i class="bi bi-eye-slash"></i></label>
+                                </div>
                             </div>
                             <div class="col-md-6">
                                 <label class="form-label">Confirm password</label>
-                                <div class="input-icon"><i class="bi bi-shield-lock"></i><input type="password"
-                                        name="password_confirmation" class="form-control" placeholder="••••••••" required /></div>
+                                <div class="pw-field">
+                                    <input type="checkbox" class="pw-toggle-checkbox" id="pwAddConfirm">
+                                    <div class="input-icon"><i class="bi bi-shield-lock"></i><input type="text"
+                                            name="password_confirmation" class="form-control pw-mask" placeholder="••••••••" required
+                                            value="{{ $addFailed ? old('password_confirmation') : '' }}" autocomplete="new-password" /></div>
+                                    <label for="pwAddConfirm" class="pw-eye-btn" aria-label="Show or hide password"><i class="bi bi-eye"></i><i class="bi bi-eye-slash"></i></label>
+                                </div>
                             </div>
                         </div>
 
@@ -556,19 +566,31 @@
                             @csrf
                             <div class="mb-3">
                                 <label class="form-label">Current password</label>
-                                <div class="input-icon"><i class="bi bi-lock"></i><input type="password"
-                                        name="current_password" class="form-control" required></div>
+                                <div class="pw-field">
+                                    <input type="checkbox" class="pw-toggle-checkbox" id="pwChgCur{{ $acc->UserID }}">
+                                    <div class="input-icon"><i class="bi bi-lock"></i><input type="text"
+                                            name="current_password" class="form-control pw-mask" required autocomplete="current-password"></div>
+                                    <label for="pwChgCur{{ $acc->UserID }}" class="pw-eye-btn" aria-label="Show or hide password"><i class="bi bi-eye"></i><i class="bi bi-eye-slash"></i></label>
+                                </div>
                             </div>
                             <div class="row g-3">
                                 <div class="col-md-6">
                                     <label class="form-label">New password</label>
-                                    <div class="input-icon"><i class="bi bi-key"></i><input type="password" name="password"
-                                            class="form-control" minlength="8" required></div>
+                                    <div class="pw-field">
+                                        <input type="checkbox" class="pw-toggle-checkbox" id="pwChgNew{{ $acc->UserID }}">
+                                        <div class="input-icon"><i class="bi bi-key"></i><input type="text" name="password"
+                                                class="form-control pw-mask" minlength="8" required autocomplete="new-password"></div>
+                                        <label for="pwChgNew{{ $acc->UserID }}" class="pw-eye-btn" aria-label="Show or hide password"><i class="bi bi-eye"></i><i class="bi bi-eye-slash"></i></label>
+                                    </div>
                                 </div>
                                 <div class="col-md-6">
                                     <label class="form-label">Confirm new password</label>
-                                    <div class="input-icon"><i class="bi bi-shield-lock"></i><input type="password"
-                                            name="password_confirmation" class="form-control" required></div>
+                                    <div class="pw-field">
+                                        <input type="checkbox" class="pw-toggle-checkbox" id="pwChgConfirm{{ $acc->UserID }}">
+                                        <div class="input-icon"><i class="bi bi-shield-lock"></i><input type="text"
+                                                name="password_confirmation" class="form-control pw-mask" required autocomplete="new-password"></div>
+                                        <label for="pwChgConfirm{{ $acc->UserID }}" class="pw-eye-btn" aria-label="Show or hide password"><i class="bi bi-eye"></i><i class="bi bi-eye-slash"></i></label>
+                                    </div>
                                 </div>
                             </div>
                         </div>

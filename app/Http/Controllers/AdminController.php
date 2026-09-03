@@ -12,23 +12,10 @@ use Illuminate\Http\Request;
 
 class AdminController extends Controller
 {
-    protected function guard()
-    {
-        if (!session('user_id') || session('user_role') !== 'admin') {
-            return redirect()->route('login')->with('login_error', 'Please log in as an administrator to continue.');
-        }
-
-        return null;
-    }
-
     // show dashboard front end
     public function showDashboard()
     {
-        if ($redirect = $this->guard()) {
-            return $redirect;
-        }
-
-        return view('superAdmin.dashboard', [
+        return $this->panelView('dashboard', [
             'stats' => $this->dashboardStats(),
             'overviewChart' => $this->appointmentsOverviewChart(),
             'treatmentDonut' => $this->patientsByTreatmentDonut(),

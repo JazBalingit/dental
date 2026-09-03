@@ -442,6 +442,83 @@ h6 {
   color: #a9cdee;
 }
 
+.sidebar-profile-badge > .bi-chevron-up {
+  color: #a9cdee;
+  font-size: .8rem;
+  transition: transform .18s ease;
+}
+
+.sidebar-profile-badge[aria-expanded="true"] > .bi-chevron-up {
+  transform: rotate(180deg);
+}
+
+/* Account dropdown menu */
+.account-menu {
+  --bs-dropdown-min-width: 244px;
+  border: 0;
+  border-radius: 14px;
+  padding: 8px;
+  margin-bottom: 12px !important;
+  box-shadow: 0 20px 44px -14px rgba(15, 23, 42, .32), 0 2px 8px rgba(15, 23, 42, .12);
+}
+
+.account-menu-head {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  padding: 8px 10px 4px;
+}
+
+.account-menu-head img {
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 2px solid var(--brand-100);
+  flex: none;
+}
+
+.account-menu-id { min-width: 0; }
+
+.account-menu-name {
+  font-weight: 700;
+  font-size: .82rem;
+  color: var(--ink-900);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.account-menu-role {
+  font-size: .66rem;
+  font-weight: 700;
+  color: var(--brand-700);
+  text-transform: uppercase;
+  letter-spacing: .05em;
+  margin-top: 1px;
+}
+
+.account-menu .dropdown-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  border-radius: 9px;
+  padding: 9px 10px;
+  font-size: .84rem;
+  font-weight: 500;
+}
+
+.account-menu .dropdown-item i {
+  font-size: .98rem;
+  width: 18px;
+  text-align: center;
+}
+
+.account-menu .dropdown-divider {
+  margin: 6px 4px;
+  border-color: var(--ink-100);
+}
+
 /* ---------- Topbar ---------- */
 .topbar {
   height: var(--topbar-h);
@@ -803,6 +880,8 @@ h6 {
   font-size: .75rem;
   font-weight: 600;
   letter-spacing: .02em;
+  white-space: nowrap;
+  flex: none;
 }
 
 .pill-success {
@@ -1210,6 +1289,134 @@ h6 {
   justify-content: center;
   font-size: 2.2rem;
   box-shadow: var(--shadow-md);
+}
+
+/* Image tiles (Configuration → System Information) */
+.cfg-img-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 16px;
+  margin-top: .75rem;
+  max-width: 760px;
+}
+
+.cfg-img-card {
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--ink-100);
+  border-radius: 14px;
+  padding: 12px;
+  background: #fff;
+  transition: border-color .15s ease, box-shadow .15s ease, transform .15s ease;
+}
+
+.cfg-img-card:hover {
+  border-color: var(--brand-500);
+  box-shadow: 0 10px 24px -12px rgba(22, 125, 29, .35);
+  transform: translateY(-2px);
+}
+
+.cfg-img-preview {
+  position: relative;
+  display: block;
+  aspect-ratio: 16 / 10;
+  width: 100%;
+  border-radius: 10px;
+  overflow: hidden;
+  background: linear-gradient(135deg, #eef7ef, #e0f1e2);
+  cursor: pointer;
+}
+
+.cfg-img-preview img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center;
+  display: block;
+}
+
+.cfg-img-preview.is-contain {
+  background: #f5f8f5;
+}
+
+.cfg-img-preview.is-contain img {
+  object-fit: contain;
+  padding: 14px;
+}
+
+.cfg-img-preview img.is-broken { visibility: hidden; }
+
+.cfg-img-badge {
+  position: absolute;
+  right: 8px;
+  bottom: 8px;
+  width: 30px;
+  height: 30px;
+  border-radius: 9px;
+  background: rgba(15, 23, 42, .55);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: .85rem;
+  transition: background .15s ease;
+}
+
+.cfg-img-preview:hover .cfg-img-badge {
+  background: var(--brand-700);
+}
+
+.cfg-img-title {
+  font-size: .85rem;
+  font-weight: 700;
+  color: var(--ink-900);
+  margin-top: 11px;
+}
+
+.cfg-img-desc {
+  font-size: .74rem;
+  line-height: 1.4;
+  color: var(--ink-500);
+  margin-top: 2px;
+  flex: 1;
+}
+
+.cfg-img-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  width: 100%;
+  margin-top: 11px;
+  padding: 7px 8px;
+  font-size: .76rem;
+  font-weight: 600;
+  border-radius: 9px;
+  border: 1px solid var(--brand-100);
+  background: var(--brand-50);
+  color: var(--brand-800);
+  cursor: pointer;
+  transition: background .15s ease, border-color .15s ease;
+}
+
+.cfg-img-btn:hover {
+  background: var(--brand-100);
+  border-color: var(--brand-500);
+}
+
+.cfg-img-picked {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  margin-top: 7px;
+  font-size: .7rem;
+  font-weight: 600;
+  color: var(--brand-700);
+  word-break: break-all;
+}
+
+@media (max-width: 767.98px) {
+  .cfg-img-grid { grid-template-columns: 1fr; max-width: 340px; }
 }
 
 /* Utility */
@@ -2528,6 +2735,12 @@ h6 {
 
 .pw-mask {
   -webkit-text-security: disc;
+}
+
+/* keep typed text clear of the eye button */
+.pw-field .input-icon .form-control.pw-mask,
+.pw-field .input-icon .pw-mask {
+  padding-right: 2.8rem;
 }
 
 .pw-toggle-checkbox:checked~.input-icon .pw-mask {

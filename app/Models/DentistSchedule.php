@@ -27,11 +27,25 @@ class DentistSchedule extends Model
     }
 
     /**
+     * "Dr. Jane Cruz" — the dentist this slot belongs to, or a plain
+     * fallback for rows with no dentist recorded. Mirrors
+     * Appointment::dentist_name so reports read the same either way.
+     */
+    public function getDentistNameAttribute(): string
+    {
+        return $this->dentist?->display_name ?? 'Unassigned';
+    }
+
+    /**
      * The clinic day, as a slot grid — single source of truth for "what
      * times can an appointment start at". Every controller that reasons
      * about appointment slots (booking, approval, cancellation, dashboard
      * stats, the admin schedule grid) reads this instead of keeping its
      * own copy, so they can never drift out of sync with each other.
+     *
+     * The open/close/lunch window is editable by the super admin in
+     * Configuration → System Information; the constants below are only the
+     * fallback used when nothing has been saved yet.
      */
     public const SLOT_MINUTES = 30;
     public const OPEN_TIME = '09:00';
@@ -39,20 +53,78 @@ class DentistSchedule extends Model
     public const LUNCH_START = '12:00';
     public const LUNCH_END = '13:00';
 
+    /** Per-request memo so slotTimes() isn't re-querying settings in a loop. */
+    protected static ?array $clinicHoursCache = null;
+
     /**
-     * Every bookable start time in order — half-hour slots from 9:00 AM
-     * to 6:00 PM, skipping the 12:00–1:00 PM lunch break.
+     * The saved (or default) clinic booking window. Keys: open, close,
+     * lunchEnabled, lunchStart, lunchEnd — all times as "H:i".
+     */
+    public static function clinicHours(): array
+    {
+        if (static::$clinicHoursCache !== null) {
+            return static::$clinicHoursCache;
+        }
+
+        $time = function (string $key, string $fallback): string {
+            $value = SystemSetting::get($key, $fallback);
+            try {
+                return Carbon::createFromFormat('H:i', substr((string) $value, 0, 5))->format('H:i');
+            } catch (\Exception $e) {
+                return $fallback;
+            }
+        };
+
+        return static::$clinicHoursCache = [
+            'open' => $time('booking_open_time', static::OPEN_TIME),
+            'close' => $time('booking_close_time', static::CLOSE_TIME),
+            'lunchEnabled' => (string) SystemSetting::get('booking_lunch_enabled', '1') === '1',
+            'lunchStart' => $time('booking_lunch_start', static::LUNCH_START),
+            'lunchEnd' => $time('booking_lunch_end', static::LUNCH_END),
+        ];
+    }
+
+    /** Drop the memo — call after saving new clinic hours in the same request. */
+    public static function flushClinicHoursCache(): void
+    {
+        static::$clinicHoursCache = null;
+    }
+
+    /**
+     * "9:00 AM – 6:00 PM" — the public display string for the saved booking
+     * window, shown on the landing page.
+     */
+    public static function clinicHoursLabel(): string
+    {
+        $hours = static::clinicHours();
+
+        return Carbon::createFromFormat('H:i', $hours['open'])->format('g:i A')
+            . ' – ' . Carbon::createFromFormat('H:i', $hours['close'])->format('g:i A');
+    }
+
+    /**
+     * Every bookable start time in order — half-hour slots across the saved
+     * open→close window, skipping the lunch break when one is enabled.
      */
     public static function slotTimes(): array
     {
+        $hours = static::clinicHours();
+
         $times = [];
-        $cursor = Carbon::createFromFormat('H:i', static::OPEN_TIME);
-        $close = Carbon::createFromFormat('H:i', static::CLOSE_TIME);
-        $lunchStart = Carbon::createFromFormat('H:i', static::LUNCH_START);
-        $lunchEnd = Carbon::createFromFormat('H:i', static::LUNCH_END);
+        $cursor = Carbon::createFromFormat('H:i', $hours['open']);
+        $close = Carbon::createFromFormat('H:i', $hours['close']);
+        $lunchStart = Carbon::createFromFormat('H:i', $hours['lunchStart']);
+        $lunchEnd = Carbon::createFromFormat('H:i', $hours['lunchEnd']);
+        $hasLunch = $hours['lunchEnabled'] && $lunchStart->lt($lunchEnd);
+
+        // Guard against a misconfigured window (close at/before open).
+        if ($close->lte($cursor)) {
+            return [];
+        }
 
         while ($cursor->lt($close)) {
-            if ($cursor->lt($lunchStart) || $cursor->gte($lunchEnd)) {
+            $inLunch = $hasLunch && $cursor->gte($lunchStart) && $cursor->lt($lunchEnd);
+            if (!$inLunch) {
                 $times[] = $cursor->format('H:i');
             }
             $cursor->addMinutes(static::SLOT_MINUTES);

@@ -9,6 +9,7 @@ use App\Services\ActivityLogService;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Validation\Rules\Password;
 
 class StaffAccountController extends Controller
 {
@@ -16,24 +17,11 @@ class StaffAccountController extends Controller
     {
     }
 
-    /**
-     * Only a logged-in admin may access staff account management.
-     */
-    protected function guard()
-    {
-        if (!session('user_id') || session('user_role') !== 'admin') {
-            return redirect()->route('login')->with('login_error', 'Please log in as an administrator to continue.');
-        }
-
-        return null;
-    }
+    // Access control (logged-in super admin only) is enforced by the
+    // 'admin' + 'superadmin' route middleware — see routes/web.php.
 
     public function index(Request $request)
     {
-        if ($redirect = $this->guard()) {
-            return $redirect;
-        }
-
         $search = $request->query('search');
         $tab = $request->query('tab') === 'archived' ? 'archived' : 'active';
 
@@ -67,10 +55,6 @@ class StaffAccountController extends Controller
 
     public function store(Request $request)
     {
-        if ($redirect = $this->guard()) {
-            return $redirect;
-        }
-
         $data = $request->validate([
             'last_name' => 'required|string|max:100',
             'first_name' => 'required|string|max:100',
@@ -83,7 +67,7 @@ class StaffAccountController extends Controller
             'address' => 'required|string|max:255',
             'email' => 'required|email|unique:tbl_useraccount,Email',
             'phone' => 'required|string|max:20',
-            'password' => 'required|string|min:8|confirmed',
+            'password' => ['required', 'confirmed', Password::defaults()],
             'photo' => 'nullable|image|mimes:jpg,jpeg,png|max:2048',
         ]);
 
@@ -127,10 +111,6 @@ class StaffAccountController extends Controller
 
     public function update(Request $request, $id)
     {
-        if ($redirect = $this->guard()) {
-            return $redirect;
-        }
-
         $account = UserAccount::where('AccountType', 'Staff')->findOrFail($id);
         $info = StaffInfo::where('UserID', $account->UserID)->firstOrFail();
 
@@ -182,10 +162,6 @@ class StaffAccountController extends Controller
 
     public function archive($id)
     {
-        if ($redirect = $this->guard()) {
-            return $redirect;
-        }
-
         $account = UserAccount::where('AccountType', 'Staff')->with('staffInfo')->find($id);
         UserAccount::where('AccountType', 'Staff')->where('UserID', $id)->update(['IsArchived' => true]);
 
@@ -197,10 +173,6 @@ class StaffAccountController extends Controller
 
     public function unarchive($id)
     {
-        if ($redirect = $this->guard()) {
-            return $redirect;
-        }
-
         $account = UserAccount::where('AccountType', 'Staff')->with('staffInfo')->find($id);
         UserAccount::where('AccountType', 'Staff')->where('UserID', $id)->update(['IsArchived' => false]);
 
@@ -219,15 +191,11 @@ class StaffAccountController extends Controller
      */
     public function updatePassword(Request $request, $id)
     {
-        if ($redirect = $this->guard()) {
-            return $redirect;
-        }
-
         $account = UserAccount::where('AccountType', 'Staff')->findOrFail($id);
 
         $data = $request->validate([
             'current_password' => 'required|string',
-            'password' => 'required|string|min:8|confirmed',
+            'password' => ['required', 'confirmed', Password::defaults()],
         ]);
 
         if (!Hash::check($data['current_password'], $account->Password)) {

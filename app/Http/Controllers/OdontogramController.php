@@ -18,27 +18,16 @@ class OdontogramController extends Controller
     {
     }
 
-    protected function guard()
-    {
-        if (!session('user_id') || session('user_role') !== 'admin') {
-            return redirect()->route('login')->with('login_error', 'Please log in as an administrator to continue.');
-        }
-
-        return null;
-    }
-
     /**
      * Bulk-save the odontogram for one patient record. The whole chart is
      * submitted at once: teeth present in the payload are upserted, teeth
      * that were charted before but are now absent are cleared. History is
      * untouched — this only ever writes rows scoped to $recordId.
+     *
+     * Access control is the 'admin' route middleware (routes/web.php).
      */
     public function save(Request $request, $recordId)
     {
-        if ($redirect = $this->guard()) {
-            return $redirect;
-        }
-
         $record = PatientRecord::with('patientInfo')->findOrFail($recordId);
 
         $data = $request->validate([

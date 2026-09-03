@@ -3,6 +3,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Controllers\Concerns\ManagesOtp;
 use App\Mail\OtpMail;
 use App\Models\PatientInfo;
 use App\Models\SystemSetting;
@@ -12,9 +13,12 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\RateLimiter;
+use Illuminate\Validation\Rules\Password;
 
 class RegisterController extends Controller
 {
+    use ManagesOtp;
+
     public function __construct(protected ActivityLogService $activityLog)
     {
     }
@@ -50,7 +54,7 @@ class RegisterController extends Controller
             'guardian_name' => 'nullable|string|max:150',
             'guardian_occupation' => 'nullable|string|max:150',
             // 'confirmed' automatically checks password === password_confirmation
-            'password' => 'required|string|min:8|confirmed',
+            'password' => ['required', 'confirmed', Password::defaults()],
             'agree_terms' => 'accepted',
         ], [
             'agree_terms.accepted' => 'You must agree to the Privacy Policy and Terms to create an account.',
@@ -84,11 +88,10 @@ class RegisterController extends Controller
             'ParentsOccupation' => $data['guardian_occupation'] ?? null,
         ];
 
-        $code = (string) random_int(100000, 999999);
+        $code = $this->issueOtp('otp');
 
         session([
             'pending_registration' => $pending,
-            'otp_code' => $code,
             'otp_email' => $data['email'],
             'otp_attempts' => 0,
             'show_otp' => true,
@@ -112,11 +115,19 @@ class RegisterController extends Controller
             return redirect()->route('signup')->with('otp_expired', true);
         }
 
-        if ($request->code !== session('otp_code')) {
+        // The code is only good for 5 minutes — past that, make them resend.
+        if ($this->otpExpired('otp')) {
+            session()->forget(['pending_registration', 'otp_email', 'otp_attempts', 'show_otp']);
+            $this->clearOtp('otp');
+            return redirect()->route('signup')->with('otp_expired', true);
+        }
+
+        if (!$this->otpMatches('otp', $request->code)) {
             $attempts = session('otp_attempts', 0) + 1;
 
             if ($attempts >= 5) {
-                session()->forget(['pending_registration', 'otp_code', 'otp_email', 'otp_attempts', 'show_otp']);
+                session()->forget(['pending_registration', 'otp_email', 'otp_attempts', 'show_otp']);
+                $this->clearOtp('otp');
                 return redirect()->route('signup')->with('otp_expired', true);
             }
 
@@ -143,7 +154,8 @@ class RegisterController extends Controller
 
         $this->activityLog->log('Create', "Registered a new patient account ({$user->Email}).", $user->UserID);
 
-        session()->forget(['pending_registration', 'otp_code', 'otp_email', 'otp_attempts', 'show_otp']);
+        session()->forget(['pending_registration', 'otp_email', 'otp_attempts', 'show_otp']);
+        $this->clearOtp('otp');
 
         return redirect()->route('login')->with('registered', true);
     }
@@ -158,6 +170,14 @@ class RegisterController extends Controller
             return redirect()->route('signup')->with('otp_expired', true);
         }
 
+        // Must wait 60 seconds between sends.
+        if ($this->otpResendTooSoon('otp')) {
+            $wait = $this->otpWaitLabel($this->otpResendRetryAfter('otp'));
+            return redirect()->route('signup')
+                ->with('show_otp', true)
+                ->with('otp_error', "Please wait {$wait} before requesting another code.");
+        }
+
         $throttleKey = 'signup-otp:' . strtolower(session('otp_email'));
         if (RateLimiter::tooManyAttempts($throttleKey, 3)) {
             $seconds = RateLimiter::availableIn($throttleKey);
@@ -167,9 +187,9 @@ class RegisterController extends Controller
         }
         RateLimiter::hit($throttleKey, 600);
 
-        $code = (string) random_int(100000, 999999);
+        $code = $this->issueOtp('otp');
 
-        session(['otp_code' => $code, 'otp_attempts' => 0, 'show_otp' => true]);
+        session(['otp_attempts' => 0, 'show_otp' => true]);
         session()->forget('otp_error');
 
         Mail::to(session('otp_email'))->send(new OtpMail($code));
@@ -184,7 +204,8 @@ class RegisterController extends Controller
      */
     public function cancelOtp(Request $request)
     {
-        session()->forget(['pending_registration', 'otp_code', 'otp_email', 'otp_attempts', 'show_otp']);
+        session()->forget(['pending_registration', 'otp_email', 'otp_attempts', 'show_otp']);
+        $this->clearOtp('otp');
 
         return redirect()->route('signup');
     }

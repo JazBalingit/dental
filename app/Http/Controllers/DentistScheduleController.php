@@ -18,15 +18,6 @@ class DentistScheduleController extends Controller
     ) {
     }
 
-    protected function guard()
-    {
-        if (!session('user_id') || session('user_role') !== 'admin') {
-            return redirect()->route('login')->with('login_error', 'Please log in as an administrator to continue.');
-        }
-
-        return null;
-    }
-
     protected function slots(): array
     {
         return DentistSchedule::slotLabels();
@@ -55,10 +46,6 @@ class DentistScheduleController extends Controller
 
     public function index(Request $request)
     {
-        if ($redirect = $this->guard()) {
-            return $redirect;
-        }
-
         // Accept either ?month=Y-m (used by prev/next arrows)
         // or ?year=YYYY&monthNum=M (used by the year/month picker form)
         if ($request->filled('year') && $request->filled('monthNum')) {
@@ -132,7 +119,7 @@ class DentistScheduleController extends Controller
             $monthCursor->addDay();
         }
 
-        return view('superAdmin.dentist-schedule', [
+        return $this->panelView('dentist-schedule', [
             'weeks' => $weeks,
             'current' => $current,
             'schedules' => $schedules,
@@ -150,10 +137,6 @@ class DentistScheduleController extends Controller
 
     public function toggle(Request $request)
     {
-        if ($redirect = $this->guard()) {
-            return $redirect;
-        }
-
         $request->validate([
             'date' => 'required|date',
             'time' => 'required|string',
@@ -228,10 +211,6 @@ class DentistScheduleController extends Controller
      */
     public function toggleDay(Request $request)
     {
-        if ($redirect = $this->guard()) {
-            return $redirect;
-        }
-
         $request->validate([
             'date' => 'required|date',
             'month' => 'nullable|string',

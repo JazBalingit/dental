@@ -108,7 +108,13 @@ class SystemSetting extends Model
             'address' => 'Blk 6 Lot 2 Poblacion 2, GMA, Cavite',
             'operatingDays' => 'Monday – Saturday',
             'operatingHours' => '9:00 AM – 6:00 PM',
+            'description' => "We're conveniently located in Pacita Complex, San Pedro. Walk-ins welcome, but booking ahead means no wait.",
             'image' => '/images/clinic2.jpg',
+            'heroImage' => '/images/dental_chair.jpg',
+            'logo' => '/images/puspus_logo.png',
+            'phone' => '(02) 8404-5642',
+            'mobile' => '+63 968-476-5943',
+            'email' => 'jahzielhawan@gmail.com',
         ];
     }
 
@@ -120,7 +126,23 @@ class SystemSetting extends Model
             'address' => static::get('about_address', $defaults['address']),
             'operatingDays' => static::get('about_operating_days', $defaults['operatingDays']),
             'operatingHours' => static::get('about_operating_hours', $defaults['operatingHours']),
+            'description' => static::get('about_description', $defaults['description']),
             'image' => static::get('about_image', $defaults['image']),
+            'heroImage' => static::get('hero_image', $defaults['heroImage']),
+            'logo' => $defaults['logo'],
+            'phone' => static::get('contact_phone', $defaults['phone']),
+            'mobile' => static::get('contact_mobile', $defaults['mobile']),
+            'email' => static::get('contact_email', $defaults['email']),
         ];
+    }
+
+    /**
+     * Where the landing-page "Contact Us" form delivers messages. Same value
+     * shown publicly as the clinic email — editable in Configuration →
+     * System Information.
+     */
+    public static function contactEmail(): string
+    {
+        return static::get('contact_email', static::aboutInfoDefaults()['email']);
     }
 }

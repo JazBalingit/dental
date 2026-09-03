@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\ActivityLog;
+use App\Models\DentistSchedule;
 use App\Models\Service;
 use App\Models\ServiceCategory;
 use App\Models\SystemSetting;
@@ -29,21 +30,8 @@ class ConfigurationController extends Controller
         'Create', 'Edit', 'Archive', 'Unarchive', 'Approve', 'Decline', 'Complete', 'Cancel',
     ];
 
-    protected function guard()
-    {
-        if (!session('user_id') || session('user_role') !== 'admin') {
-            return redirect()->route('login')->with('login_error', 'Please log in as an administrator to continue.');
-        }
-
-        return null;
-    }
-
     public function index(Request $request)
     {
-        if ($redirect = $this->guard()) {
-            return $redirect;
-        }
-
         $serviceSearch = $request->query('serviceSearch');
         $activitySearch = $request->query('activitySearch');
         $activityType = $request->query('activityType');
@@ -123,39 +111,73 @@ class ConfigurationController extends Controller
 
     public function updateAboutInfo(Request $request)
     {
-        if ($redirect = $this->guard()) {
-            return $redirect;
-        }
-
         $data = $request->validate([
             'address' => 'required|string|max:255',
             'operating_days' => 'required|string|max:100',
-            'operating_hours' => 'required|string|max:150',
-            'about_image' => 'nullable|image|mimes:jpg,jpeg,png|max:2048',
+            'booking_open_time' => ['required', 'date_format:H:i', 'regex:/^\d{2}:(00|30)$/'],
+            'booking_close_time' => ['required', 'date_format:H:i', 'regex:/^\d{2}:(00|30)$/', 'after:booking_open_time'],
+            'lunch_enabled' => 'nullable|boolean',
+            'booking_lunch_start' => ['nullable', 'required_with:booking_lunch_end', 'date_format:H:i', 'regex:/^\d{2}:(00|30)$/'],
+            'booking_lunch_end' => ['nullable', 'required_with:booking_lunch_start', 'date_format:H:i', 'regex:/^\d{2}:(00|30)$/', 'after:booking_lunch_start'],
+            'about_description' => 'nullable|string|max:1000',
+            'contact_phone' => 'nullable|string|max:50',
+            'contact_mobile' => 'nullable|string|max:50',
+            'contact_email' => 'required|email|max:150',
+            'logo' => 'nullable|file|mimes:jpg,jpeg,png,svg|max:2048',
+            'hero_image' => 'nullable|image|mimes:jpg,jpeg,png|max:4096',
+            'about_image' => 'nullable|image|mimes:jpg,jpeg,png|max:4096',
         ]);
+
+        // Appointment booking window — governs every slot grid across the app
+        // (see DentistSchedule::slotTimes). The lunch break is optional; when
+        // its times are blank or the toggle is off, the day has no break.
+        $lunchEnabled = $request->boolean('lunch_enabled')
+            && !empty($data['booking_lunch_start'])
+            && !empty($data['booking_lunch_end']);
+
+        SystemSetting::set('booking_open_time', $data['booking_open_time']);
+        SystemSetting::set('booking_close_time', $data['booking_close_time']);
+        SystemSetting::set('booking_lunch_enabled', $lunchEnabled ? '1' : '0');
+        if (!empty($data['booking_lunch_start']) && !empty($data['booking_lunch_end'])) {
+            SystemSetting::set('booking_lunch_start', $data['booking_lunch_start']);
+            SystemSetting::set('booking_lunch_end', $data['booking_lunch_end']);
+        }
+
+        DentistSchedule::flushClinicHoursCache();
 
         SystemSetting::set('about_address', $data['address']);
         SystemSetting::set('about_operating_days', $data['operating_days']);
-        SystemSetting::set('about_operating_hours', $data['operating_hours']);
+        // Keep the public "Operating Hours" line in step with the booking window.
+        SystemSetting::set('about_operating_hours', DentistSchedule::clinicHoursLabel());
+        SystemSetting::set('about_description', $data['about_description'] ?? '');
+        SystemSetting::set('contact_phone', $data['contact_phone'] ?? '');
+        SystemSetting::set('contact_mobile', $data['contact_mobile'] ?? '');
+        SystemSetting::set('contact_email', $data['contact_email']);
 
-        if ($request->hasFile('about_image')) {
-            $file = $request->file('about_image');
-            $filename = 'about_' . time() . '.' . $file->getClientOriginalExtension();
-            $file->move(public_path('images'), $filename);
-            SystemSetting::set('about_image', '/images/' . $filename);
+        // Clinic logo — fixed filename so every <img src="…/puspus_logo.png">
+        // across the app picks it up (cache-busted by filemtime in the view).
+        if ($request->hasFile('logo')) {
+            $request->file('logo')->move(public_path('images'), 'puspus_logo.png');
         }
 
-        $this->activityLog->log('Edit', 'Updated the About section information.');
+        // Landing-page hero background + About-section photo — timestamped
+        // filenames so the browser always fetches the new one.
+        foreach (['hero_image' => 'hero_', 'about_image' => 'about_'] as $field => $prefix) {
+            if ($request->hasFile($field)) {
+                $file = $request->file($field);
+                $filename = $prefix . time() . '.' . $file->getClientOriginalExtension();
+                $file->move(public_path('images'), $filename);
+                SystemSetting::set($field === 'hero_image' ? 'hero_image' : 'about_image', '/images/' . $filename);
+            }
+        }
+
+        $this->activityLog->log('Edit', 'Updated the clinic branding and system information.');
 
         return redirect()->route('configuration', ['settingsTab' => 'about'])->with('success', 'System information updated.');
     }
 
     public function updatePrivacyLegal(Request $request)
     {
-        if ($redirect = $this->guard()) {
-            return $redirect;
-        }
-
         $data = $request->validate([
             'privacy_policy' => 'nullable|string',
             'legal_terms' => 'nullable|string',
@@ -171,10 +193,6 @@ class ConfigurationController extends Controller
 
     public function updateAppointmentSteps(Request $request)
     {
-        if ($redirect = $this->guard()) {
-            return $redirect;
-        }
-
         $data = $request->validate([
             'steps' => 'required|array|min:1|max:20',
             'steps.*.title' => 'required|string|max:150',
@@ -202,29 +220,8 @@ class ConfigurationController extends Controller
         return redirect()->route('configuration', ['settingsTab' => 'appointment'])->with('success', 'Appointment process updated.');
     }
 
-    public function updateLogo(Request $request)
-    {
-        if ($redirect = $this->guard()) {
-            return $redirect;
-        }
-
-        $request->validate([
-            'logo' => 'required|file|mimes:jpg,jpeg,png,svg|max:2048',
-        ]);
-
-        $request->file('logo')->move(public_path('images'), 'puspus_logo.png');
-
-        $this->activityLog->log('Edit', 'Changed the system logo.');
-
-        return redirect()->route('configuration')->with('success', 'Logo updated successfully.');
-    }
-
     public function storeService(Request $request)
     {
-        if ($redirect = $this->guard()) {
-            return $redirect;
-        }
-
         $data = $request->validate([
             'service_name' => 'required|string|max:150',
             'category_id' => 'nullable|exists:tbl_service_categories,CategoryID',
@@ -247,10 +244,6 @@ class ConfigurationController extends Controller
 
     public function updateService(Request $request, $id)
     {
-        if ($redirect = $this->guard()) {
-            return $redirect;
-        }
-
         $data = $request->validate([
             'service_name' => 'required|string|max:150',
             'category_id' => 'nullable|exists:tbl_service_categories,CategoryID',
@@ -273,10 +266,6 @@ class ConfigurationController extends Controller
 
     public function archiveService($id)
     {
-        if ($redirect = $this->guard()) {
-            return $redirect;
-        }
-
         $service = Service::findOrFail($id);
         $service->update(['IsArchived' => true]);
 
@@ -287,10 +276,6 @@ class ConfigurationController extends Controller
 
     public function unarchiveService($id)
     {
-        if ($redirect = $this->guard()) {
-            return $redirect;
-        }
-
         $service = Service::findOrFail($id);
         $service->update(['IsArchived' => false]);
 
@@ -301,10 +286,6 @@ class ConfigurationController extends Controller
 
     public function storeCategory(Request $request)
     {
-        if ($redirect = $this->guard()) {
-            return $redirect;
-        }
-
         $data = $request->validate([
             'name' => 'required|string|max:100',
             'icon' => ['nullable', 'string', Rule::in(array_keys(ServiceCategory::iconOptions()))],
@@ -323,10 +304,6 @@ class ConfigurationController extends Controller
 
     public function updateCategory(Request $request, $id)
     {
-        if ($redirect = $this->guard()) {
-            return $redirect;
-        }
-
         $data = $request->validate([
             'name' => 'required|string|max:100',
             'icon' => ['nullable', 'string', Rule::in(array_keys(ServiceCategory::iconOptions()))],
@@ -350,10 +327,6 @@ class ConfigurationController extends Controller
      */
     public function destroyCategory($id)
     {
-        if ($redirect = $this->guard()) {
-            return $redirect;
-        }
-
         $category = ServiceCategory::findOrFail($id);
         $category->delete();
 
@@ -364,10 +337,6 @@ class ConfigurationController extends Controller
 
     public function archiveActivityLog($id)
     {
-        if ($redirect = $this->guard()) {
-            return $redirect;
-        }
-
         ActivityLog::findOrFail($id)->update(['IsArchived' => true]);
 
         $this->activityLog->log('Archive', "Archived activity log entry #{$id}.");
@@ -377,10 +346,6 @@ class ConfigurationController extends Controller
 
     public function unarchiveActivityLog($id)
     {
-        if ($redirect = $this->guard()) {
-            return $redirect;
-        }
-
         ActivityLog::findOrFail($id)->update(['IsArchived' => false]);
 
         $this->activityLog->log('Unarchive', "Restored activity log entry #{$id}.");

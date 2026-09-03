@@ -19,6 +19,8 @@
 </head>
 
 <body data-bs-spy="scroll" data-bs-target="#navbarSupportedContent" data-bs-offset="90" tabindex="0">
+  {{-- Page-level flash + validation toasts (contact form, booking, etc.) — shown to guests and patients alike. --}}
+  @include('partials.flash-toasts', ['topOffset' => '100px'])
   <!-- NAVBAR -->
   <nav class="navbar navbar-expand-lg navbar-light fixed-top mask-custom shadow-sm">
     <div class="container-fluid px-3 px-lg-5">
@@ -62,6 +64,11 @@
                       </a>
                     </li>
                     <li>
+                      <a class="dropdown-item small" href="{{ route('myRecords') }}">
+                        <i class="bi bi-folder2-open me-2"></i>My Dental Records
+                      </a>
+                    </li>
+                    <li>
                       <a class="dropdown-item small" href="{{ route('settings') }}">
                         <i class="bi bi-gear me-2"></i>Settings
                       </a>
@@ -91,7 +98,7 @@
   </nav>
   <!-- HOME / HERO -->
   <section id="home" class="hero">
-    <img class="hero-bg-img" src="/images/dental_chair.jpg" alt="">
+    <img class="hero-bg-img" src="{{ $aboutInfo['heroImage'] }}" alt="">
     <div class="hero-overlay"></div>
     <div class="container">
       <div class="hero-content">
@@ -204,8 +211,7 @@
         </div>
         <div class="col-md-6">
           <h3 class="fw-bold mb-3">Location & Hours</h3>
-          <p class="mb-4">We're conveniently located in Pacita Complex, San Pedro. Walk-ins welcome, but booking ahead
-            means no wait.</p>
+          <p class="mb-4">{{ $aboutInfo['description'] }}</p>
           <div class="ratio ratio-16x9 shadow rounded mb-4" style="border-radius: 12px; overflow: hidden;">
             <iframe
               src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3866.290422858543!2d121.00423227592287!3d14.294550984494727!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x3397d642f1da52ff%3A0xad05742ba9b8761d!2sPuspus%20Britanico%20Dental%20Clinic.!5e0!3m2!1sen!2sph!4v1787657874563!5m2!1sen!2sph"
@@ -232,8 +238,6 @@
           <hr class="section-divider mx-auto">
           <p class="section-intro mx-auto">Click a date on the calendar, pick a service, and choose an open time slot.</p>
         </div>
-
-        @include('partials.flash-toasts', ['topOffset' => '100px'])
 
         @include('partials.booking-calendar', [
           'calendarMode' => 'post',
@@ -269,20 +273,23 @@
             <p class="mb-4">We'd love to hear from you. Visit, call, or message us.</p>
             <div class="info-row">
               <i class="fa-solid fa-location-dot"></i>
-              <span><strong>Address</strong>#50 Mainroad Ave. B21 L31, Phase 1 Pacita Complex 2, San Pedro,
-                Laguna</span>
+              <span><strong>Address</strong>{{ $aboutInfo['address'] }}</span>
             </div>
-            <div class="info-row">
-              <i class="fa-solid fa-phone"></i>
-              <span><strong>Phone</strong>(02) 8404-5642</span>
-            </div>
-            <div class="info-row">
-              <i class="fa-solid fa-mobile-screen"></i>
-              <span><strong>Mobile</strong>+63 968-476-5943</span>
-            </div>
+            @if ($aboutInfo['phone'])
+              <div class="info-row">
+                <i class="fa-solid fa-phone"></i>
+                <span><strong>Phone</strong>{{ $aboutInfo['phone'] }}</span>
+              </div>
+            @endif
+            @if ($aboutInfo['mobile'])
+              <div class="info-row">
+                <i class="fa-solid fa-mobile-screen"></i>
+                <span><strong>Mobile</strong>{{ $aboutInfo['mobile'] }}</span>
+              </div>
+            @endif
             <div class="info-row">
               <i class="fa-solid fa-envelope"></i>
-              <span><strong>Email</strong>drmebdentalclinic@gmail.com</span>
+              <span><strong>Email</strong>{{ $aboutInfo['email'] }}</span>
             </div>
           </div>
         </div>
@@ -291,30 +298,36 @@
             @php
               $contactName = trim(($currentPatient?->patientInfo?->FirstName ?? '') . ' ' . ($currentPatient?->patientInfo?->LastName ?? ''));
             @endphp
-            <form>
+            <form method="POST" action="{{ route('contact.send') }}">
+              @csrf
               @if ($currentPatient)
                 {{-- Already know who this is — no need to ask again. --}}
-                <input type="hidden" name="name" value="{{ $contactName }}">
-                <input type="hidden" name="email" value="{{ $currentPatient->Email }}">
+                <p class="text-muted mb-3" style="font-size:.9rem;">
+                  Sending as <strong>{{ $contactName ?: $currentPatient->Email }}</strong> ({{ $currentPatient->Email }}).
+                </p>
               @else
                 <div class="row">
                   <div class="col-md-6 mb-3">
                     <label class="form-label">Full Name</label>
-                    <input type="text" class="form-control" name="name" placeholder="Juan Dela Cruz" required>
+                    <input type="text" class="form-control" name="name" value="{{ old('name') }}"
+                      placeholder="Juan Dela Cruz" required>
                   </div>
                   <div class="col-md-6 mb-3">
                     <label class="form-label">Email Address</label>
-                    <input type="email" class="form-control" name="email" placeholder="you@email.com" required>
+                    <input type="email" class="form-control" name="email" value="{{ old('email') }}"
+                      placeholder="you@email.com" required>
                   </div>
                 </div>
               @endif
               <div class="mb-3">
                 <label class="form-label">Subject</label>
-                <input type="text" class="form-control" placeholder="How can we help?" required>
+                <input type="text" class="form-control" name="subject" value="{{ old('subject') }}"
+                  placeholder="How can we help?" required maxlength="150">
               </div>
               <div class="mb-4">
                 <label class="form-label">Message</label>
-                <textarea class="form-control" rows="5" placeholder="Write your message here..." required></textarea>
+                <textarea class="form-control" name="message" rows="5" placeholder="Write your message here..."
+                  required maxlength="3000">{{ old('message') }}</textarea>
               </div>
               <div class="text-end">
                 <button type="submit" class="btn btn-submit">
@@ -352,10 +365,14 @@
         </div>
         <div class="col-lg-4 col-md-6">
           <h6 class="text-uppercase fw-bold mb-3">Contact Information</h6>
-          <p><i class="fas fa-map-marker-alt me-2"></i> #50 Mainroad Ave. B21 L31 Phase 1 Pacita Complex 2 San Pedro,
-            Laguna</p>
-          <p><i class="fas fa-phone me-2"></i> (02) 8404-5642</p>
-          <p><i class="fa-solid fa-mobile-screen me-2"></i> +63 968-476-5943</p>
+          <p><i class="fas fa-map-marker-alt me-2"></i> {{ $aboutInfo['address'] }}</p>
+          @if ($aboutInfo['phone'])
+            <p><i class="fas fa-phone me-2"></i> {{ $aboutInfo['phone'] }}</p>
+          @endif
+          @if ($aboutInfo['mobile'])
+            <p><i class="fa-solid fa-mobile-screen me-2"></i> {{ $aboutInfo['mobile'] }}</p>
+          @endif
+          <p><i class="fas fa-envelope me-2"></i> {{ $aboutInfo['email'] }}</p>
         </div>
       </div>
       <hr style="border-color: rgba(255, 255, 255, 0.2); margin: 40px 0 20px;">

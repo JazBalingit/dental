@@ -102,4 +102,86 @@
             setTimeout(dismiss, 8000);
         });
     });
+
+    /*
+     * Keep a modal open when its form comes back with an error.
+     *
+     * These pages submit modal forms with a normal POST; a validation or
+     * business-rule failure redirects back and the page reloads with the
+     * modal closed. Here we remember which modal a submitted form lived in
+     * and, if the reloaded page carries an error (the default validation
+     * bag or any of the error flash keys) and NO success flash, we re-open
+     * that modal so the alert is read against the form that caused it.
+     * On success nothing is re-opened, so the modal closes as before.
+     *
+     * Only data-entry modals are tracked (a form with a real input/select/
+     * textarea) — plain confirm/delete dialogs still just close.
+     */
+    (function () {
+        var ERROR_ON_LOAD = @json(
+            $errors->any()
+            || session()->has('error')
+            || session()->has('login_error')
+            || session()->has('booking_error')
+            || session()->has('password_error')
+            || session()->has('walkin_error_step')
+        );
+        var SUCCESS_ON_LOAD = @json(
+            session()->has('success')
+            || session()->has('registered')
+            || session()->has('password_reset')
+            || session()->has('booking_success')
+            || session()->has('password_updated')
+            || session()->has('profile_updated')
+        );
+
+        var KEY = 'modalPersist:' + location.pathname;
+
+        function store(id) { try { sessionStorage.setItem(KEY, id); } catch (e) {} }
+        function take() {
+            var v = null;
+            try { v = sessionStorage.getItem(KEY); sessionStorage.removeItem(KEY); } catch (e) {}
+            return v;
+        }
+
+        // Capture phase so this runs even if the form's own handler stops propagation.
+        document.addEventListener('submit', function (e) {
+            var form = e.target;
+            if (!(form instanceof HTMLFormElement)) return;
+
+            var method = (form.getAttribute('method') || 'get').toLowerCase();
+            var modal = form.closest('.modal');
+            var hasField = form.querySelector(
+                'input:not([type=hidden]):not([type=submit]):not([type=button]):not([type=reset]), select, textarea'
+            );
+
+            if (method === 'post' && modal && modal.id && hasField) {
+                store(modal.id);
+            } else {
+                take();
+            }
+        }, true);
+
+        function reopen() {
+            var id = take();
+            if (!id || !ERROR_ON_LOAD || SUCCESS_ON_LOAD) return;
+
+            var el = document.getElementById(id);
+            if (!el || !window.bootstrap || !bootstrap.Modal) return;
+
+            bootstrap.Modal.getOrCreateInstance(el).show();
+
+            // Nudge the first field into view once the modal has painted.
+            setTimeout(function () {
+                var field = el.querySelector('.is-invalid, input:not([type=hidden]), select, textarea');
+                if (field) field.focus({ preventScroll: false });
+            }, 300);
+        }
+
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', reopen);
+        } else {
+            reopen();
+        }
+    })();
 </script>

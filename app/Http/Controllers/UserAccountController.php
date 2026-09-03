@@ -14,24 +14,10 @@ class UserAccountController extends Controller
     {
     }
 
-    /**
-     * Only a logged-in admin may access user account management.
-     */
-    protected function guard()
-    {
-        if (!session('user_id') || session('user_role') !== 'admin') {
-            return redirect()->route('login')->with('login_error', 'Please log in as an administrator to continue.');
-        }
-
-        return null;
-    }
+    // Access control (logged-in admin only) is the 'admin' route middleware.
 
     public function index(Request $request)
     {
-        if ($redirect = $this->guard()) {
-            return $redirect;
-        }
-
         $search = $request->query('search');
         $tab = $request->query('tab') === 'archived' ? 'archived' : 'active';
 
@@ -57,7 +43,7 @@ class UserAccountController extends Controller
             $archivedQuery->where($filter);
         }
 
-        return view('superAdmin.user-accounts', [
+        return $this->panelView('user-accounts', [
             'users' => $activeQuery->orderByDesc('DateCreated')->paginate(10, ['*'], 'page')->withQueryString(),
             'archivedUsers' => $archivedQuery->orderByDesc('DateCreated')->paginate(10, ['*'], 'archived_page')->withQueryString(),
             'search' => $search,
@@ -67,10 +53,6 @@ class UserAccountController extends Controller
 
     public function update(Request $request, $id)
     {
-        if ($redirect = $this->guard()) {
-            return $redirect;
-        }
-
         $account = UserAccount::where('AccountType', 'User')->findOrFail($id);
         $info = PatientInfo::where('UserID', $account->UserID)->firstOrFail();
 
@@ -126,10 +108,6 @@ class UserAccountController extends Controller
 
     public function archive($id)
     {
-        if ($redirect = $this->guard()) {
-            return $redirect;
-        }
-
         $account = UserAccount::where('AccountType', 'User')->with('patientInfo')->find($id);
         UserAccount::where('AccountType', 'User')->where('UserID', $id)->update(['IsArchived' => true]);
 
@@ -141,10 +119,6 @@ class UserAccountController extends Controller
 
     public function unarchive($id)
     {
-        if ($redirect = $this->guard()) {
-            return $redirect;
-        }
-
         $account = UserAccount::where('AccountType', 'User')->with('patientInfo')->find($id);
         UserAccount::where('AccountType', 'User')->where('UserID', $id)->update(['IsArchived' => false]);
 

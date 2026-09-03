@@ -23,22 +23,9 @@ class WalkInController extends Controller
     {
     }
 
-    protected function guard()
-    {
-        if (!session('user_id') || !in_array(session('user_role'), ['admin', 'staff'], true)) {
-            return redirect()->route('login')->with('login_error', 'Please log in to continue.');
-        }
-
-        return null;
-    }
-
     public function index(Request $request)
     {
-        if ($redirect = $this->guard()) {
-            return $redirect;
-        }
-
-        return view('superAdmin.walk-in', $this->calendarData($request));
+        return $this->panelView('walk-in', $this->calendarData($request));
     }
 
     /**
@@ -49,10 +36,6 @@ class WalkInController extends Controller
      */
     public function searchPatient(Request $request)
     {
-        if ($redirect = $this->guard()) {
-            return response()->json(['message' => 'Unauthorized'], 401);
-        }
-
         $q = trim((string) $request->query('q', ''));
 
         if ($q === '') {
@@ -89,10 +72,6 @@ class WalkInController extends Controller
 
     public function store(Request $request)
     {
-        if ($redirect = $this->guard()) {
-            return $redirect;
-        }
-
         $data = $request->validate([
             'patient_source' => 'required|in:existing,new',
             'patient_id' => 'required_if:patient_source,existing|nullable|integer|exists:tbl_patientInfo,PatientID',

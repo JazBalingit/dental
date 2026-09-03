@@ -83,7 +83,7 @@
                 <div class="input-icon">
                   <i class="bi bi-lock"></i>
                   <input type="text" name="password" class="form-control pw-mask" placeholder="••••••••" required
-                    autocomplete="current-password" />
+                    value="{{ old('password') }}" autocomplete="current-password" />
                 </div>
                 <label for="pwCheckLogin" class="pw-eye-btn">
                   <i class="bi bi-eye"></i><i class="bi bi-eye-slash"></i>
@@ -175,7 +175,8 @@
               <label class="form-label">Email address</label>
               <div class="input-icon">
                 <i class="bi bi-envelope"></i>
-                <input type="email" name="email" class="form-control" placeholder="you@clinic.com" required />
+                <input type="email" name="email" class="form-control" placeholder="you@clinic.com" required
+                  value="{{ old('email', session('reset_email')) }}" />
               </div>
               <button type="submit" class="btn btn-brand w-100 mt-3">Send Reset Code</button>
             </form>
@@ -185,7 +186,7 @@
               @csrf
               <label class="form-label">Verification code</label>
               <input type="text" name="code" class="form-control text-center mb-3" maxlength="6" inputmode="numeric"
-                pattern="[0-9]*" placeholder="••••••" required style="letter-spacing: 6px; font-size: 1.25rem;">
+                pattern="[0-9]*" placeholder="••••••" required value="{{ old('code') }}" style="letter-spacing: 6px; font-size: 1.25rem;">
 
               <label class="form-label">New password</label>
               <div class="pw-field mb-3">
@@ -193,7 +194,7 @@
                 <div class="input-icon">
                   <i class="bi bi-lock"></i>
                   <input type="text" name="password" class="form-control pw-mask" placeholder="••••••••" required
-                    minlength="8" autocomplete="new-password" />
+                    minlength="8" value="{{ old('password') }}" autocomplete="new-password" />
                 </div>
                 <label for="pwCheckNew" class="pw-eye-btn">
                   <i class="bi bi-eye"></i><i class="bi bi-eye-slash"></i>
@@ -206,7 +207,7 @@
                 <div class="input-icon">
                   <i class="bi bi-shield-lock"></i>
                   <input type="text" name="password_confirmation" class="form-control pw-mask" placeholder="••••••••"
-                    required autocomplete="new-password" />
+                    required value="{{ old('password_confirmation') }}" autocomplete="new-password" />
                 </div>
                 <label for="pwCheckNewConfirm" class="pw-eye-btn">
                   <i class="bi bi-eye"></i><i class="bi bi-eye-slash"></i>

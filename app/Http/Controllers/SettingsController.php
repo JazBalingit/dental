@@ -3,6 +3,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Controllers\Concerns\ManagesOtp;
 use App\Mail\OtpMail;
 use App\Models\ActivityLog;
 use App\Models\PatientInfo;
@@ -11,9 +12,13 @@ use App\Services\ActivityLogService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Facades\RateLimiter;
+use Illuminate\Validation\Rules\Password;
 
 class SettingsController extends Controller
 {
+    use ManagesOtp;
+
     public function __construct(protected ActivityLogService $activityLog)
     {
     }
@@ -79,14 +84,16 @@ class SettingsController extends Controller
 
         $data = $request->validate([
             'current_password' => 'required|string',
-            'password' => 'required|string|min:8|confirmed',
+            'password' => ['required', 'confirmed', Password::defaults()],
         ]);
 
         $user = UserAccount::findOrFail(session('user_id'));
 
         if (!Hash::check($data['current_password'], $user->Password)) {
             $this->activityLog->log('Failed Password Change', 'Entered the wrong current password when trying to change it (Settings → Security).', $user->UserID);
-            return redirect()->route('settings', ['tab' => 'security'])->with('password_error', 'Your current password is incorrect.');
+            return redirect()->route('settings', ['tab' => 'security'])
+                ->withInput($request->only('current_password', 'password', 'password_confirmation'))
+                ->with('password_error', 'Your current password is incorrect.');
         }
 
         $user->Password = Hash::make($data['password']);
@@ -106,10 +113,17 @@ class SettingsController extends Controller
             return redirect()->route('login');
         }
 
-        $code = (string) random_int(100000, 999999);
+        $throttleKey = 'settings-reset:' . session('user_id');
+        if (RateLimiter::tooManyAttempts($throttleKey, 5)) {
+            $seconds = RateLimiter::availableIn($throttleKey);
+            return redirect()->route('settings', ['tab' => 'security'])
+                ->with('settings_reset_error', 'Too many reset requests. Please try again in ' . ceil($seconds / 60) . ' minute(s).');
+        }
+        RateLimiter::hit($throttleKey, 900);
 
+        $code = $this->issueOtp('settings_reset');
         session([
-            'settings_reset_code' => $code,
+            'settings_reset_attempts' => 0,
             'show_settings_reset_modal' => true,
         ]);
         session()->forget('settings_reset_error');
@@ -125,9 +139,25 @@ class SettingsController extends Controller
             return redirect()->route('login');
         }
 
-        $code = (string) random_int(100000, 999999);
+        // Must wait 60 seconds between sends.
+        if ($this->otpResendTooSoon('settings_reset')) {
+            $wait = $this->otpWaitLabel($this->otpResendRetryAfter('settings_reset'));
+            return redirect()->route('settings', ['tab' => 'security'])
+                ->with('show_settings_reset_modal', true)
+                ->with('settings_reset_error', "Please wait {$wait} before requesting another code.");
+        }
 
-        session(['settings_reset_code' => $code, 'show_settings_reset_modal' => true]);
+        $throttleKey = 'settings-reset:' . session('user_id');
+        if (RateLimiter::tooManyAttempts($throttleKey, 5)) {
+            $seconds = RateLimiter::availableIn($throttleKey);
+            return redirect()->route('settings', ['tab' => 'security'])
+                ->with('show_settings_reset_modal', true)
+                ->with('settings_reset_error', 'Too many reset requests. Please try again in ' . ceil($seconds / 60) . ' minute(s).');
+        }
+        RateLimiter::hit($throttleKey, 900);
+
+        $code = $this->issueOtp('settings_reset');
+        session(['settings_reset_attempts' => 0, 'show_settings_reset_modal' => true]);
         session()->forget('settings_reset_error');
 
         Mail::to(session('user_email'))->send(new OtpMail($code));
@@ -143,16 +173,34 @@ class SettingsController extends Controller
 
         $request->validate([
             'code' => 'required|string',
-            'password' => 'required|string|min:8|confirmed',
+            'password' => ['required', 'confirmed', Password::defaults()],
         ]);
 
         if (!session()->has('settings_reset_code')) {
             return redirect()->route('settings', ['tab' => 'security'])->with('settings_reset_expired', true);
         }
 
-        if ($request->code !== session('settings_reset_code')) {
+        // A reset code is only good for 5 minutes.
+        if ($this->otpExpired('settings_reset')) {
+            $this->clearOtp('settings_reset');
+            session()->forget('show_settings_reset_modal');
+            return redirect()->route('settings', ['tab' => 'security'])->with('settings_reset_expired', true);
+        }
+
+        if (!$this->otpMatches('settings_reset', $request->code)) {
+            $attempts = session('settings_reset_attempts', 0) + 1;
             $this->activityLog->log('Failed Password Change', 'Entered an incorrect email reset code (Settings → Security).', session('user_id'));
+
+            if ($attempts >= 5) {
+                $this->clearOtp('settings_reset');
+                session()->forget('show_settings_reset_modal');
+                return redirect()->route('settings', ['tab' => 'security'])->with('settings_reset_expired', true);
+            }
+
+            session(['settings_reset_attempts' => $attempts]);
+
             return redirect()->route('settings', ['tab' => 'security'])
+                ->withInput($request->only('password', 'password_confirmation'))
                 ->with('show_settings_reset_modal', true)
                 ->with('settings_reset_error', 'Incorrect code. Please try again.');
         }
@@ -163,7 +211,8 @@ class SettingsController extends Controller
 
         $this->activityLog->log('Password Changed', 'Changed account password using an email reset code (Settings → Security).', $user->UserID);
 
-        session()->forget(['settings_reset_code', 'show_settings_reset_modal']);
+        $this->clearOtp('settings_reset');
+        session()->forget('show_settings_reset_modal');
 
         return redirect()->route('settings', ['tab' => 'security'])->with('password_updated', true);
     }
@@ -173,7 +222,8 @@ class SettingsController extends Controller
      */
     public function cancelReset(Request $request)
     {
-        session()->forget(['settings_reset_code', 'show_settings_reset_modal']);
+        $this->clearOtp('settings_reset');
+        session()->forget('show_settings_reset_modal');
 
         return redirect()->route('settings', ['tab' => 'security']);
     }

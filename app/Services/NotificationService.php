@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Mail\AppointmentStatusMail;
 use App\Models\Notification;
 use App\Models\UserAccount;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
 
 class NotificationService
@@ -32,8 +33,22 @@ class NotificationService
             'ReminderType' => $reminderType,
         ]);
 
-        if ($sendEmail) {
-            Mail::to($user->Email)->send(new AppointmentStatusMail($title, $message));
+        // Email is best-effort: the notification row above is the durable
+        // record. A mail-transport failure (bad API key, unverified sender
+        // domain, recipient rejected, provider down) must never bubble up
+        // and break the caller's workflow — approving an appointment still
+        // succeeds even if the patient's email bounces.
+        if ($sendEmail && $user->Email) {
+            try {
+                Mail::to($user->Email)->send(new AppointmentStatusMail($title, $message));
+            } catch (\Throwable $e) {
+                Log::warning('Notification email failed to send', [
+                    'user_id' => $user->UserID,
+                    'email' => $user->Email,
+                    'title' => $title,
+                    'error' => $e->getMessage(),
+                ]);
+            }
         }
 
         return $notification;

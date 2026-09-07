@@ -14,101 +14,68 @@
     integrity="sha512-2SwdPD6INVrV/lHTZbO2nodKhrnDdJK9/kg2XD1r9uGqPo1cUbujc+IYdlYdEErWNu69gVcYgdxlmVmzTWnetw=="
     crossorigin="anonymous" referrerpolicy="no-referrer" />
   <link rel="stylesheet" href="{{ asset('css/styles.css') }}">
+    <link rel="stylesheet" href="{{ asset('css/mobile.css') }}">
 </head>
 
-<body>
+<body class="auth-page">
   @php
     $showReset = session('show_reset_form', false);
   @endphp
 
-  <div class="row">
-    <div class="col-lg-6 column-1">
-      <div class="banner-wrap position-fixed">
-        <img class="auth-banner-img" src="/images/dental_chair.jpg" alt="">
-        <div class="banner-overlay"></div>
+  @include('login_signup.partials.auth-navbar')
 
-        <div class="banner-brand">
-          <div class="banner-home sub mb-2"><a class="sub text-decoration-none" href="{{ route('landingPage') }}"><i
-                class="fa-solid fa-arrow-left" style="margin-right: 8px;"></i>Back to Home</a></div>
-          <div class="brand">
-            <div><img class="logo" src="/images/puspus_logo.png" alt=""></div>
-            <div>
-              <div class="name">PUSPUS-BRITANICO</div>
-              <div class="sub">Dental Clinic</div>
-            </div>
+  <main class="auth-main">
+    <div class="auth-card" style="max-width: 440px;">
+      <div class="text-center mb-4">
+        <div class="auth-emblem"><img src="/images/puspus_logo.png" alt="Pus-Pus Britanico Dental Clinic"></div>
+        <h2 class="auth-title mb-1">Welcome back</h2>
+        <p class="auth-subtitle mb-0">Sign in to your Dental Clinic account</p>
+      </div>
+
+      @include('partials.flash-toasts', ['topOffset' => '20px'])
+
+      <form method="POST" action="{{ route('login.store') }}">
+        @csrf
+        <div class="mb-3">
+          <label class="form-label">Email address</label>
+          <div class="input-icon">
+            <i class="bi bi-envelope"></i>
+            <input type="email" name="email" class="form-control" value="{{ old('email') }}"
+              placeholder="you@clinic.com" required autofocus />
           </div>
         </div>
 
-        <div class="banner-text">
-          <h1 class="clinic-name">Welcome back to your dental care home.</h1>
-          <p class="clinic-tagline">
-            It's wonderful to see you again. We're here to help you maintain a healthy, confident smile in a warm and
-            caring environment.
-          </p>
-        </div>
-
-        <div class="banner-footer">
-          <p style="color: rgba(255, 255, 255, 0.8); margin: 0;">&copy; 2026 Puspus-Britanico Dental Clinic. All rights
-            reserved.
-          </p>
-        </div>
-      </div>
-    </div>
-    <div class="col-lg-6">
-      <div class="auth-bg">
-        <div class="auth-card" style="max-width: 440px;">
-          <div><img class="brand-mark" src="/images/puspus_logo.png" alt=""></div>
-          <div class="text-center mb-4">
-            <h2 class="auth-title mb-1">Welcome back</h2>
-            <p class="auth-subtitle mb-0">Sign in to your Dental Clinic account</p>
+        <div class="mb-2">
+          <label class="form-label">Password</label>
+          <div class="pw-field">
+            <input type="checkbox" class="pw-toggle-checkbox" id="pwCheckLogin">
+            <div class="input-icon">
+              <i class="bi bi-lock"></i>
+              <input type="text" name="password" class="form-control pw-mask" placeholder="••••••••" required
+                value="{{ old('password') }}" autocomplete="current-password" />
+            </div>
+            <label for="pwCheckLogin" class="pw-eye-btn">
+              <i class="bi bi-eye"></i><i class="bi bi-eye-slash"></i>
+            </label>
           </div>
-
-          @include('partials.flash-toasts', ['topOffset' => '20px'])
-
-          <form method="POST" action="{{ route('login.store') }}">
-            @csrf
-            <div class="mb-3">
-              <label class="form-label">Email address</label>
-              <div class="input-icon">
-                <i class="bi bi-envelope"></i>
-                <input type="email" name="email" class="form-control" value="{{ old('email') }}"
-                  placeholder="you@clinic.com" required autofocus />
-              </div>
-            </div>
-
-            <div class="mb-2">
-              <label class="form-label">Password</label>
-              <div class="pw-field">
-                <input type="checkbox" class="pw-toggle-checkbox" id="pwCheckLogin">
-                <div class="input-icon">
-                  <i class="bi bi-lock"></i>
-                  <input type="text" name="password" class="form-control pw-mask" placeholder="••••••••" required
-                    value="{{ old('password') }}" autocomplete="current-password" />
-                </div>
-                <label for="pwCheckLogin" class="pw-eye-btn">
-                  <i class="bi bi-eye"></i><i class="bi bi-eye-slash"></i>
-                </label>
-              </div>
-            </div>
-
-            <div class="d-flex justify-content-end align-items-center mb-4">
-              <a href="#" data-bs-toggle="modal" data-bs-target="#forgotPasswordModal"
-                class="text-decoration-none small fw-semibold" style="color: var(--brand-700);">Forgot
-                password?</a>
-            </div>
-            <button type="submit" class="btn btn-brand w-100 mb-3">Sign In</button>
-
-            <p class="text-center mb-0 text-muted-2 small">
-              Don't have an account?
-              <a href="{{ route('signup') }}" class="text-decoration-none fw-semibold"
-                style="color: var(--brand-700);">Create
-                one</a>
-            </p>
-          </form>
         </div>
-      </div>
+
+        <div class="d-flex justify-content-end align-items-center mb-4">
+          <a href="#" data-bs-toggle="modal" data-bs-target="#forgotPasswordModal"
+            class="text-decoration-none small fw-semibold" style="color: var(--brand-700);">Forgot
+            password?</a>
+        </div>
+        <button type="submit" class="btn btn-brand w-100 mb-3">Sign In</button>
+
+        <p class="text-center mb-0 text-muted-2 small">
+          Don't have an account?
+          <a href="{{ route('signup') }}" class="text-decoration-none fw-semibold"
+            style="color: var(--brand-700);">Create
+            one</a>
+        </p>
+      </form>
     </div>
-  </div>
+  </main>
 
   {{-- ===================== FORGOT PASSWORD MODAL ===================== --}}
   {{-- Opens two ways: (1) clicking "Forgot password?" via Bootstrap's own

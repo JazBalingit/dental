@@ -16,9 +16,10 @@
     href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Poppins:wght@500;600;700&display=swap"
     rel="stylesheet">
   <link rel="stylesheet" href="/css/landing.css">
+    <link rel="stylesheet" href="{{ asset('css/mobile.css') }}">
 </head>
 
-<body data-bs-spy="scroll" data-bs-target="#navbarSupportedContent" data-bs-offset="90" tabindex="0">
+<body data-bs-spy="scroll" data-bs-target="#navbarSupportedContent" data-bs-root-margin="0px 0px -40%" data-bs-smooth-scroll="true" tabindex="0">
   {{-- Page-level flash + validation toasts (contact form, booking, etc.) — shown to guests and patients alike. --}}
   @include('partials.flash-toasts', ['topOffset' => '100px'])
   <!-- NAVBAR -->
@@ -29,70 +30,28 @@
         <span class="navt ms-1" style="color:#0f7a2d;">PUS-PUS</span>
         <span class="navt ms-2" style="color:#144d25;">BRITANICO</span>
       </a>
-      <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarSupportedContent">
-        <span class="navbar-toggler-icon"></span>
-      </button>
+      {{-- Phone / tablet: notification bell sits next to the hamburger, outside the
+      collapsing menu, so opening it never disturbs the nav links. --}}
+      <div class="d-flex align-items-center gap-2 d-lg-none">
+        @if (session('user_id'))
+          @include('partials.user-notif-dropdown')
+        @endif
+        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarSupportedContent">
+          <span class="navbar-toggler-icon"></span>
+        </button>
+      </div>
       <div class="collapse navbar-collapse" id="navbarSupportedContent">
         <ul class="navbar-nav mx-auto text-center">
           <li class="nav-item"><a class="nav-link navh" href="#home">Home</a></li>
           <li class="nav-item"><a class="nav-link navh" href="#services">Services</a></li>
           <li class="nav-item"><a class="nav-link navh" href="#how">How It Works</a></li>
-          <li class="nav-item"><a class="nav-link navh" href="#about">About</a></li>
           @if (session('user_id'))
             <li class="nav-item"><a class="nav-link navh" href="#appointment">Appointment</a></li>
           @endif
+          <li class="nav-item"><a class="nav-link navh" href="#about">About</a></li>
           <li class="nav-item"><a class="nav-link navh" href="#contact">Contact</a></li>
         </ul>
-        <ul class="navbar-nav ms-lg-3">
-          <li class="nav-item">
-            <div class="d-flex justify-content-between">
-              @include('partials.user-notif-dropdown')
-              @if (session('user_email'))
-                <div class="dropdown d-flex align-items-center">
-                  <a href="{{ route('settings', ['tab' => 'profile']) }}"
-                    class="nav-link navh d-flex align-items-center gap-2" style="padding-right:8px;">
-                    <i class="bi bi-person-circle"></i>
-                    <span>{{ session('user_email') }}</span>
-                  </a>
-                  <button class="nav-link navh border-0 bg-transparent dropdown-toggle" type="button"
-                    data-bs-toggle="dropdown" aria-expanded="false" aria-label="Account menu"
-                    style="padding-left:6px;padding-right:10px;margin-left:-4px;"></button>
-                  <ul class="dropdown-menu dropdown-menu-end shadow-sm">
-                    <li>
-                      <a class="dropdown-item small" href="{{ route('userAppointment') }}">
-                        <i class="bi bi-calendar-check me-2"></i>User Appointments
-                      </a>
-                    </li>
-                    <li>
-                      <a class="dropdown-item small" href="{{ route('myRecords') }}">
-                        <i class="bi bi-folder2-open me-2"></i>My Dental Records
-                      </a>
-                    </li>
-                    <li>
-                      <a class="dropdown-item small" href="{{ route('settings') }}">
-                        <i class="bi bi-gear me-2"></i>Settings
-                      </a>
-                    </li>
-                    <li>
-                      <hr class="dropdown-divider">
-                    </li>
-                    <li>
-                      <form method="POST" action="{{ route('logout') }}" class="m-0">
-                        @csrf
-                        <button type="submit" class="dropdown-item text-danger">
-                          <i class="bi bi-box-arrow-right me-1"></i> Log Out
-                        </button>
-                      </form>
-                    </li>
-                  </ul>
-                </div>
-              @else
-                <a href="{{ route('login') }}" class="nav-link navh signin-btn">Sign In</a>
-                <a href="{{ route('signup') }}" class="nav-link navh signup-btn">Sign Up</a>
-              @endif
-            </div>
-          </li>
-        </ul>
+        @include('partials.user-nav-actions')
       </div>
     </div>
   </nav>
@@ -197,36 +156,6 @@
       </div>
     </div>
   </section>
-  <!-- ABOUT -->
-  <section id="about" class="section" style="background: linear-gradient(180deg, #eef9f0 0%, #ffffff 100%);">
-    <div class="container">
-      <div class="text-center">
-        <span class="section-eyebrow">Visit Us</span>
-        <h2 class="section-title">About the Clinic</h2>
-        <hr class="section-divider mx-auto">
-      </div>
-      <div class="row align-items-center g-5">
-        <div class="col-md-6">
-          <img src="{{ $aboutInfo['image'] }}" class="about-img" alt="Pus-Pus Britanico Dental Clinic">
-        </div>
-        <div class="col-md-6">
-          <h3 class="fw-bold mb-3">Location & Hours</h3>
-          <p class="mb-4">{{ $aboutInfo['description'] }}</p>
-          <div class="ratio ratio-16x9 shadow rounded mb-4" style="border-radius: 12px; overflow: hidden;">
-            <iframe
-              src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3866.290422858543!2d121.00423227592287!3d14.294550984494727!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x3397d642f1da52ff%3A0xad05742ba9b8761d!2sPuspus%20Britanico%20Dental%20Clinic.!5e0!3m2!1sen!2sph!4v1787657874563!5m2!1sen!2sph"
-              width="600" height="450" style="border:0;" allowfullscreen="" loading="lazy"
-              referrerpolicy="strict-origin-when-cross-origin"></iframe>
-          </div>
-          <div class="location-info">
-            <p><i class="fa-solid fa-location-dot"></i><span><strong>Address</strong>{{ $aboutInfo['address'] }}</span></p>
-            <p><i class="fa-regular fa-calendar"></i><span><strong>Operating Days</strong>{{ $aboutInfo['operatingDays'] }}</span></p>
-            <p><i class="fa-regular fa-clock"></i><span><strong>Operating Hours</strong>{{ $aboutInfo['operatingHours'] }}</span></p>
-          </div>
-        </div>
-      </div>
-    </div>
-  </section>
   @if (session('user_id'))
     <!-- APPOINTMENT -->
     <section id="appointment" class="section" style="background: linear-gradient(180deg, #c2f2c677 0%, #d1ffca30 100%);">
@@ -256,6 +185,39 @@
       </div>
     </section>
   @endif
+  <!-- ABOUT -->
+  <section id="about" class="section" style="background: linear-gradient(180deg, #eef9f0 0%, #ffffff 100%);">
+    <div class="container">
+      <div class="text-center">
+        <span class="section-eyebrow">Visit Us</span>
+        <h2 class="section-title">About the Clinic</h2>
+        <hr class="section-divider mx-auto">
+      </div>
+      <div class="row align-items-center g-5">
+        <div class="col-md-6">
+          <img src="{{ $aboutInfo['image'] }}" class="about-img" alt="Pus-Pus Britanico Dental Clinic">
+        </div>
+        <div class="col-md-6">
+          <h3 class="fw-bold mb-3">Location & Hours</h3>
+          <p class="mb-4">{{ $aboutInfo['description'] }}</p>
+          <div class="ratio ratio-16x9 shadow rounded mb-4" style="border-radius: 12px; overflow: hidden;">
+            <iframe
+              src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3866.290422858543!2d121.00423227592287!3d14.294550984494727!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x3397d642f1da52ff%3A0xad05742ba9b8761d!2sPuspus%20Britanico%20Dental%20Clinic.!5e0!3m2!1sen!2sph!4v1787657874563!5m2!1sen!2sph"
+              width="600" height="450" style="border:0;" allowfullscreen="" loading="lazy"
+              referrerpolicy="strict-origin-when-cross-origin"></iframe>
+          </div>
+          <div class="location-info">
+            <p><i class="fa-solid fa-location-dot"></i><span><strong>Address</strong>{{ $aboutInfo['address'] }}</span>
+            </p>
+            <p><i class="fa-regular fa-calendar"></i><span><strong>Operating
+                  Days</strong>{{ $aboutInfo['operatingDays'] }}</span></p>
+            <p><i class="fa-regular fa-clock"></i><span><strong>Operating
+                  Hours</strong>{{ $aboutInfo['operatingHours'] }}</span></p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
   <!-- CONTACT US -->
   <section id="contact" class="section" style="background: linear-gradient(180deg, #eff9ee 0%, #ffffff 100%);">
     <div class="container">
@@ -326,8 +288,8 @@
               </div>
               <div class="mb-4">
                 <label class="form-label">Message</label>
-                <textarea class="form-control" name="message" rows="5" placeholder="Write your message here..."
-                  required maxlength="3000">{{ old('message') }}</textarea>
+                <textarea class="form-control" name="message" rows="5" placeholder="Write your message here..." required
+                  maxlength="3000">{{ old('message') }}</textarea>
               </div>
               <div class="text-end">
                 <button type="submit" class="btn btn-submit">
@@ -346,21 +308,17 @@
       <div class="row g-4">
         <div class="col-lg-5">
           <h5 class="text-uppercase fw-bold mb-3">Pus-Pus Britanico Dental Clinic</h5>
-          <p>
-            Providing quality dental care with compassion and professionalism. Our clinic is dedicated to ensuring every
-            patient receives personalized treatment in a comfortable and welcoming environment. Your smile is our
-            priority.
-          </p>
+          <p>{{ $aboutInfo['footerDescription'] }}</p>
         </div>
         <div class="col-lg-3 col-md-6">
           <h6 class="text-uppercase fw-bold mb-3">Quick Links</h6>
           <a class="footer-link" href="#home">Home</a>
           <a class="footer-link" href="#services">Services</a>
           <a class="footer-link" href="#how">How It Works</a>
-          <a class="footer-link" href="#about">About</a>
           @if (session('user_id'))
             <a class="footer-link" href="#appointment">Appointment</a>
           @endif
+          <a class="footer-link" href="#about">About</a>
           <a class="footer-link" href="#contact">Contact</a>
         </div>
         <div class="col-lg-4 col-md-6">
@@ -377,7 +335,7 @@
       </div>
       <hr style="border-color: rgba(255, 255, 255, 0.2); margin: 40px 0 20px;">
       <div class="text-center">
-        <p style="margin: 0;">&copy; 2026 Pus-Pus Britanico Dental Clinic. All rights reserved.</p>
+        <p style="margin: 0;">{{ $aboutInfo['footerCopyright'] }}</p>
       </div>
     </div>
   </footer>

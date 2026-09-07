@@ -27,6 +27,7 @@ class ConfigurationController extends Controller
         'Password Changed', 'Failed Password Change',
         'Appointment Booked', 'Appointment Cancelled', 'Appointment Rescheduled', 'Failed Booking',
         'Profile Updated',
+        'Super Admin Activated', 'Super Admin Released', 'Failed Super Admin Activation', 'Failed Super Admin Release',
         'Create', 'Edit', 'Archive', 'Unarchive', 'Approve', 'Decline', 'Complete', 'Cancel',
     ];
 
@@ -120,6 +121,8 @@ class ConfigurationController extends Controller
             'booking_lunch_start' => ['nullable', 'required_with:booking_lunch_end', 'date_format:H:i', 'regex:/^\d{2}:(00|30)$/'],
             'booking_lunch_end' => ['nullable', 'required_with:booking_lunch_start', 'date_format:H:i', 'regex:/^\d{2}:(00|30)$/', 'after:booking_lunch_start'],
             'about_description' => 'nullable|string|max:1000',
+            'footer_description' => 'nullable|string|max:1000',
+            'footer_copyright' => 'nullable|string|max:255',
             'contact_phone' => 'nullable|string|max:50',
             'contact_mobile' => 'nullable|string|max:50',
             'contact_email' => 'required|email|max:150',
@@ -150,6 +153,8 @@ class ConfigurationController extends Controller
         // Keep the public "Operating Hours" line in step with the booking window.
         SystemSetting::set('about_operating_hours', DentistSchedule::clinicHoursLabel());
         SystemSetting::set('about_description', $data['about_description'] ?? '');
+        SystemSetting::set('footer_description', $data['footer_description'] ?? '');
+        SystemSetting::set('footer_copyright', $data['footer_copyright'] ?? '');
         SystemSetting::set('contact_phone', $data['contact_phone'] ?? '');
         SystemSetting::set('contact_mobile', $data['contact_mobile'] ?? '');
         SystemSetting::set('contact_email', $data['contact_email']);

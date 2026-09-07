@@ -23,12 +23,12 @@ class UserAccountController extends Controller
 
         $activeQuery = UserAccount::with('patientInfo')
             ->where('AccountType', 'User')
-            ->where('AccountRole', '!=', 'admin')
+            ->whereNotIn('AccountRole', UserAccount::ADMIN_ROLES)
             ->where('IsArchived', false);
 
         $archivedQuery = UserAccount::with('patientInfo')
             ->where('AccountType', 'User')
-            ->where('AccountRole', '!=', 'admin')
+            ->whereNotIn('AccountRole', UserAccount::ADMIN_ROLES)
             ->where('IsArchived', true);
 
         if ($search) {

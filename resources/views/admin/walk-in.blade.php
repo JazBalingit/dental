@@ -37,6 +37,7 @@
         .booking-status-booked { background: #fff0f1; color: #c93645; border: 1px solid #f2aeb6; }
         .booking-status-pending { background: #fff8e6; color: #8a6100; border: 1px solid #f0d78c; }
     </style>
+    <link rel="stylesheet" href="{{ asset('css/mobile.css') }}">
 </head>
 
 <body>

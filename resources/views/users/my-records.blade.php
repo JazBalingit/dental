@@ -15,6 +15,7 @@
         rel="stylesheet">
     <link rel="stylesheet" href="/css/user_appointments.css">
     <link rel="stylesheet" href="/css/odontogram.css">
+    <link rel="stylesheet" href="{{ asset('css/mobile.css') }}">
 </head>
 
 <body>
@@ -27,53 +28,27 @@
                 <span class="navt ms-1" style="color:#0f7a2d;">PUS-PUS</span>
                 <span class="navt ms-2" style="color:#144d25;">BRITANICO</span>
             </a>
-            <button class="navbar-toggler" type="button" data-bs-toggle="collapse"
-                data-bs-target="#navbarSupportedContent">
-                <span class="navbar-toggler-icon"></span>
-            </button>
+            {{-- Phone / tablet: notification bell sits next to the hamburger, outside the
+                 collapsing menu, so opening it never disturbs the nav links. --}}
+            <div class="d-flex align-items-center gap-2 d-lg-none">
+                @if (session('user_id'))
+                    @include('partials.user-notif-dropdown')
+                @endif
+                <button class="navbar-toggler" type="button" data-bs-toggle="collapse"
+                    data-bs-target="#navbarSupportedContent">
+                    <span class="navbar-toggler-icon"></span>
+                </button>
+            </div>
             <div class="collapse navbar-collapse" id="navbarSupportedContent">
                 <ul class="navbar-nav mx-auto text-center">
                     <li class="nav-item"><a class="nav-link navh" href="{{ route('landingPage') }}#home">Home</a></li>
                     <li class="nav-item"><a class="nav-link navh" href="{{ route('landingPage') }}#services">Services</a></li>
                     <li class="nav-item"><a class="nav-link navh" href="{{ route('landingPage') }}#how">How It Works</a></li>
-                    <li class="nav-item"><a class="nav-link navh" href="{{ route('landingPage') }}#about">About</a></li>
                     <li class="nav-item"><a class="nav-link navh" href="{{ route('landingPage') }}#appointment">Appointment</a></li>
+                    <li class="nav-item"><a class="nav-link navh" href="{{ route('landingPage') }}#about">About</a></li>
                     <li class="nav-item"><a class="nav-link navh" href="{{ route('landingPage') }}#contact">Contact</a></li>
                 </ul>
-                <ul class="navbar-nav ms-lg-3">
-                    <li class="nav-item">
-                        <div class="d-flex justify-content-between">
-                            @include('partials.user-notif-dropdown')
-                            @if (session('user_email'))
-                                <div class="dropdown d-flex align-items-center">
-                                    <a href="{{ route('settings', ['tab' => 'profile']) }}"
-                                        class="nav-link navh d-flex align-items-center gap-2" style="padding-right:8px;">
-                                        <i class="bi bi-person-circle"></i>
-                                        <span>{{ session('user_email') }}</span>
-                                    </a>
-                                    <button class="nav-link navh border-0 bg-transparent dropdown-toggle"
-                                        type="button" data-bs-toggle="dropdown" aria-expanded="false"
-                                        aria-label="Account menu" style="padding-left:6px;padding-right:10px;margin-left:-4px;"></button>
-                                    <ul class="dropdown-menu dropdown-menu-end shadow-sm">
-                                        <li><a class="dropdown-item small" href="{{ route('userAppointment') }}"><i class="bi bi-calendar-check me-2"></i>User Appointments</a></li>
-                                        <li><a class="dropdown-item small" href="{{ route('myRecords') }}"><i class="bi bi-folder2-open me-2"></i>My Dental Records</a></li>
-                                        <li><a class="dropdown-item small" href="{{ route('settings') }}"><i class="bi bi-gear me-2"></i>Settings</a></li>
-                                        <li><hr class="dropdown-divider"></li>
-                                        <li>
-                                            <form method="POST" action="{{ route('logout') }}" class="m-0">
-                                                @csrf
-                                                <button type="submit" class="dropdown-item text-danger"><i class="bi bi-box-arrow-right me-1"></i> Log Out</button>
-                                            </form>
-                                        </li>
-                                    </ul>
-                                </div>
-                            @else
-                                <a href="{{ route('login') }}" class="nav-link navh signin-btn">Sign In</a>
-                                <a href="{{ route('signup') }}" class="nav-link navh signup-btn">Sign Up</a>
-                            @endif
-                        </div>
-                    </li>
-                </ul>
+                @include('partials.user-nav-actions')
             </div>
         </div>
     </nav>

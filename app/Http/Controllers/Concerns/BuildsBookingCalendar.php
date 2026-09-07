@@ -107,7 +107,7 @@ trait BuildsBookingCalendar
             'bookOccupiedSlots' => $occupiedSlots,
             'bookSlots' => DentistSchedule::slotLabels(),
             'bookToday' => now()->format('Y-m-d'),
-            'services' => Service::orderBy('ServiceName')->get(),
+            'services' => Service::where('IsArchived', false)->orderBy('ServiceName')->get(),
             'bookCurrentPatientId' => UserAccount::with('patientInfo')->find(session('user_id'))?->patientInfo?->PatientID,
             'bookDentists' => $dentists,
             'bookSelectedDentist' => $selectedDentist,

@@ -14,6 +14,8 @@ class DatabaseSeeder extends Seeder
      */
     public function run(): void
     {
-        $this->call(AdminSeeder::class);
+        // No default accounts are seeded. The super admin is bootstrapped from
+        // config/superadmin.php (.env) and then claimed into a real account;
+        // every other admin is created in Staff Accounts.
     }
 }

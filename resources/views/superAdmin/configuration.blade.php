@@ -11,6 +11,7 @@
     href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Poppins:wght@500;600;700&display=swap"
     rel="stylesheet">
   <link rel="stylesheet" href="{{ asset('css/styles.css') }}">
+    <link rel="stylesheet" href="{{ asset('css/mobile.css') }}">
 </head>
 
 <body>
@@ -186,6 +187,24 @@
                         <div class="input-icon"><i class="bi bi-envelope"></i><input type="email" name="contact_email"
                             class="form-control" value="{{ old('contact_email', $aboutInfo['email']) }}"
                             placeholder="clinic@example.com" required></div>
+                      </div>
+                    </div>
+
+                    <div class="section-label mt-4"><i class="bi bi-layout-text-window-reverse"></i> Landing Page Footer</div>
+                    <p class="small text-muted-2 mb-3">The blurb and copyright line at the very bottom of the landing page.
+                      The footer's quick links and contact block are generated from the navigation and the contact
+                      details above — nothing to set there.</p>
+                    <div class="row g-3">
+                      <div class="col-12">
+                        <label class="form-label">Footer Description</label>
+                        <textarea name="footer_description" class="form-control" rows="3"
+                          placeholder="A short blurb about the clinic shown in the footer.">{{ old('footer_description', $aboutInfo['footerDescription']) }}</textarea>
+                      </div>
+                      <div class="col-12">
+                        <label class="form-label">Copyright Line</label>
+                        <div class="input-icon"><i class="bi bi-c-circle"></i><input type="text" name="footer_copyright"
+                            class="form-control" value="{{ old('footer_copyright', $aboutInfo['footerCopyright']) }}"
+                            placeholder="© {{ date('Y') }} Pus-Pus Britanico Dental Clinic. All rights reserved."></div>
                       </div>
                     </div>
 

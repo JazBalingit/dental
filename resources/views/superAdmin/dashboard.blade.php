@@ -43,6 +43,7 @@
       color: var(--ink-500, #64748b);
     }
   </style>
+    <link rel="stylesheet" href="{{ asset('css/mobile.css') }}">
 </head>
 
 <body>

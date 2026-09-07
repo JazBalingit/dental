@@ -3,6 +3,7 @@
 namespace App\View\Composers;
 
 use App\Models\Notification;
+use App\Models\UserAccount;
 use Illuminate\View\View;
 
 class UserNotificationComposer
@@ -10,7 +11,20 @@ class UserNotificationComposer
     public function compose(View $view): void
     {
         $userId = session('user_id');
-        $isPatient = $userId && session('account_type') !== 'staff' && session('user_role') !== 'admin';
+        $isPatient = $userId && session('account_type') !== 'staff'
+            && !in_array(session('user_role'), UserAccount::ADMIN_ROLES, true);
+
+        // Avatar for the navbar account menu — the patient's uploaded photo,
+        // otherwise the shared default. Available on every user-facing page.
+        $navUserPhoto = asset('images/default.png');
+        if ($userId) {
+            $account = UserAccount::with('patientInfo')->find($userId);
+            $photo = $account?->patientInfo?->ProfilePicture;
+            if ($photo) {
+                $navUserPhoto = asset($photo);
+            }
+        }
+        $view->with('navUserPhoto', $navUserPhoto);
 
         if (!$isPatient) {
             $view->with([

@@ -881,7 +881,7 @@
         }
 
         .notif-modal-header {
-            background: #164f9f;
+            background: #0f7a33;
             color: #fff;
             border-bottom: none;
             padding: 1rem 1.25rem;
@@ -1305,4 +1305,67 @@
 
         @media (max-width: 575.98px) {
             .appt-info-grid { grid-template-columns: 1fr; }
+        }
+
+        /* =========================================================
+           Responsive pass — phones & small tablets
+           ========================================================= */
+
+        html,
+        body {
+            max-width: 100%;
+            overflow-x: clip;
+        }
+
+        img,
+        svg,
+        video {
+            max-width: 100%;
+            height: auto;
+        }
+
+        .table-responsive {
+            -webkit-overflow-scrolling: touch;
+        }
+
+        /* The appointments table scrolls sideways inside its card instead
+           of stretching the page. */
+        .appt-table-wrap,
+        .table-responsive {
+            overflow-x: auto;
+            max-width: 100%;
+        }
+
+        @media (max-width: 991.98px) {
+
+            .row.g-5,
+            .row.g-4 {
+                --bs-gutter-x: 1.5rem;
+            }
+        }
+
+        @media (max-width: 767.98px) {
+
+            .appt-table th,
+            .appt-table td {
+                padding: .6rem .7rem;
+                font-size: .82rem;
+                white-space: nowrap;
+            }
+
+            .card-hd {
+                padding: .9rem 1rem;
+            }
+
+            .modal-dialog {
+                margin: .5rem;
+            }
+        }
+
+        @media (max-width: 575.98px) {
+
+            .month-grid {
+                grid-template-columns: repeat(7, minmax(42px, 1fr));
+                overflow-x: auto;
+            }
         }

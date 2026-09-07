@@ -92,7 +92,8 @@ trait ManagesOtp
             return false;
         }
 
-        return hash_equals((string) session("{$prefix}_code"), $input);
+        // Tolerate stray whitespace from copy-pasting the code out of an email.
+        return hash_equals((string) session("{$prefix}_code"), trim($input));
     }
 
     protected function clearOtp(string $prefix): void

@@ -185,11 +185,25 @@ p {
     color: var(--primary) !important;
 }
 
-.navh:hover {
+.navh:hover,
+.navh.active {
     background: var(--gradient-primary);
     color: #fff !important;
     box-shadow: 0 4px 12px rgba(59, 217, 101, 0.3);
     transform: translateY(-2px);
+}
+
+/* Scrollspy marks the in-view section's link .active; the sign in / sign up
+   buttons carry .navh too but must keep their own look. */
+.navh.signin-btn.active,
+.navh.signup-btn.active {
+    transform: none;
+}
+
+/* Fixed navbar overlaps anchored sections — nudge each section's scroll
+   stop down so its heading clears the bar when a nav link is clicked. */
+section[id] {
+    scroll-margin-top: 82px;
 }
 
 .navh.signin-btn {
@@ -1044,6 +1058,49 @@ footer .footer-link {
     gap: .75rem;
 }
 
+/* The month picker + prev/next cluster — one flex unit so it wraps together
+   instead of the arrows stranding on a line above on narrow screens. */
+.sched-monthnav {
+    display: flex;
+    align-items: center;
+    gap: .5rem;
+    flex-wrap: wrap;
+}
+
+@media (max-width: 575.98px) {
+    .schedule-toolbar > div:last-child {
+        width: 100%;
+    }
+
+    .schedule-toolbar > div:last-child > select {
+        width: 100% !important;
+    }
+
+    .sched-monthnav {
+        width: 100%;
+        justify-content: center;
+    }
+
+    .sched-monthnav-form {
+        order: -1;
+        flex: 1 1 100%;
+    }
+
+    .sched-monthnav-form > select {
+        flex: 1;
+        min-width: 0;
+        width: auto !important;
+    }
+
+    .sched-monthnav-form > input[type="number"] {
+        width: 76px !important;
+    }
+
+    .sched-monthnav > .btn {
+        flex: 1;
+    }
+}
+
 .view-toggle {
     display: inline-flex;
     background: var(--ink-100);
@@ -1069,7 +1126,7 @@ footer .footer-link {
 
 .week-grid {
     display: grid;
-    grid-template-columns: 90px repeat(7, 1fr);
+    grid-template-columns: 80px 1fr;
     border-top: 1px solid var(--ink-100);
 }
 
@@ -1383,10 +1440,10 @@ footer .footer-link {
     pointer-events: none;
 }
 
-/* Week grid inside modal */
+/* Week grid inside modal — a two-column Time | Slot layout */
 .week-grid {
     display: grid;
-    grid-template-columns: 52px repeat(7, 1fr);
+    grid-template-columns: 80px 1fr;
     border: 1px solid #e2e8f0;
     border-radius: 10px;
     overflow: hidden;
@@ -1665,4 +1722,116 @@ footer .footer-link {
     background: #fff0f1;
     color: #c93645;
     border: 1px solid #f2aeb6;
+}
+
+/* =========================================================
+   Responsive pass — phones & small tablets
+   ========================================================= */
+
+html,
+body {
+    max-width: 100%;
+    overflow-x: clip;
+}
+
+img,
+svg,
+video {
+    max-width: 100%;
+    height: auto;
+}
+
+.table-responsive {
+    -webkit-overflow-scrolling: touch;
+}
+
+/* Booking calendars: scroll inside their own box, never widen the page */
+.month-grid,
+.week-grid {
+    max-width: 100%;
+    overflow-x: auto;
+}
+
+@media (max-width: 991.98px) {
+
+    /* Bootstrap rows with wide gutters (g-4 / g-5) have a negative margin
+       bigger than the container padding on a phone — that spills over the
+       right edge. Pull the gutter back to the standard size. */
+    .row.g-5,
+    .row.g-4 {
+        --bs-gutter-x: 1.5rem;
+    }
+
+    .section {
+        padding: 56px 0;
+    }
+}
+
+@media (max-width: 767.98px) {
+    .section {
+        padding: 44px 0;
+    }
+
+    .appointment-card {
+        padding: 20px 16px;
+    }
+
+    /* Month calendar: fit all 7 columns; horizontal scroll stays as a
+       fallback for the tightest phones. */
+    .month-grid {
+        grid-template-columns: repeat(7, minmax(44px, 1fr));
+    }
+
+    /* The day-modal week grid is a two-column Time | Slot layout — a
+       repeat(7, …) track list reflows those two cells into a jumbled
+       8-column row. Keep it two columns. */
+    .week-grid {
+        grid-template-columns: 52px 1fr;
+    }
+
+    .month-grid .day-cell {
+        min-height: 58px;
+    }
+
+    .month-grid .day-cell .ev {
+        font-size: .56rem;
+    }
+
+    .card-soft .card-body,
+    .content {
+        padding: 1rem;
+    }
+
+    .table-soft thead th,
+    .table-soft tbody td {
+        padding: .6rem .7rem;
+        font-size: .82rem;
+    }
+
+    .data-toolbar {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .data-toolbar .left,
+    .data-toolbar .right,
+    .data-toolbar .search,
+    .data-toolbar .search .form-control {
+        width: 100%;
+        min-width: 0;
+    }
+
+    .modal-dialog {
+        margin: .5rem;
+    }
+}
+
+@media (max-width: 575.98px) {
+    .content {
+        padding: .75rem;
+    }
+
+    .appointment-card {
+        padding: 16px 12px;
+    }
 }

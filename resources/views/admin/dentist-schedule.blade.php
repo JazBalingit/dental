@@ -11,6 +11,7 @@
         href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Poppins:wght@500;600;700&display=swap"
         rel="stylesheet">
     <link rel="stylesheet" href="{{ asset('css/styles.css') }}">
+    <link rel="stylesheet" href="{{ asset('css/mobile.css') }}">
 </head>
 
 <body>
@@ -82,32 +83,36 @@
                                 </select>
                             @endif
 
-                            {{-- Prev / next month --}}
-                            <a href="{{ route('dentistSchedule', ['month' => $current->copy()->subMonth()->format('Y-m'), 'dentist' => $selectedDentistId]) }}"
-                                class="btn btn-outline-secondary btn-sm" aria-label="Previous month"><i
-                                    class="bi bi-chevron-left"></i></a>
+                            {{-- Month navigation kept together so it wraps as one unit on phones --}}
+                            <div class="sched-monthnav">
+                                {{-- Prev month --}}
+                                <a href="{{ route('dentistSchedule', ['month' => $current->copy()->subMonth()->format('Y-m'), 'dentist' => $selectedDentistId]) }}"
+                                    class="btn btn-outline-secondary btn-sm" aria-label="Previous month"><i
+                                        class="bi bi-chevron-left"></i></a>
 
-                            {{-- Year / month picker — plain GET form, no JS required --}}
-                            <form method="GET" action="{{ route('dentistSchedule') }}"
-                                class="d-flex align-items-center gap-2">
-                                <input type="hidden" name="dentist" value="{{ $selectedDentistId }}">
-                                <select name="monthNum" class="form-select form-select-sm" style="width: 140px;">
-                                    @foreach (range(1, 12) as $m)
-                                        <option value="{{ $m }}" {{ $current->month === $m ? 'selected' : '' }}>
-                                            {{ \Carbon\Carbon::create()->month($m)->format('F') }}
-                                        </option>
-                                    @endforeach
-                                </select>
-                                <input type="number" name="year" class="form-control form-control-sm" style="width: 100px;"
-                                    min="2000" max="2100" value="{{ $current->year }}">
-                                <button type="submit" class="btn btn-brand btn-sm">Go</button>
-                            </form>
+                                {{-- Year / month picker — plain GET form, no JS required --}}
+                                <form method="GET" action="{{ route('dentistSchedule') }}"
+                                    class="sched-monthnav-form d-flex align-items-center gap-2">
+                                    <input type="hidden" name="dentist" value="{{ $selectedDentistId }}">
+                                    <select name="monthNum" class="form-select form-select-sm" style="width: 140px;">
+                                        @foreach (range(1, 12) as $m)
+                                            <option value="{{ $m }}" {{ $current->month === $m ? 'selected' : '' }}>
+                                                {{ \Carbon\Carbon::create()->month($m)->format('F') }}
+                                            </option>
+                                        @endforeach
+                                    </select>
+                                    <input type="number" name="year" class="form-control form-control-sm" style="width: 100px;"
+                                        min="2000" max="2100" value="{{ $current->year }}">
+                                    <button type="submit" class="btn btn-brand btn-sm">Go</button>
+                                </form>
 
-                            <a href="{{ route('dentistSchedule', ['month' => $current->copy()->addMonth()->format('Y-m'), 'dentist' => $selectedDentistId]) }}"
-                                class="btn btn-outline-secondary btn-sm" aria-label="Next month"><i
-                                    class="bi bi-chevron-right"></i></a>
+                                {{-- Next month --}}
+                                <a href="{{ route('dentistSchedule', ['month' => $current->copy()->addMonth()->format('Y-m'), 'dentist' => $selectedDentistId]) }}"
+                                    class="btn btn-outline-secondary btn-sm" aria-label="Next month"><i
+                                        class="bi bi-chevron-right"></i></a>
 
-                            <a href="{{ route('dentistSchedule', ['dentist' => $selectedDentistId]) }}" class="btn btn-outline-secondary btn-sm">Today</a>
+                                <a href="{{ route('dentistSchedule', ['dentist' => $selectedDentistId]) }}" class="btn btn-outline-secondary btn-sm">Today</a>
+                            </div>
                         </div>
                     </div>
 
@@ -160,24 +165,34 @@
                                         data-bs-toggle="modal" data-bs-target="#{{ $modalId }}">
                                         <div class="n" style="margin-left: 8px;">{{ $d->day }}</div>
                                         <span class="{{ $countClass }}">{{ $availableCount }}</span>
-                                        @foreach ($lockedTimes->take(3) as $time => $label)
-                                            @php
-                                                $slotAppointment = $occupiedSlots[$dateStr . '_' . $time] ?? null;
-                                                $evLabel = match (true) {
-                                                    $slotAppointment && $slotAppointment->Status === 'Completed' => 'Completed',
-                                                    $slotAppointment && $slotAppointment->Status === 'Approved' => 'Booked',
-                                                    $slotAppointment !== null => 'Pending',
-                                                    default => 'Not available',
-                                                };
-                                                $evClass = match (true) {
-                                                    $slotAppointment && $slotAppointment->Status === 'Completed' => 'ev-completed',
-                                                    $slotAppointment && $slotAppointment->Status === 'Approved' => 'ev-booked',
-                                                    $slotAppointment !== null => 'ev-pending',
-                                                    default => 'ev-unavailable',
-                                                };
-                                            @endphp
-                                            <span class="ev {{ $evClass }}">{{ \Carbon\Carbon::createFromFormat('H:i', $time)->format('g:i A') }} · {{ $evLabel }}</span>
-                                        @endforeach
+                                        @php
+                                            // Nothing left to book that day — collapse the per-slot chip
+                                            // list into one line. "Fully booked" if appointments filled it,
+                                            // "Closed" if the dentist just switched every slot off.
+                                            $heldByAppointment = $lockedTimes->contains(fn($label, $time) => isset($occupiedSlots[$dateStr . '_' . $time]));
+                                        @endphp
+                                        @if ($availableCount <= 0)
+                                            <span class="ev ev-unavailable">{{ $heldByAppointment ? 'Fully booked' : 'Closed' }}</span>
+                                        @else
+                                            @foreach ($lockedTimes->take(3) as $time => $label)
+                                                @php
+                                                    $slotAppointment = $occupiedSlots[$dateStr . '_' . $time] ?? null;
+                                                    $evLabel = match (true) {
+                                                        $slotAppointment && $slotAppointment->Status === 'Completed' => 'Completed',
+                                                        $slotAppointment && $slotAppointment->Status === 'Approved' => 'Booked',
+                                                        $slotAppointment !== null => 'Pending',
+                                                        default => 'Not available',
+                                                    };
+                                                    $evClass = match (true) {
+                                                        $slotAppointment && $slotAppointment->Status === 'Completed' => 'ev-completed',
+                                                        $slotAppointment && $slotAppointment->Status === 'Approved' => 'ev-booked',
+                                                        $slotAppointment !== null => 'ev-pending',
+                                                        default => 'ev-unavailable',
+                                                    };
+                                                @endphp
+                                                <span class="ev {{ $evClass }}">{{ \Carbon\Carbon::createFromFormat('H:i', $time)->format('g:i A') }} · {{ $evLabel }}</span>
+                                            @endforeach
+                                        @endif
                                     </button>
                                 @elseif ($inMonth && $isSunday)
                                     <button type="button" class="day-cell day-off border-0 text-start p-0 w-100 d-block" disabled>

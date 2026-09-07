@@ -7,7 +7,7 @@
     };
 @endphp
 <div class="dropdown">
-    <button class="icon-btn" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+    <button class="icon-btn" type="button" data-bs-toggle="dropdown" data-bs-display="static" aria-expanded="false">
         <i class="bi bi-bell"></i>@if($userUnreadCount > 0)<span class="dot">{{ $userUnreadCount }}</span>@endif
     </button>
     <ul class="dropdown-menu dropdown-menu-end notif-dropdown shadow-sm p-2"

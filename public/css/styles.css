@@ -78,6 +78,13 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
+/* Always reserve the scrollbar gutter so opening a modal (Bootstrap locks
+   body scroll) doesn't yank the layout sideways by the scrollbar's width.
+   Harmless where unsupported — the pre-existing tiny shift just remains. */
+html {
+  scrollbar-gutter: stable;
+}
+
 h1,
 h2,
 h3,
@@ -89,25 +96,268 @@ h6 {
   letter-spacing: -.01em;
 }
 
-/* ---------- Auth pages ---------- */
-.auth-bg {
+/* ---------- Auth pages (login / sign-up) ----------
+   "Clean clinical" look: a calm green wash with a faint, orderly tooth
+   motif tiled behind a crisp white card that carries a green accent edge. */
+.auth-page {
   min-height: 100vh;
-  background:
-    radial-gradient(1200px 600px at 10% 0%, #cfe4f8 0%, transparent 60%),
-    radial-gradient(900px 500px at 100% 100%, #d6eaff 0%, transparent 55%),
-    linear-gradient(135deg, #eaf3fb 0%, #f7fbff 100%);
+  background-color: #f5faf6;
+  background-image:
+    radial-gradient(1100px 560px at 6% -8%, rgba(59, 217, 101, .16) 0%, transparent 55%),
+    radial-gradient(880px 520px at 106% 108%, rgba(34, 173, 92, .13) 0%, transparent 55%),
+    url("data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20width='46'%20height='46'%20viewBox='0%200%2064%2064'%3E%3Cpath%20d='M22%208c-6%200-11%204-11%2011%200%204%201%207%203%2013%202%207%202%2019%206%2019%204%200%203-15%208-15s4%2015%208%2015c4%200%204-12%206-19%202-6%203-9%203-13%200-7-5-11-11-11-3%200-5%201-8%203-3-2-5-3-8-3z'%20fill='none'%20stroke='%23e6f4eb'%20stroke-width='2'/%3E%3C/svg%3E");
+  background-repeat: no-repeat, no-repeat, repeat;
+  background-size: auto, auto, 104px 104px;
+  background-attachment: fixed, fixed, fixed;
+}
+
+/* Header lifted from the landing-page navbar so the two pages read as one site. */
+.auth-navbar {
+  backdrop-filter: blur(12px);
+  background-color: rgba(255, 255, 255, 0.92);
+  border-bottom: 1px solid rgba(15, 76, 122, 0.08);
+}
+
+.auth-navbar .auth-nav-logo {
+  width: 38px;
+  height: 38px;
+  object-fit: contain;
+  background: linear-gradient(135deg, #217a45 0%, #2aad44 100%);
+  border-radius: 100%;
+}
+
+.auth-navbar .auth-nav-title {
+  font-size: 22px;
+  font-weight: 700;
+  letter-spacing: -0.5px;
+  white-space: nowrap;
+}
+
+.auth-navbar .navbar-brand {
+  transition: transform 0.3s ease;
+}
+
+.auth-navbar .navbar-brand:hover {
+  transform: scale(1.04);
+}
+
+.auth-navbar .auth-navh {
+  padding: 8px 14px !important;
+  margin: 4px 2px;
+  border-radius: 20px;
+  font-weight: 500;
+  font-size: 0.95rem;
+  white-space: nowrap;
+  transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+  color: #0f7a33 !important;
+}
+
+.auth-navbar .auth-navh:hover {
+  background: linear-gradient(135deg, #16944a, #22ad5c);
+  color: #fff !important;
+  box-shadow: 0 4px 12px rgba(59, 217, 101, 0.3);
+  transform: translateY(-2px);
+}
+
+.auth-navbar .auth-navh.signin-btn {
+  background: linear-gradient(135deg, #16944a, #22ad5c);
+  color: #fff !important;
+  padding: 8px 22px !important;
+}
+
+.auth-navbar .auth-navh.signup-btn {
+  border: 2px solid #0f7a33;
+  padding: 8px 22px !important;
+}
+
+.auth-navbar .auth-navh.signin-btn:hover,
+.auth-navbar .auth-navh.signup-btn:hover {
+  box-shadow: 0 8px 18px rgba(59, 217, 101, 0.45);
+  color: #fff !important;
+}
+
+.auth-navbar .auth-navh.signup-btn:hover {
+  background: linear-gradient(135deg, #16944a, #22ad5c);
+}
+
+.auth-navbar .auth-navh.is-current {
+  background: linear-gradient(135deg, #299225 0%, #31d83c 100%);
+  color: #fff !important;
+  box-shadow: 0 4px 12px rgba(72, 217, 59, 0.2);
+}
+
+.auth-main {
+  min-height: 100vh;
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 2rem 1rem;
+  padding: 100px 1rem 2rem;
+}
+
+.auth-main:has(.signup-card) {
+  padding-top: 80px;
+  padding-bottom: 1rem;
 }
 
 .auth-card {
+  position: relative;
   background: #fff;
-  border-radius: var(--radius-xl);
-  box-shadow: var(--shadow-lg);
-  padding: 2.5rem;
+  border: 1px solid rgba(15, 122, 51, 0.08);
+  border-radius: 22px;
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, .6) inset,
+    0 24px 60px -22px rgba(11, 77, 34, .28),
+    0 8px 24px -16px rgba(11, 77, 34, .2);
+  padding: 2.75rem 2.5rem 2.5rem;
   width: 100%;
+  overflow: hidden;
+}
+
+/* Green accent edge along the top of the card. */
+.auth-card::before {
+  content: "";
+  position: absolute;
+  inset: 0 0 auto 0;
+  height: 5px;
+  background: linear-gradient(90deg, #0f7a33 0%, #22ad5c 45%, #3bd965 100%);
+}
+
+/* Clinic-logo emblem at the head of the card. The logo asset is a square
+   green tile, so we just clip it to a circle — same mark as the navbar. */
+.auth-emblem {
+  width: 64px;
+  height: 64px;
+  margin: 0 auto 1rem;
+  border-radius: 50%;
+  overflow: hidden;
+  box-shadow: 0 12px 24px -10px rgba(15, 122, 51, .5), 0 0 0 4px rgba(15, 122, 51, .08);
+}
+
+.auth-emblem img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+/* Wide sign-up layout: fills a big card and packs the fields into a dense
+   grid with a tighter vertical rhythm so the whole form fits without scroll. */
+.auth-card.signup-card {
+  max-width: 1120px;
+  padding: 1.25rem 2rem 1.5rem;
+}
+
+.signup-card .section-label {
+  margin: .1rem 0 .5rem;
+  padding-bottom: 0;
+  border-bottom: 0;
+}
+
+.signup-card .form-label {
+  margin-bottom: .15rem;
+  font-size: .8rem;
+}
+
+.signup-card .input-icon .form-control,
+.signup-card .input-icon .form-select {
+  height: 42px;
+}
+
+.signup-card .auth-title {
+  font-size: 1.4rem;
+}
+
+.signup-card .auth-emblem {
+  width: 46px;
+  height: 46px;
+  margin-bottom: .4rem;
+}
+
+.signup-card .text-center.mb-3 {
+  margin-bottom: .6rem !important;
+}
+
+.signup-card .row.mb-3 {
+  margin-bottom: .75rem !important;
+}
+
+.signup-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: .75rem 1.5rem;
+  margin-top: .5rem;
+}
+
+.signup-actions .btn {
+  min-width: 150px;
+}
+
+/* Compact security-tips strip under the password fields on the sign-up form.
+   Laid out horizontally so it costs almost no vertical space. */
+.auth-tips {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: .35rem 1.25rem;
+  background: linear-gradient(135deg, #e3fde5, #f1fcf0);
+  border: 1px solid rgba(59, 217, 85, .2);
+  border-radius: var(--radius-md);
+  padding: .55rem .85rem;
+}
+
+.auth-tips-title {
+  display: inline-flex;
+  align-items: center;
+  gap: .4rem;
+  font-weight: 700;
+  font-size: .8rem;
+  color: #0f7a33;
+  white-space: nowrap;
+}
+
+.auth-tips ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: .25rem 1.1rem;
+}
+
+.auth-tips li {
+  display: flex;
+  align-items: center;
+  gap: .4rem;
+  font-size: .76rem;
+  line-height: 1.3;
+  color: var(--ink-700);
+}
+
+.auth-tips li i {
+  color: #22ad5c;
+  font-size: .72rem;
+  flex: none;
+}
+
+@media (min-width: 992px) {
+  .signup-card .signup-split {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0 2rem;
+  }
+}
+
+@media (max-width: 575.98px) {
+  .signup-actions,
+  .signup-actions .d-flex {
+    width: 100%;
+  }
+
+  .signup-actions .btn {
+    flex: 1;
+  }
 }
 
 .auth-card .brand-mark {
@@ -127,10 +377,28 @@ h6 {
 .auth-title {
   color: var(--brand-900);
   font-weight: 700;
+  letter-spacing: -.01em;
 }
 
 .auth-subtitle {
   color: var(--ink-500);
+}
+
+/* Section headers inside the sign-up card — small green tick + label. */
+.signup-card .section-label {
+  align-items: center;
+  color: #0f7a33;
+  font-weight: 700;
+  letter-spacing: .04em;
+}
+
+.signup-card .section-label::before {
+  content: "";
+  width: 14px;
+  height: 3px;
+  border-radius: 2px;
+  background: linear-gradient(90deg, #0f7a33, #3bd965);
+  flex: none;
 }
 
 .auth-card .form-label {
@@ -391,40 +659,51 @@ h6 {
 
 /* ---------- Sidebar bottom profile badge ---------- */
 .sidebar-footer {
-  padding: .75rem .85rem 1rem;
-  border-top: 1px solid rgba(255, 255, 255, .08);
+  padding: .85rem;
+  border-top: 1px solid rgba(255, 255, 255, .1);
   margin-top: .5rem;
 }
 
 .sidebar-profile-badge {
   all: unset;
+  box-sizing: border-box;
   cursor: pointer;
   display: flex;
   align-items: center;
-  gap: .65rem;
+  gap: .6rem;
   width: 100%;
-  padding: .5rem .6rem;
+  padding: .55rem .6rem;
   border-radius: 12px;
-  color: #e7f1fb;
-  transition: background .15s;
+  background: rgba(255, 255, 255, .06);
+  border: 1px solid rgba(255, 255, 255, .1);
+  color: #eaf3ec;
+  transition: background .15s ease, border-color .15s ease;
 }
 
 .sidebar-profile-badge:hover,
+.sidebar-profile-badge:focus-visible,
 .sidebar-profile-badge[aria-expanded="true"] {
-  background: rgba(255, 255, 255, .08);
+  background: rgba(255, 255, 255, .13);
+  border-color: rgba(255, 255, 255, .22);
 }
 
 .sidebar-profile-badge .avatar {
-  width: 34px;
-  height: 34px;
-  border-radius: 50%;
   flex: none;
-  background: rgba(255, 255, 255, .12);
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  object-fit: cover;
+  background: rgba(255, 255, 255, .14);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .25);
 }
 
 .sidebar-profile-badge .meta {
-  line-height: 1.15;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  line-height: 1.2;
   min-width: 0;
+  flex: 1 1 auto;
   text-align: left;
 }
 
@@ -438,18 +717,24 @@ h6 {
 }
 
 .sidebar-profile-badge .meta .role {
-  font-size: .7rem;
-  color: #a9cdee;
+  font-size: .62rem;
+  font-weight: 700;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+  color: #9fe0b0;
 }
 
-.sidebar-profile-badge > .bi-chevron-up {
-  color: #a9cdee;
-  font-size: .8rem;
-  transition: transform .18s ease;
+.sidebar-profile-badge .caret {
+  flex: none;
+  color: #9fe0b0;
+  font-size: .95rem;
+  opacity: .8;
+  transition: opacity .15s ease;
 }
 
-.sidebar-profile-badge[aria-expanded="true"] > .bi-chevron-up {
-  transform: rotate(180deg);
+.sidebar-profile-badge:hover .caret,
+.sidebar-profile-badge[aria-expanded="true"] .caret {
+  opacity: 1;
 }
 
 /* Account dropdown menu */
@@ -469,16 +754,26 @@ h6 {
   padding: 8px 10px 4px;
 }
 
-.account-menu-head img {
+.account-menu-head .avatar {
   width: 42px;
   height: 42px;
   border-radius: 50%;
+  flex: none;
   object-fit: cover;
   border: 2px solid var(--brand-100);
-  flex: none;
+  background: var(--ink-100);
 }
 
 .account-menu-id { min-width: 0; }
+
+.account-menu-email {
+  font-size: .68rem;
+  color: var(--ink-500);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  margin-top: 1px;
+}
 
 .account-menu-name {
   font-weight: 700;
@@ -1052,6 +1347,52 @@ h6 {
   gap: .75rem;
 }
 
+/* The month picker + prev/next/Today cluster — one flex unit so it wraps
+   together instead of the arrows stranding on a line above. */
+.sched-monthnav {
+  display: flex;
+  align-items: center;
+  gap: .5rem;
+  flex-wrap: wrap;
+}
+
+@media (max-width: 575.98px) {
+  /* Toolbar control cluster takes the full row and stacks tidily. */
+  .schedule-toolbar > div:last-child {
+    width: 100%;
+  }
+
+  .schedule-toolbar > div:last-child > select {
+    width: 100% !important;
+  }
+
+  .sched-monthnav {
+    width: 100%;
+    justify-content: center;
+  }
+
+  /* Month / year / Go go on their own full-width row above the arrows. */
+  .sched-monthnav-form {
+    order: -1;
+    flex: 1 1 100%;
+  }
+
+  .sched-monthnav-form > select {
+    flex: 1;
+    min-width: 0;
+    width: auto !important;
+  }
+
+  .sched-monthnav-form > input[type="number"] {
+    width: 76px !important;
+  }
+
+  /* Prev / Next / Today share the row below, evenly. */
+  .sched-monthnav > .btn {
+    flex: 1;
+  }
+}
+
 .view-toggle {
   display: inline-flex;
   background: var(--ink-100);
@@ -1077,7 +1418,7 @@ h6 {
 
 .week-grid {
   display: grid;
-  grid-template-columns: 90px repeat(7, 1fr);
+  grid-template-columns: 80px 1fr;
   border-top: 1px solid var(--ink-100);
 }
 
@@ -1465,9 +1806,11 @@ h6 {
     left: 0;
   }
 
+  /* .week-grid is a two-column Time | Slot layout everywhere it's used
+     (the day modals) — a repeat(7, …) track list jumbles those two
+     cells into an 8-column row. Keep it two columns. */
   .week-grid {
-    grid-template-columns: 70px repeat(7, minmax(110px, 1fr));
-    overflow-x: auto;
+    grid-template-columns: 70px 1fr;
   }
 
   /* Same horizontal-scroll treatment as .week-grid above: without a min
@@ -1480,15 +1823,21 @@ h6 {
     overflow-x: auto;
   }
 
-  /* Login/signup split-screen banner: Bootstrap's .position-fixed utility
-     (!important) pins it over the left 50% of the viewport at every width,
-     but .col-lg-6 stacks to full-width below this breakpoint — so the fixed
-     banner was permanently covering the form instead of sitting above it.
-     Restoring normal flow lets it stack like a hero strip instead. */
-  .banner-wrap.position-fixed {
-    position: static !important;
-    width: 100%;
-    height: 260px;
+  .auth-main {
+    padding-top: 92px;
+  }
+
+  /* Collapsed nav panel: give the menu a solid background so it isn't
+     see-through over the form when opened. */
+  .auth-navbar .navbar-collapse {
+    background: rgba(255, 255, 255, 0.98);
+    border-radius: 0 0 12px 12px;
+    padding: .5rem .75rem 1rem;
+    box-shadow: 0 12px 24px -12px rgba(15, 23, 42, .25);
+  }
+
+  .auth-navbar .navbar-nav.ms-lg-3 .nav-item {
+    justify-content: center;
   }
 }
 
@@ -1699,102 +2048,8 @@ h6 {
   box-shadow: 0 0 0 3px rgba(24, 95, 165, .1);
 }
 
-.banner-wrap {
-  position: relative;
-  width: 50%;
-  height: 100vh;
-  overflow: hidden;
-}
-
-.auth-banner-img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-}
-
-.banner-overlay {
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(180deg, rgba(7, 110, 29, 0.55) 0%, rgba(14, 140, 10, 0.65) 50%, rgba(5, 82, 18, 0.85) 100%);
-  z-index: 1;
-}
-
-.banner-brand {
-  position: absolute;
-  top: 20px;
-  left: 30px;
-  right: 50px;
-  z-index: 2;
-}
-
-.banner-home {
-  position: absolute;
-  top: 0px;
-  right: 0px;
-  z-index: 2;
-}
-
-.banner-brand .brand {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  color: #fff;
-}
-
-.banner-brand .logo {
-  width: 50px;
-  height: 50px;
-  object-fit: contain;
-}
-
-.banner-brand .name {
-  font-size: 1.2rem;
-  font-weight: 700;
-  letter-spacing: 0.5px;
-  line-height: 1.2;
-}
-
-.banner-brand .sub {
-  font-size: 0.9rem;
-  font-weight: 400;
-  color: rgba(255, 255, 255, 0.75);
-  line-height: 1.2;
-}
-
-.banner-text {
-  position: absolute;
-  top: 280px;
-  left: 50px;
-  right: 50px;
-  z-index: 2;
-  color: #fff;
-}
-
-.clinic-name {
-  font-size: 3rem;
-  font-weight: 600;
-  line-height: 1.2;
-  margin-bottom: 12px;
-  max-width: 700px;
-
-}
-
-.clinic-tagline {
-  font-size: 1rem;
-  font-weight: 400;
-  color: rgba(255, 255, 255, 0.85);
-  max-width: 500px;
-  margin-bottom: 0;
-}
-
-.banner-footer {
-  position: absolute;
-  bottom: 50px;
-  left: 50px;
-  right: 50px;
-  z-index: 2;
-  font-size: 0.8rem;
-}
+/* (The old split-screen auth banner styles were removed — login / sign-up
+   now use a top header instead; see .auth-topbar above.) */
 
 .notif-dropdown .dropdown-item {
   white-space: normal;
@@ -2397,10 +2652,10 @@ h6 {
   pointer-events: none;
 }
 
-/* Week grid inside modal */
+/* Week grid inside modal — a two-column Time | Slot layout */
 .week-grid {
   display: grid;
-  grid-template-columns: 52px repeat(7, 1fr);
+  grid-template-columns: 80px 1fr;
   border: 1px solid #e2e8f0;
   border-radius: 10px;
   overflow: hidden;
@@ -2498,15 +2753,35 @@ h6 {
 
 @media (min-width: 992px) {
   .sidebar.offcanvas {
-    position: static;
-    transform: none !important;
+    /* Fixed, not sticky. Bootstrap locks <body> scroll (overflow:hidden)
+       while a modal is open, and `overflow:hidden` on an ancestor kills
+       `position: sticky` on its descendants — the sidebar would snap to
+       its in-flow position and look cut off / detached once the page had
+       been scrolled. A fixed box stays pinned; the grid's explicit
+       `var(--sidebar-w)` column still reserves the space beside <main>.
+       !important is needed to beat the `.position-sticky` utility class
+       the markup also carries. */
+    position: fixed !important;
+    top: 0;
+    left: 0;
+    width: var(--sidebar-w);
     height: 100vh;
+    transform: none !important;
     z-index: auto;
   }
 
   .sidebar .offcanvas-header,
   .sidebar .btn-close {
     display: none;
+  }
+
+  /* The sidebar is now position:fixed, so it no longer occupies its grid
+     cell — pin <main> to column 2 explicitly or it slides under the
+     sidebar into column 1. The 250px track 1 stays reserved (explicit
+     length), keeping the gap the fixed sidebar sits in. */
+  .app > main {
+    grid-column: 2;
+    min-width: 0;
   }
 }
 
@@ -2516,8 +2791,12 @@ h6 {
     grid-template-columns: 1fr;
   }
 
+  /* Every .week-grid in the app is a two-column Time | Slot layout (the
+     day modals on the booking calendar and the dentist-schedule pages).
+     A repeat(7, …) track list here reflows those two cells into a jumbled
+     8-column row — keep it two columns. */
   .week-grid {
-    grid-template-columns: 70px repeat(7, minmax(110px, 1fr));
+    grid-template-columns: 70px 1fr;
     overflow-x: auto;
   }
 }
@@ -2767,4 +3046,190 @@ h6 {
 
 .pw-toggle-checkbox:checked~.pw-eye-btn .bi-eye-slash {
   display: inline;
+}
+
+/* =========================================================
+   Responsive pass — phones & small tablets
+   (kept at the end so it wins over earlier rules)
+   ========================================================= */
+
+/* Nothing should ever push the page sideways. Wide content
+   (tables, calendars) scrolls inside its own box instead.
+   `clip` (not `hidden`) so it never turns <body> into a scroll
+   container — that would break the sticky sidebar/topbar/table heads. */
+html,
+body {
+  max-width: 100%;
+  overflow-x: clip;
+}
+
+img,
+svg,
+video,
+canvas {
+  max-width: 100%;
+}
+
+.table-responsive {
+  -webkit-overflow-scrolling: touch;
+}
+
+.month-grid,
+.week-grid {
+  max-width: 100%;
+}
+
+/* ---- Tablet & below ---- */
+@media (max-width: 991.98px) {
+
+  .auth-main {
+    padding: 88px 1rem 2rem;
+  }
+
+  /* Login card is short — keep it vertically centred in the viewport so it
+     doesn't cling to the top with a big empty gap below. The sign-up card is
+     taller than the screen once its fields stack, so that one anchors to the
+     top and scrolls instead. */
+  .auth-main:has(.signup-card) {
+    align-items: flex-start;
+    padding: 80px 1rem 2rem;
+  }
+
+  .auth-card,
+  .auth-card.signup-card {
+    padding: 1.75rem 1.25rem;
+  }
+
+  .auth-navbar .auth-nav-title {
+    font-size: 17px;
+  }
+}
+
+/* ---- Phones ---- */
+@media (max-width: 767.98px) {
+  .content {
+    padding: 1rem;
+  }
+
+  .topbar {
+    padding: 0 1rem;
+  }
+
+  .page-head {
+    margin-bottom: 1rem;
+  }
+
+  .page-head h2 {
+    font-size: 1.2rem;
+  }
+
+  .page-head .crumbs {
+    font-size: .8rem;
+  }
+
+  /* Card & table chrome tightens up */
+  .card-soft .card-header {
+    padding: .85rem 1rem;
+    flex-wrap: wrap;
+    gap: .5rem;
+  }
+
+  .card-soft .card-body {
+    padding: 1rem;
+  }
+
+  .stat-card {
+    padding: 1rem;
+  }
+
+  .table-soft thead th {
+    padding: .6rem .7rem;
+    font-size: .72rem;
+  }
+
+  .table-soft tbody td {
+    padding: .6rem .7rem;
+    font-size: .85rem;
+  }
+
+  /* Search / filter / tab toolbars stack full-width */
+  .data-toolbar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .data-toolbar .left,
+  .data-toolbar .right {
+    width: 100%;
+  }
+
+  .data-toolbar .search {
+    min-width: 0;
+    width: 100%;
+  }
+
+  .data-toolbar .search .form-control {
+    min-width: 0 !important;
+    width: 100%;
+  }
+
+  /* Modals take almost the full viewport */
+  .modal-dialog {
+    margin: .5rem;
+  }
+
+  .modal-header {
+    padding: 14px 16px 12px;
+  }
+
+  .modal-body {
+    padding: 1rem;
+  }
+
+  /* Calendars: fit more columns, keep internal scroll as a fallback */
+  .month-grid {
+    grid-template-columns: repeat(7, minmax(44px, 1fr));
+    overflow-x: auto;
+  }
+
+  .week-grid {
+    grid-template-columns: 54px 1fr;
+    overflow-x: auto;
+  }
+
+  .month-grid .day-cell {
+    min-height: 60px;
+  }
+
+  .month-grid .day-cell .ev {
+    font-size: .58rem;
+  }
+
+  /* Header action buttons wrap instead of overflowing */
+  .card-soft .card-header .btn,
+  .page-head .btn {
+    white-space: normal;
+  }
+}
+
+/* ---- Small phones ---- */
+@media (max-width: 575.98px) {
+  .content {
+    padding: .75rem;
+  }
+
+  .auth-card {
+    padding: 1.5rem 1rem;
+    border-radius: var(--radius-lg);
+  }
+
+  .modal-dialog {
+    margin: .35rem;
+  }
+
+  /* Button groups / row-actions wrap */
+  .btn-group,
+  .d-flex.gap-2 {
+    flex-wrap: wrap;
+  }
 }

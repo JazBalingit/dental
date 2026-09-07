@@ -66,7 +66,7 @@ class NotificationService
         ?int $appointmentId = null,
         ?string $status = null
     ): void {
-        UserAccount::where('AccountRole', 'admin')->get()->each(
+        UserAccount::whereIn('AccountRole', UserAccount::ADMIN_ROLES)->get()->each(
             fn (UserAccount $admin) => $this->notifyUser(
                 $admin, $title, $message, $type, $appointmentId, $status, null, false
             )

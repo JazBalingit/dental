@@ -1,0 +1,665 @@
+/* =====================================================================
+   mobile.css — global responsive fixes for phones / small tablets.
+   Loaded LAST on every page so it wins. Everything here is inside a
+   max-width media query; desktop rendering is untouched.
+   ===================================================================== */
+
+/* ---------------------------------------------------------------------
+   1. Never zoom the page when focusing a field.
+   iOS Safari auto-zooms whenever a focused control's font-size < 16px.
+   Force every text control to 16px on small screens.
+   ------------------------------------------------------------------- */
+@media (max-width: 767.98px) {
+  input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="file"]),
+  select,
+  textarea,
+  .form-control,
+  .form-control-sm,
+  .form-select,
+  .form-select-sm,
+  .fc,
+  .fc-plain,
+  .pw-mask {
+    font-size: 16px !important;
+  }
+}
+
+/* ---------------------------------------------------------------------
+   2. Kill sideways page scroll. Content that legitimately needs width
+      (tables, calendars) gets its own scroll container below.
+   ------------------------------------------------------------------- */
+@media (max-width: 991.98px) {
+  html,
+  body {
+    max-width: 100%;
+    overflow-x: hidden;
+  }
+
+  /* Grid/flex children default to min-width:auto and can shove the whole
+     layout wider than the screen — pin them to 0 so they shrink. */
+  .app,
+  .app > main,
+  main,
+  .content,
+  .settings-layout,
+  .settings-content,
+  .container,
+  .container-fluid,
+  .row {
+    min-width: 0;
+    max-width: 100%;
+  }
+}
+
+/* ---------------------------------------------------------------------
+   3. Cards actually shrink to the viewport.
+   ------------------------------------------------------------------- */
+@media (max-width: 767.98px) {
+  .card-soft,
+  .section-card,
+  .card,
+  .tip-box,
+  .settings-tabs-card,
+  .schedule-wrap,
+  .card-bd,
+  .card-hd {
+    max-width: 100% !important;
+    min-width: 0 !important;
+    width: auto !important;
+  }
+
+  /* .modal-content must fill its .modal-dialog, never shrink-wrap its
+     content — `width:auto` here made a modal with a compact body (e.g. the
+     day picker's collapsed time rows) render as a narrow left-aligned
+     sliver instead of the full dialog. Sizing belongs to .modal-dialog. */
+  .modal-content {
+    max-width: 100% !important;
+    min-width: 0 !important;
+    width: 100% !important;
+  }
+
+  .card-soft,
+  .section-card {
+    padding-left: 1rem !important;
+    padding-right: 1rem !important;
+  }
+
+  .card-bd,
+  .card-hd {
+    padding-left: 1rem !important;
+    padding-right: 1rem !important;
+  }
+
+  /* Fixed pixel widths on toolbar controls -> fluid */
+  [style*="width: 200px"],
+  [style*="width:200px"],
+  [style*="width: 140px"],
+  [style*="width:140px"] {
+    width: 100% !important;
+    max-width: 100%;
+  }
+}
+
+/* ---------------------------------------------------------------------
+   4. Buttons: wrap their text, stay inside the card, and the primary
+      action in a form / modal footer / wizard goes full width.
+   ------------------------------------------------------------------- */
+@media (max-width: 575.98px) {
+  .btn {
+    white-space: normal;
+    max-width: 100%;
+  }
+
+  .d-flex.justify-content-end,
+  .d-flex.justify-content-between {
+    flex-wrap: wrap;
+    gap: .5rem;
+  }
+
+  /* full-width, stacked primary actions */
+  form > .d-flex.justify-content-end > .btn,
+  .modal-footer > .btn,
+  .book-confirm-view form > .btn,
+  .wizard-actions > .btn,
+  .wi-actions > .btn,
+  [class*="d-flex"] > .btn.flex-grow-1,
+  .btn[style*="padding-left:26px"],
+  .btn[style*="padding-left: 26px"] {
+    width: 100% !important;
+    margin-left: 0 !important;
+    margin-right: 0 !important;
+  }
+
+  .modal-footer {
+    flex-direction: column-reverse;
+    align-items: stretch;
+    gap: .5rem;
+  }
+
+  .book-confirm-view form {
+    flex-wrap: wrap;
+  }
+
+  /* Sticky / wide confirm bars (walk-in "Confirm Walk-in Appointment" etc.) */
+  .wizard-actions,
+  .wi-actions,
+  .sticky-actions {
+    flex-wrap: wrap;
+  }
+}
+
+/* ---------------------------------------------------------------------
+   5. Calendars — the big one. Three places use .month-grid / .week-grid
+      (booking-calendar partial, admin & superadmin dentist-schedule).
+   ------------------------------------------------------------------- */
+
+/* 5a. Month grid: scroll sideways INSIDE its card, never stretch the page. */
+@media (max-width: 991.98px) {
+  .schedule-wrap {
+    overflow-x: auto !important;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .month-grid {
+    min-width: 640px;
+  }
+
+  /* .week-grid is a two-column Time | Slot layout — it fits any width, so
+     no min-width (a wide one just forced a pointless sideways scroll). */
+  .week-grid {
+    min-width: 0;
+  }
+}
+
+@media (max-width: 575.98px) {
+  .month-grid {
+    min-width: 528px;
+  }
+
+  .month-grid .day-cell {
+    min-height: 78px;
+    padding: .3rem;
+  }
+
+  .month-grid .day-cell .n {
+    font-size: .8rem;
+  }
+
+  .month-grid .day-cell.today .n {
+    width: 24px;
+    height: 24px;
+  }
+
+  .month-grid .day-cell .ev {
+    font-size: .58rem;
+    padding: .1rem .28rem;
+    margin-top: 2px;
+  }
+
+  .month-grid .mh {
+    padding: .45rem .15rem;
+    font-size: .6rem;
+    letter-spacing: .02em;
+  }
+
+  /* Hint that the calendar scrolls */
+  .schedule-wrap {
+    scroll-snap-type: x proximity;
+  }
+}
+
+/* 5b. Day-view time picker (inside each day's modal): the two-column
+       Time | Slot grid is too tight on a phone. Reflow EVERY calendar
+       modal — landing booking, walk-in, admin & super-admin dentist
+       schedule — into the same plain vertical list so all four share
+       one design at every screen size (2-col grid on tablet/desktop,
+       stacked list ≤576px). Scoped to `.modal` because every .week-grid
+       in the app lives inside a day modal. */
+@media (max-width: 575.98px) {
+  .modal .schedule-wrap {
+    overflow: visible !important;
+  }
+
+  .modal .week-grid {
+    display: block;
+    min-width: 0;
+    border-top: 0;
+  }
+
+  .modal .week-grid .wh {
+    display: none;
+  }
+
+  .modal .week-grid .time {
+    display: block;
+    text-align: left;
+    background: transparent;
+    position: static;
+    border: 0;
+    padding: .8rem 0 .3rem;
+    font-size: .82rem;
+    font-weight: 700;
+    color: var(--ink-700, #334155);
+  }
+
+  .modal .week-grid .slot {
+    display: block;
+    border: 0;
+    border-bottom: 1px solid var(--ink-100, #e2e8f0);
+    min-height: 0;
+    padding: 0 0 .8rem;
+  }
+
+  /* the green "Select services + Select" control: stack vertically */
+  .modal .slot > .d-flex {
+    flex-direction: column;
+    align-items: stretch !important;
+    gap: .5rem !important;
+  }
+
+  .modal .slot .dropdown.wi-slot-service,
+  .modal .slot .dropdown.book-slot-service {
+    max-width: 100% !important;
+    width: 100%;
+  }
+
+  .modal .slot .dropdown.wi-slot-service > .form-select,
+  .modal .slot .dropdown.book-slot-service > .form-select {
+    width: 100%;
+  }
+
+  .modal .slot .btn.ms-auto {
+    margin-left: 0 !important;
+    width: 100%;
+  }
+
+  .modal .slot .dropdown-menu {
+    min-width: 100% !important;
+    max-width: 100% !important;
+  }
+
+  .modal .slot .slot-btn {
+    white-space: normal;
+    height: auto;
+  }
+}
+
+/* 5b-2. Landing booking + walk-in day modal, phone only: a day is 30+
+         slots, so instead of 30 stacked service-picker cards the open
+         times sit in a TWO-COLUMN grid of compact tappable chips; tapping
+         one drops a full-width panel with that slot's service picker
+         (booking-calendar partial toggles `.is-open`, one at a time). The
+         modal itself goes full-screen (modal-fullscreen-sm-down) so the
+         grid has room to breathe. The admin / super-admin modal keeps the
+         plain 5b list — it has no per-slot picker to fold away. */
+@media (max-width: 575.98px) {
+  .book-day-modal .modal-body {
+    padding-left: .9rem;
+    padding-right: .9rem;
+  }
+
+  /* two-column chip grid — overrides 5b's display:block */
+  .book-slots-view .week-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: .5rem;
+    align-items: start;
+  }
+
+  /* Collapsed chip — the time label is the accordion trigger */
+  .book-slots-view .week-grid .time.js-slot-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: .4rem;
+    padding: .7rem .75rem;
+    border: 1px solid var(--ink-100, #e2e8f0);
+    border-radius: .6rem;
+    background: #fff;
+    font-size: .9rem;
+    font-weight: 600;
+    color: var(--ink-800, #1f2937);
+    cursor: pointer;
+  }
+
+  .book-slots-view .week-grid .time.js-slot-head::after {
+    content: "\25BE"; /* ▾ */
+    font-size: .85rem;
+    line-height: 1;
+    color: #198754;
+    transition: transform .15s ease;
+  }
+
+  .book-slots-view .week-grid .time.js-slot-head.is-open {
+    grid-column: 1 / -1;
+    background: #eaf8ec;
+    border-color: #198754;
+  }
+
+  .book-slots-view .week-grid .time.js-slot-head.is-open::after {
+    transform: rotate(180deg);
+  }
+
+  /* Picker panel — full width, only while its chip is open */
+  .book-slots-view .week-grid .slot.js-slot-pane {
+    display: none;
+  }
+
+  .book-slots-view .week-grid .slot.js-slot-pane.is-open {
+    display: block;
+    grid-column: 1 / -1;
+    margin-top: -.2rem;
+    padding: .85rem;
+    border: 1px solid #198754;
+    border-radius: .6rem;
+    background: #fbfffc;
+  }
+
+  /* The panel frames the picker now — drop the inner green box chrome */
+  .book-slots-view .week-grid .slot.js-slot-pane > .d-flex {
+    background: transparent !important;
+    border: 0 !important;
+    padding: 0 !important;
+  }
+
+  /* the decorative clipboard icon has nothing to sit beside once the
+     control stacks — it just reads as a stray glyph, so drop it */
+  .book-slots-view .week-grid .slot.js-slot-pane > .d-flex > .bi {
+    display: none;
+  }
+
+  /* Taken / passed slots — one quiet full-width line each */
+  .book-slots-view .week-grid .time.slot-time-taken {
+    grid-column: 1 / -1;
+    padding: .35rem 0 0;
+    font-size: .8rem;
+    font-weight: 700;
+    color: var(--ink-500, #64748b);
+  }
+
+  .book-slots-view .week-grid .slot.slot-taken {
+    grid-column: 1 / -1;
+  }
+
+  .book-slots-view .week-grid .slot.slot-taken .slot-btn {
+    min-height: 0;
+    padding: .4rem .7rem;
+    font-size: .78rem;
+    font-weight: 600;
+  }
+}
+
+/* 5c. Booking toolbar: dentist picker + month/year/Go must never overflow. */
+@media (max-width: 575.98px) {
+  .schedule-toolbar {
+    padding: .85rem 1rem;
+  }
+
+  .schedule-toolbar > div:last-child,
+  .schedule-toolbar select.form-select {
+    width: 100% !important;
+  }
+
+  .sched-monthnav {
+    width: 100%;
+  }
+
+  .sched-monthnav-form {
+    flex: 1 1 100%;
+    flex-wrap: wrap;
+    gap: .4rem !important;
+  }
+
+  .sched-monthnav-form > select,
+  .sched-monthnav-form > input[type="number"] {
+    flex: 1 1 auto;
+    width: auto !important;
+    min-width: 0;
+  }
+
+  .sched-monthnav-form > .btn {
+    flex: 0 0 auto;
+  }
+}
+
+/* ---------------------------------------------------------------------
+   6. Sub-navigation tabs (patient Settings: User Info / Security /
+      Configuration, and the admin profile tabs).
+   ------------------------------------------------------------------- */
+@media (max-width: 920px) {
+  .settings-tabs {
+    flex-direction: row;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    gap: 6px;
+    padding-bottom: 5px;
+    scroll-snap-type: x proximity;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .settings-tabs::-webkit-scrollbar {
+    height: 3px;
+  }
+
+  .settings-tabs::-webkit-scrollbar-thumb {
+    background: rgba(15, 122, 51, .35);
+    border-radius: 3px;
+  }
+
+  .settings-tab-btn {
+    flex: 0 0 auto;
+    width: auto !important;
+    scroll-snap-align: start;
+    white-space: nowrap;
+    padding: 9px 13px;
+    font-size: 13px;
+  }
+}
+
+/* Top page nav strip (Appointments / My Records / Settings) already scrolls;
+   just make the strip snap and keep the active item pulled toward the start. */
+@media (max-width: 767.98px) {
+  .subnav-inner {
+    -webkit-overflow-scrolling: touch;
+    scroll-snap-type: x proximity;
+  }
+
+  .subnav-link {
+    flex: 0 0 auto;
+    scroll-snap-align: start;
+  }
+
+  .subnav-link.active {
+    scroll-snap-align: end;
+  }
+}
+
+/* admin profile page: the [data-profile-tab] pill row */
+@media (max-width: 575.98px) {
+  .profile-tabs,
+  .profile-tab-row,
+  .settings-nav {
+    display: flex;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    gap: 6px;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .profile-tabs > *,
+  .profile-tab-row > * {
+    flex: 0 0 auto;
+    white-space: nowrap;
+  }
+}
+
+/* ---------------------------------------------------------------------
+   7. Notification modal (admin + super admin): the X was a tiny target
+      and could sit under the header decoration. Give it real size and
+      lift it above everything in the header.
+   ------------------------------------------------------------------- */
+@media (max-width: 767.98px) {
+  .modal-header .btn-close,
+  .notif-modal-header .btn-close {
+    width: 44px;
+    height: 44px;
+    padding: 0;
+    margin: -6px -6px -6px auto;
+    background-position: center;
+    background-size: 14px;
+    position: relative;
+    z-index: 20;
+    flex: 0 0 auto;
+    pointer-events: auto;
+  }
+
+  .notif-modal-header {
+    align-items: center;
+    padding: .85rem 1rem;
+  }
+
+  /* the modal itself sits full-bleed-ish; keep it above the sticky topbar */
+  .modal {
+    z-index: 1060;
+  }
+
+  .modal-backdrop {
+    z-index: 1055;
+  }
+}
+
+/* ---------------------------------------------------------------------
+   8. Sidebar.
+   8a. Two sidebar systems fight on the admin pages: a custom `.sidebar.open`
+       (left:-260px -> 0) and Bootstrap `.sidebar.offcanvas` (transform).
+       An offcanvas sidebar was getting `left:-260px` from the custom system
+       AND `transform:translateX(0)` from Bootstrap -> still off-screen.
+       Make offcanvas sidebars run purely on transform.
+   ------------------------------------------------------------------- */
+@media (max-width: 991.98px) {
+  .sidebar.offcanvas {
+    left: 0 !important;
+    right: auto !important;
+    overflow-y: auto;
+  }
+
+  .sidebar.offcanvas:not(.show):not(.showing) {
+    transform: translateX(-100%) !important;
+  }
+
+  .sidebar.offcanvas.show,
+  .sidebar.offcanvas.showing {
+    transform: translateX(0) !important;
+  }
+
+  .sidebar:not(.offcanvas) {
+    overflow-y: auto;
+  }
+}
+
+/* 8b. Footer profile dropdown was clipped by the sidebar / pushed off-screen
+       by Popper's inline transform. Render it as a full-width bottom sheet.
+       (An open sidebar sits at left:0, so left:12px + a viewport-derived
+       width lands it across the screen even though the transformed sidebar
+       is its containing block.) */
+@media (max-width: 991.98px) {
+  .sidebar-footer .dropdown-menu,
+  .sidebar .dropdown-menu {
+    position: fixed !important;
+    left: 12px !important;
+    right: auto !important;
+    bottom: 12px !important;
+    top: auto !important;
+    transform: none !important;
+    margin: 0 !important;
+    width: calc(100vw - 24px) !important;
+    min-width: 0 !important;
+    max-width: calc(100vw - 24px) !important;
+    max-height: 70vh;
+    overflow-y: auto;
+    z-index: 1090;
+    box-shadow: 0 -8px 30px -8px rgba(15, 23, 42, .3);
+  }
+}
+
+/* ---------------------------------------------------------------------
+   9. Odds and ends that overflow on phones.
+   ------------------------------------------------------------------- */
+@media (max-width: 575.98px) {
+  /* Bootstrap dropdown menus wider than the screen */
+  .dropdown-menu {
+    max-width: calc(100vw - 20px);
+  }
+
+  /* Notification dropdown panel */
+  .notif-dropdown {
+    width: calc(100vw - 24px) !important;
+  }
+
+  /* Tables always scroll rather than stretch the page */
+  .table-responsive {
+    -webkit-overflow-scrolling: touch;
+  }
+
+  /* Wizard step badges wrap */
+  .wizard-steps {
+    gap: .35rem;
+  }
+
+  .wizard-step-badge {
+    font-size: .78rem;
+    padding: .35rem .7rem;
+  }
+
+  /* Modal dialogs get the full width on a phone */
+  .modal-dialog {
+    margin: .5rem;
+  }
+
+  .modal-lg,
+  .modal-xl {
+    max-width: calc(100vw - 1rem);
+  }
+}
+
+/* ---------------------------------------------------------------------
+   10. Patient "Appointments" page: the stat tiles and the per-appointment
+       action buttons (View / Reschedule / Cancel) overflowed the card on
+       a phone — user_appointments.css switches .appt-actions to a ROW at
+       768px, which can't fit three buttons on a 375px screen.
+   ------------------------------------------------------------------- */
+@media (max-width: 767.98px) {
+  .stats-row {
+    grid-template-columns: repeat(2, 1fr) !important;
+  }
+
+  .stat-box {
+    padding: 14px 15px !important;
+    gap: 12px !important;
+  }
+
+  .appt-body {
+    flex-direction: column;
+    align-items: stretch !important;
+  }
+
+  .appt-actions {
+    flex-direction: column !important;
+    width: 100%;
+  }
+
+  .appt-actions > a,
+  .appt-actions > button,
+  .appt-actions > form,
+  .appt-actions > form > button {
+    width: 100% !important;
+    text-align: center;
+    justify-content: center;
+  }
+}
+
+@media (max-width: 479.98px) {
+  .stats-row {
+    grid-template-columns: 1fr !important;
+  }
+}

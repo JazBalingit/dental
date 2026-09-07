@@ -33,7 +33,7 @@ class PatientRecordsController extends Controller
         // Staff / dentist / super-admin accounts have no patient file — send
         // them to the full management screen instead.
         if (!$user || !$user->patientInfo) {
-            if (session('user_role') === 'admin') {
+            if (in_array(session('user_role'), UserAccount::ADMIN_ROLES, true)) {
                 return redirect()->route('patientRecords');
             }
             abort(403, 'Your patient profile is incomplete.');

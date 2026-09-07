@@ -128,11 +128,13 @@
                     </select>
                 @endif
 
+                {{-- Month navigation kept together so it wraps as one unit on phones --}}
+                <div class="sched-monthnav">
                 @if ($calendarMode === 'post')
                     <a href="{{ $bookBaseUrl }}?bookMonth={{ $bookCurrent->copy()->subMonth()->format('Y-m') }}&dentist={{ $bookSelectedDentistId }}{{ $bookHash }}"
                         class="btn btn-outline-secondary btn-sm" aria-label="Previous month"><i class="bi bi-chevron-left"></i></a>
                     <form method="GET" action="{{ $bookBaseUrl }}{{ $bookHash }}" id="bookMonthForm"
-                        class="d-flex align-items-center gap-2">
+                        class="sched-monthnav-form d-flex align-items-center gap-2">
                         <select name="bookMonthNum" id="bookMonthNum" class="form-select form-select-sm" style="width: 140px;">
                             @foreach (range(1, 12) as $m)
                                 <option value="{{ $m }}" {{ $bookCurrent->month === $m ? 'selected' : '' }}>
@@ -150,21 +152,24 @@
                         class="btn btn-outline-secondary btn-sm" aria-label="Next month"><i class="bi bi-chevron-right"></i></a>
                 @else
                     <input type="hidden" id="wiSelectedDentist" value="{{ $bookSelectedDentistId }}">
-                    <button type="button" id="wiBookMonthPrev" class="btn btn-outline-secondary btn-sm"
-                        data-month="{{ $bookCurrent->copy()->subMonth()->format('Y-m') }}" aria-label="Previous month"><i class="bi bi-chevron-left"></i></button>
-                    <select id="wiBookMonthNum" class="form-select form-select-sm" style="width: 140px;">
-                        @foreach (range(1, 12) as $m)
-                            <option value="{{ $m }}" {{ $bookCurrent->month === $m ? 'selected' : '' }}>
-                                {{ \Carbon\Carbon::create()->month($m)->format('F') }}
-                            </option>
-                        @endforeach
-                    </select>
-                    <input type="number" id="wiBookYear" class="form-control form-control-sm"
-                        style="width: 100px;" min="2000" max="2100" value="{{ $bookCurrent->year }}">
-                    <button type="button" id="wiBookMonthGo" class="btn btn-brand btn-sm">Go</button>
-                    <button type="button" id="wiBookMonthNext" class="btn btn-outline-secondary btn-sm"
-                        data-month="{{ $bookCurrent->copy()->addMonth()->format('Y-m') }}" aria-label="Next month"><i class="bi bi-chevron-right"></i></button>
+                    <div class="sched-monthnav-form d-flex align-items-center gap-2">
+                        <button type="button" id="wiBookMonthPrev" class="btn btn-outline-secondary btn-sm"
+                            data-month="{{ $bookCurrent->copy()->subMonth()->format('Y-m') }}" aria-label="Previous month"><i class="bi bi-chevron-left"></i></button>
+                        <select id="wiBookMonthNum" class="form-select form-select-sm" style="width: 140px;">
+                            @foreach (range(1, 12) as $m)
+                                <option value="{{ $m }}" {{ $bookCurrent->month === $m ? 'selected' : '' }}>
+                                    {{ \Carbon\Carbon::create()->month($m)->format('F') }}
+                                </option>
+                            @endforeach
+                        </select>
+                        <input type="number" id="wiBookYear" class="form-control form-control-sm"
+                            style="width: 100px;" min="2000" max="2100" value="{{ $bookCurrent->year }}">
+                        <button type="button" id="wiBookMonthGo" class="btn btn-brand btn-sm">Go</button>
+                        <button type="button" id="wiBookMonthNext" class="btn btn-outline-secondary btn-sm"
+                            data-month="{{ $bookCurrent->copy()->addMonth()->format('Y-m') }}" aria-label="Next month"><i class="bi bi-chevron-right"></i></button>
+                    </div>
                 @endif
+                </div>
             </div>
         </div>
 
@@ -196,6 +201,11 @@
                         // disabled by the dentist — treat the whole day as closed, same as Sunday.
                         $isFullyClosed = $takenSlots->count() === count($bookSlots);
                         $availableCount = count($bookSlots) - $takenSlots->count();
+
+                        // When a day is full, why? If any appointment holds a slot it's
+                        // "Fully booked"; if not, the dentist closed the whole day → "Closed".
+                        $dayHasAppointment = collect($bookOccupiedSlots)
+                            ->contains(fn ($a, $key) => str_starts_with($key, $dateStr . '_'));
                         $isPast = $d->lt(\Carbon\Carbon::parse($bookToday));
 
                         // "Day is over" = a past date, or it's today and every slot's start
@@ -277,7 +287,7 @@
                             @elseif ($dayIsOver)
                                 <span class="ev ev-unavailable">Date has passed</span>
                             @else
-                                <span class="ev ev-unavailable">Fully booked</span>
+                                <span class="ev ev-unavailable">{{ $dayHasAppointment ? 'Fully booked' : 'Closed' }}</span>
                             @endif
                         </button>
                     @else
@@ -316,8 +326,8 @@
             $dayIsOver = $isPast || $allSlotsPassed;
         @endphp
 
-        <div class="modal fade" id="bookDay{{ $d->format('Ymd') }}{{ $calendarMode === 'select' ? 'Wi' : '' }}" tabindex="-1" aria-hidden="true">
-            <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal fade book-day-modal" id="bookDay{{ $d->format('Ymd') }}{{ $calendarMode === 'select' ? 'Wi' : '' }}" tabindex="-1" aria-hidden="true">
+            <div class="modal-dialog modal-dialog-centered modal-lg modal-fullscreen-sm-down">
                 <div class="modal-content">
                     <div class="modal-header border-0 pb-0">
                         <h5 class="modal-title fw-semibold">{{ $d->format('l, F j, Y') }}</h5>
@@ -362,8 +372,11 @@
                                         }
                                     @endphp
 
-                                    <div class="time">{{ $label }}</div>
-                                    <div class="slot">
+                                    <div class="time {{ $isAvailable ? 'js-slot-head' : 'slot-time-taken' }}"
+                                        @if ($isAvailable) role="button" tabindex="0" aria-expanded="false" @endif>
+                                        {{ $label }}
+                                    </div>
+                                    <div class="slot {{ $isAvailable ? 'js-slot-pane' : 'slot-taken' }}">
 
                                         @if ($isAvailable)
                                             @if ($calendarMode === 'select')
@@ -512,3 +525,60 @@
         </div>
     @endforeach
 @endforeach
+
+{{--
+    Phone-only slot accordion. On a narrow screen the day modal would
+    otherwise be 30+ full service-picker cards stacked vertically. Instead
+    each open time collapses to a tappable row; tapping one reveals its
+    service picker + Select button (one open at a time). Pure class toggle —
+    the CSS that acts on `.is-open` only exists inside the ≤575.98px media
+    query, so this is a no-op on tablet/desktop. Covers both the landing
+    booking modal and the walk-in wizard (both @include this partial).
+--}}
+<script>
+(function () {
+    if (window.__bookingSlotAccordion) return;
+    window.__bookingSlotAccordion = true;
+
+    var PHONE = '(max-width: 575.98px)';
+
+    function closeAll(scope) {
+        scope.querySelectorAll('.js-slot-head.is-open, .js-slot-pane.is-open')
+            .forEach(function (el) {
+                el.classList.remove('is-open');
+                if (el.classList.contains('js-slot-head')) el.setAttribute('aria-expanded', 'false');
+            });
+    }
+
+    function toggle(head) {
+        var grid = head.closest('.week-grid');
+        if (!grid) return;
+        var pane = head.nextElementSibling;
+        var wasOpen = head.classList.contains('is-open');
+        closeAll(grid);
+        if (!wasOpen) {
+            head.classList.add('is-open');
+            head.setAttribute('aria-expanded', 'true');
+            if (pane) pane.classList.add('is-open');
+            head.scrollIntoView({ block: 'nearest' });
+        }
+    }
+
+    document.addEventListener('click', function (e) {
+        if (!window.matchMedia(PHONE).matches) return;
+        var head = e.target.closest('.js-slot-head');
+        if (head) toggle(head);
+    });
+
+    document.addEventListener('keydown', function (e) {
+        if ((e.key !== 'Enter' && e.key !== ' ') || !window.matchMedia(PHONE).matches) return;
+        var head = e.target.closest('.js-slot-head');
+        if (head) { e.preventDefault(); toggle(head); }
+    });
+
+    // Every time a day modal opens, start from the collapsed list.
+    document.addEventListener('show.bs.modal', function (e) {
+        if (e.target.querySelector) closeAll(e.target);
+    });
+})();
+</script>

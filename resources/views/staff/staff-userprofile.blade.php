@@ -4,7 +4,7 @@
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>My Profile • Dental Clinic</title>
+    <title>Admin Profile • Dental Clinic</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/7.0.1/css/all.min.css"
         integrity="sha512-2SwdPD6INVrV/lHTZbO2nodKhrnDdJK9/kg2XD1r9uGqPo1cUbujc+IYdlYdEErWNu69gVcYgdxlmVmzTWnetw=="
@@ -14,6 +14,7 @@
         href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Poppins:wght@500;600;700&display=swap"
         rel="stylesheet">
     <link rel="stylesheet" href="{{ asset('css/styles.css') }}">
+    <link rel="stylesheet" href="{{ asset('css/mobile.css') }}">
 </head>
 
 <body>
@@ -21,7 +22,7 @@
         $si = $staff->staffInfo;
         $verified = (bool) $staff->EmailVerifiedAt;
         $showVerifyForm = session('show_staff_verify', false);
-        $isSuperAdmin = (bool) session('is_super_admin');
+        $isSuperAdmin = (bool) $staff->IsSuperAdmin;
     @endphp
     <div class="app">
         <aside class="sidebar offcanvas position-sticky" tabindex="-1" id="sidebarOffcanvas">
@@ -52,7 +53,7 @@
             <div class="content">
                 <div class="page-head">
                     <div>
-                        <h2>My Profile</h2>
+                        <h2>Admin Profile</h2>
                         <div class="crumbs">View your information and manage your account security.</div>
                     </div>
                 </div>
@@ -64,7 +65,7 @@
                         <div class="card-soft p-2">
                             <div class="nav flex-column nav-pills" role="tablist" aria-orientation="vertical">
                                 <button class="nav-link text-start {{ $activeTab === 'profile' ? 'active' : '' }}"
-                                    data-profile-tab="profile" type="button"><i class="bi bi-person me-2"></i>User
+                                    data-profile-tab="profile" type="button"><i class="bi bi-person me-2"></i>Admin
                                     Profile</button>
                                 <button class="nav-link text-start {{ $activeTab === 'security' ? 'active' : '' }}"
                                     data-profile-tab="security" type="button"><i class="bi bi-shield-lock me-2"></i>Security</button>
@@ -81,7 +82,7 @@
                                     <img class="avatar-initials" src="{{ $si->photo_url ?? asset('images/default.png') }}" alt="" style="width:72px;height:72px;">
                                     <div>
                                         <h5 class="fw-semibold mb-1">{{ $si->FirstName ?? '' }} {{ $si->LastName ?? '' }}{{ $si ? '' : ($isSuperAdmin ? 'Super Admin' : 'Administrator') }}</h5>
-                                        <span class="pill pill-info">{{ ucfirst($staff->AccountRole) }}</span>
+                                        <span class="pill pill-info">{{ $isSuperAdmin ? 'Super Admin' : ucfirst($staff->AccountRole) }}</span>
                                         @if ($staff->Position)
                                             <span class="pill pill-success">{{ $staff->Position }}</span>
                                         @endif
@@ -190,13 +191,38 @@
 
                         {{-- ===================== SECURITY ===================== --}}
                         <div class="settings-pane" data-profile-pane="security" @if ($activeTab !== 'security') hidden @endif>
+
+                            {{-- Security tips — shown to every admin session (admin + super admin) --}}
+                            <div class="card-soft p-3 p-md-4 mb-3"
+                                style="background:rgba(59,217,77,.06);border:1px solid rgba(59,217,77,.25);">
+                                <div class="section-label mb-3" style="color:var(--success,#10b981);">
+                                    <i class="bi bi-lightbulb-fill me-1"></i> Security Tips
+                                </div>
+                                <ul class="list-unstyled m-0 small text-muted-2">
+                                    <li class="d-flex align-items-start gap-2 mb-2">
+                                        <i class="bi bi-check-circle-fill mt-1" style="color:var(--success,#10b981);"></i>
+                                        <span>Use a mix of uppercase, lowercase, numbers and symbols</span>
+                                    </li>
+                                    <li class="d-flex align-items-start gap-2 mb-2">
+                                        <i class="bi bi-check-circle-fill mt-1" style="color:var(--success,#10b981);"></i>
+                                        <span>Never reuse a password from another site</span>
+                                    </li>
+                                    <li class="d-flex align-items-start gap-2 mb-2">
+                                        <i class="bi bi-check-circle-fill mt-1" style="color:var(--success,#10b981);"></i>
+                                        <span>Your password should be at least 8 characters long</span>
+                                    </li>
+                                    <li class="d-flex align-items-start gap-2">
+                                        <i class="bi bi-check-circle-fill mt-1" style="color:var(--success,#10b981);"></i>
+                                        <span>Avoid using your name or birthday in your password</span>
+                                    </li>
+                                </ul>
+                            </div>
+
                             <div class="card-soft p-3 p-md-4">
                                 <div class="section-label mb-3"><i class="bi bi-shield-lock me-1"></i> Change Password</div>
 
-                                @if ($isSuperAdmin)
-                                    <p class="text-muted-2 small mb-0">Your login is managed by server configuration, not a stored password — there's nothing to change here.</p>
-                                @elseif (!$verified)
-                                    <p class="text-muted-2 small mb-0">Verify your email on the User Profile tab to unlock password changes.</p>
+                                @if (!$verified)
+                                    <p class="text-muted-2 small mb-0">Verify your email on the Admin Profile tab to unlock password changes.</p>
                                 @else
                                     <form method="POST" action="{{ route('staffProfile.password.update') }}">
                                         @csrf
@@ -232,6 +258,41 @@
                                     </form>
                                 @endif
                             </div>
+
+                            @if ($isSuperAdmin && $bootstrapConfigured)
+                                @php $showReleaseVerify = session('show_super_admin_release', false); @endphp
+                                {{-- Release the super admin account back to the .env setup login --}}
+                                <div class="card-soft p-3 p-md-4 mt-3" style="border:1px solid rgba(229,86,75,.35);">
+                                    <div class="section-label mb-3" style="color:var(--danger);"><i class="bi bi-exclamation-octagon me-1"></i> Release super admin account</div>
+                                    <p class="text-muted-2 small">
+                                        This removes <strong>{{ $staff->Email }}</strong> as the super admin and restores the
+                                        temporary setup login (<code>{{ $bootstrapEmail }}</code>). We'll email a 6-digit code
+                                        to <strong>{{ $staff->Email }}</strong> to confirm — you'll be signed out.
+                                    </p>
+
+                                    @if ($showReleaseVerify)
+                                        <form method="POST" action="{{ route('superAdminRelease.verify') }}" class="row g-2 align-items-end">
+                                            @csrf
+                                            <div class="col-sm-4">
+                                                <label class="form-label">Verification code</label>
+                                                <div class="input-icon"><i class="bi bi-hash"></i><input type="text" name="code" class="form-control text-center" maxlength="6" inputmode="numeric" pattern="[0-9]*" placeholder="••••••" required autocomplete="one-time-code" style="letter-spacing:4px;"></div>
+                                            </div>
+                                            <div class="col-auto">
+                                                <button type="submit" class="btn" style="background:var(--danger);border-color:var(--danger);color:#fff;"><i class="bi bi-box-arrow-left me-1"></i> Verify &amp; release account</button>
+                                            </div>
+                                        </form>
+                                        <form method="POST" action="{{ route('superAdminRelease.sendCode') }}" class="mt-2">
+                                            @csrf
+                                            <button type="submit" class="btn btn-link btn-sm p-0">Didn't receive the code? Resend</button>
+                                        </form>
+                                    @else
+                                        <form method="POST" action="{{ route('superAdminRelease.sendCode') }}">
+                                            @csrf
+                                            <button type="submit" class="btn" style="background:var(--danger);border-color:var(--danger);color:#fff;"><i class="bi bi-envelope-check me-1"></i> Send verification code</button>
+                                        </form>
+                                    @endif
+                                </div>
+                            @endif
                         </div>
 
                     </div>

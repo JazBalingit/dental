@@ -79,6 +79,7 @@
       tr { page-break-inside: avoid; }
     }
   </style>
+    <link rel="stylesheet" href="{{ asset('css/mobile.css') }}">
 </head>
 
 <body>

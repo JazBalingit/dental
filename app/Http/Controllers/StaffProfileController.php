@@ -38,7 +38,14 @@ class StaffProfileController extends Controller
         $staff = $this->currentStaff();
         $activeTab = $request->query('tab') === 'security' ? 'security' : 'profile';
 
-        return view('staff.staff-userprofile', ['staff' => $staff, 'activeTab' => $activeTab]);
+        return view('staff.staff-userprofile', [
+            'staff' => $staff,
+            'activeTab' => $activeTab,
+            // Only offered to the super admin, and only when the .env bootstrap
+            // is still configured (there must be a way back in after a release).
+            'bootstrapEmail' => config('superadmin.email'),
+            'bootstrapConfigured' => (bool) config('superadmin.email') && (bool) config('superadmin.password'),
+        ]);
     }
 
     public function sendVerification(Request $request)
@@ -118,14 +125,6 @@ class StaffProfileController extends Controller
 
     public function updatePassword(Request $request)
     {
-        // The super admin authenticates against .env credentials, not a
-        // stored hash — there's no real password here to change. The
-        // Security tab is hidden for this session already; this is just
-        // the defensive backend check.
-        if (session('is_super_admin')) {
-            return redirect()->route('staffProfile')->with('error', 'Your login is managed by server configuration, not a stored password.');
-        }
-
         $staff = $this->currentStaff();
 
         if (!$staff->EmailVerifiedAt) {

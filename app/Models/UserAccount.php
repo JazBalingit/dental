@@ -10,6 +10,15 @@ class UserAccount extends Model
     protected $primaryKey = 'UserID';
     public $timestamps = false; // uses DateCreated instead of created_at/updated_at
 
+    /**
+     * The AccountRole values that get into the admin panel. 'super admin' is
+     * the claimed super admin (also flagged IsSuperAdmin); 'admin' is every
+     * staff/dentist account and the un-claimed .env bootstrap. Anything that
+     * gates on "is this an admin-panel user" checks against this list so the
+     * super admin is never accidentally treated as a patient or locked out.
+     */
+    public const ADMIN_ROLES = ['admin', 'super admin'];
+
     protected $fillable = [
         'Email',
         'Password',
@@ -20,12 +29,14 @@ class UserAccount extends Model
         'IsArchived',
         'EmailVerifiedAt',
         'LastLoginAt',
+        'IsSuperAdmin',
     ];
 
     protected $casts = [
         'EmailVerifiedAt' => 'datetime',
         'LastLoginAt' => 'datetime',
         'IsArchived' => 'boolean',
+        'IsSuperAdmin' => 'boolean',
     ];
 
     protected $hidden = [

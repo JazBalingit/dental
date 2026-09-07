@@ -834,7 +834,7 @@ footer i {
 }
 
 .notif-modal-header {
-  background: #164f9f;
+  background: #0f7a33;
   color: #fff;
   border-bottom: none;
   padding: 1rem 1.25rem;
@@ -1164,4 +1164,68 @@ footer i {
 
 .pw-toggle-checkbox:checked~.fw .eye-btn .fa-eye-slash {
   display: inline;
-} 
+}
+
+/* =========================================================
+   Responsive pass — phones & small tablets
+   ========================================================= */
+
+html,
+body {
+  max-width: 100%;
+  overflow-x: clip;
+}
+
+img,
+svg,
+video {
+  max-width: 100%;
+  height: auto;
+}
+
+.table-responsive {
+  -webkit-overflow-scrolling: touch;
+}
+
+@media (max-width: 991.98px) {
+
+  .row.g-5,
+  .row.g-4 {
+    --bs-gutter-x: 1.5rem;
+  }
+}
+
+@media (max-width: 767.98px) {
+
+  .content-wrap,
+  .content {
+    padding: 1rem !important;
+  }
+
+  .card-bd {
+    padding: 1rem;
+  }
+
+  .card-hd {
+    padding: .9rem 1rem;
+  }
+
+  /* Field rows in Settings stack on a phone */
+  .fw,
+  .fc,
+  .fc-plain {
+    width: 100%;
+  }
+
+  .modal-dialog {
+    margin: .5rem;
+  }
+}
+
+@media (max-width: 575.98px) {
+
+  .content-wrap,
+  .content {
+    padding: .75rem !important;
+  }
+}

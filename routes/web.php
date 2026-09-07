@@ -22,13 +22,14 @@ use App\Http\Controllers\ConfigurationController;
 use App\Http\Controllers\WalkInController;
 use App\Http\Controllers\ReportController;
 use App\Http\Controllers\ContactController;
+use App\Http\Controllers\SuperAdminSetupController;
 
 /*
 |--------------------------------------------------------------------------
 | Access control lives here, on the routes — not in each controller.
 |   (no middleware)   public pages + the login / signup / OTP flows
 |   auth.session      any signed-in user (patients + admins)
-|   admin             session('user_role') === 'admin' (staff, dentist, super admin)
+|   admin             session('user_role') in UserAccount::ADMIN_ROLES (staff, dentist, super admin)
 |   admin + superadmin  super admin only (Staff Accounts, Configuration)
 | EnsureStaffIsVerified (global) still forces an unverified staff account
 | onto the verification screen regardless of the above.
@@ -146,6 +147,27 @@ Route::middleware('admin')->group(function () {
     Route::post('/staff-profile/send-verification', [StaffProfileController::class, 'sendVerification'])->name('staffProfile.sendVerification');
     Route::post('/staff-profile/verify-email', [StaffProfileController::class, 'verifyEmail'])->name('staffProfile.verifyEmail');
     Route::post('/staff-profile/update-password', [StaffProfileController::class, 'updatePassword'])->name('staffProfile.password.update');
+
+    /*
+    |----------------------------------------------------------------------
+    | One-time super admin setup — a session logged in with the .env
+    | bootstrap credentials is locked to these routes by
+    | EnsureSuperAdminClaimed until it turns itself into a real account
+    | (pick an email + password, then confirm the email with a code).
+    | Sits in the 'admin' group (the bootstrap session has user_role=admin)
+    | but NOT the nested 'superadmin' group (it has no is_super_admin flag).
+    |----------------------------------------------------------------------
+    */
+    Route::get('/super-admin/setup', [SuperAdminSetupController::class, 'show'])->name('superAdminSetup');
+    Route::post('/super-admin/setup/send-code', [SuperAdminSetupController::class, 'sendCode'])->name('superAdminSetup.sendCode');
+    Route::post('/super-admin/setup/resend-code', [SuperAdminSetupController::class, 'resendCode'])->name('superAdminSetup.resendCode');
+    Route::post('/super-admin/setup/verify', [SuperAdminSetupController::class, 'verify'])->name('superAdminSetup.verify');
+
+    // Release a claimed super admin account back to the .env bootstrap
+    // (Admin Profile → Security) — email-code confirmed, same as setup.
+    // Guarded in-controller to session('is_super_admin').
+    Route::post('/super-admin/release/send-code', [SuperAdminSetupController::class, 'sendReleaseCode'])->name('superAdminRelease.sendCode');
+    Route::post('/super-admin/release/verify', [SuperAdminSetupController::class, 'verifyRelease'])->name('superAdminRelease.verify');
 
     /*
     |----------------------------------------------------------------------

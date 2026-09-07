@@ -115,6 +115,10 @@ class SystemSetting extends Model
             'phone' => '(02) 8404-5642',
             'mobile' => '+63 968-476-5943',
             'email' => 'jahzielhawan@gmail.com',
+            // Landing-page footer: the short blurb and the copyright line. The
+            // footer's quick links and contact block are generated elsewhere.
+            'footerDescription' => 'Providing quality dental care with compassion and professionalism. Our clinic is dedicated to ensuring every patient receives personalized treatment in a comfortable and welcoming environment. Your smile is our priority.',
+            'footerCopyright' => '© '.date('Y').' Pus-Pus Britanico Dental Clinic. All rights reserved.',
         ];
     }
 
@@ -133,6 +137,8 @@ class SystemSetting extends Model
             'phone' => static::get('contact_phone', $defaults['phone']),
             'mobile' => static::get('contact_mobile', $defaults['mobile']),
             'email' => static::get('contact_email', $defaults['email']),
+            'footerDescription' => static::get('footer_description', $defaults['footerDescription']) ?: $defaults['footerDescription'],
+            'footerCopyright' => static::get('footer_copyright', $defaults['footerCopyright']) ?: $defaults['footerCopyright'],
         ];
     }
 

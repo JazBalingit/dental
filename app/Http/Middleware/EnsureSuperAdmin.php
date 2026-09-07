@@ -15,6 +15,13 @@ class EnsureSuperAdmin
 {
     public function handle(Request $request, Closure $next): Response
     {
+        // An un-claimed bootstrap session has no powers — send it to the
+        // claim screen (EnsureSuperAdminClaimed does this too; this is a
+        // belt-and-braces check in case middleware order ever changes).
+        if (session('super_admin_setup')) {
+            return redirect()->route('superAdminSetup');
+        }
+
         if (!session('is_super_admin')) {
             if ($request->expectsJson()) {
                 return response()->json(['message' => 'Forbidden.'], 403);

@@ -10,7 +10,7 @@ return new class extends Migration {
      */
     public function up(): void
     {
-        Schema::create('tbl_dentistSchedule', function (Blueprint $table) {
+        Schema::create('tbl_dentistschedule', function (Blueprint $table) {
             $table->id('ScheduleID');
             $table->date('Date');
             $table->string('Time', 5); // stored as 'HH:MM' e.g. '09:00', '13:00'
@@ -24,6 +24,6 @@ return new class extends Migration {
 
     public function down(): void
     {
-        Schema::dropIfExists('tbl_dentistSchedule');
+        Schema::dropIfExists('tbl_dentistschedule');
     }
 };

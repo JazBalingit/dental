@@ -1,6 +1,6 @@
 <?php
 // Place in: database/migrations/
-// Must run AFTER tbl_patientInfo, tbl_dentistSchedule, and tbl_services migrations
+// Must run AFTER tbl_patientInfo, tbl_dentistschedule, and tbl_services migrations
 
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
@@ -17,7 +17,7 @@ return new class extends Migration {
             $table->unsignedBigInteger('ServiceID');
 
             $table->date('AppointmentDate');
-            $table->string('AppointmentTime', 5); // 'HH:MM', matches tbl_dentistSchedule.Time format
+            $table->string('AppointmentTime', 5); // 'HH:MM', matches tbl_dentistschedule.Time format
             $table->string('TypeOfAppointment')->nullable();
             $table->enum('Status', ['Pending', 'Approved', 'Declined', 'Completed'])->default('Pending');
 
@@ -30,7 +30,7 @@ return new class extends Migration {
             $table->timestamps();
 
             $table->foreign('PatientID')->references('PatientID')->on('tbl_patientInfo')->onDelete('cascade');
-            $table->foreign('ScheduleID')->references('ScheduleID')->on('tbl_dentistSchedule')->onDelete('cascade');
+            $table->foreign('ScheduleID')->references('ScheduleID')->on('tbl_dentistschedule')->onDelete('cascade');
             $table->foreign('ServiceID')->references('ServiceID')->on('tbl_services')->onDelete('cascade');
         });
     }

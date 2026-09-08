@@ -122,6 +122,7 @@ MAIL_FROM_NAME=Pus-Pus Britanico Dental Clinic
 
 **Mga paalala:**
 - `${{MySQL.MYSQLHOST}}` — ito ay **variable reference** ni Railway. Kung ibang pangalan ang MySQL service mo (hindi "MySQL"), palitan ang `MySQL` sa loob ng `${{...}}`. I-type mo talaga nang literal ang `${{MySQL.MYSQLHOST}}`, huwag i-resolve mano-mano.
+- **Alternatibo sa 5 DB var:** pwede mo ring gamitin ang isang `DB_URL=${{MySQL.MYSQL_URL}}` sa halip na `DB_HOST/PORT/DATABASE/USERNAME/PASSWORD`. Sinusuportahan ito ng `config/database.php` (`'url' => env('DB_URL')`) at ginagamit nito ang internal networking (walang egress fee). Panatilihin pa rin ang `DB_CONNECTION=mysql`.
 - `APP_URL` — kahit wala ka pang domain, ilagay mo muna ang temporary Railway URL (makikita sa Step 5), tapos babaguhin mo sa Step 8 papunta sa `.online` domain.
 - `APP_DEBUG=false` — mahalaga sa production. Kung `true`, nakikita ng publiko ang error details at env vars.
 - `SUPERADMIN_PASSWORD` — **palitan** `admin123`. Ito ang login sa buong system.
@@ -135,15 +136,21 @@ I-save. Awtomatikong magre-redeploy si Railway.
 
 I-click ang app service → **Settings**.
 
-### 4.1 Pre-Deploy Command (para tumakbo ang migrations)
+### 4.1 Pre-deploy step (para tumakbo ang migrations)
 
-Hanapin ang **Deploy** section → **Pre-Deploy Command** → ilagay:
+**Settings → Deploy → Add pre-deploy step** → ilagay:
 
 ```
-php artisan migrate --force && php artisan config:cache && php artisan route:cache && php artisan view:cache
+php artisan migrate --force
 ```
 
-Ito ang tatakbo bago pumalit ang bagong version tuwing deploy — dito nagta-`migrate` ang database at nagka-`cache` ng config para mabilis.
+Ito lang. Dito tumatakbo ang database migrations bawat deploy (na- save sa MySQL, permanente).
+
+> **Huwag** idagdag dito ang `config:cache` / `route:cache` / `view:cache`. Sa Railway hindi napupunta sa runtime container ang mga cache file na ginawa sa pre-deploy step, at ang codebase na ito ay hindi ligtas i-`config:cache` (may `env()` calls na hindi lang sa config files). Hayaang walang config cache — gumagana pa rin nang tama, konti lang mas mabagal, hindi mapapansin sa clinic-scale traffic.
+
+### 4.1b Custom Start Command — IWANANG BLANGKO
+
+Ang "npm run start" na nakikita sa field ay placeholder lang ni Railway. Iwanang walang laman → gagamitin ang automatic na Nixpacks Laravel start (nginx + php-fpm, root sa `/public`).
 
 ### 4.2 Build — dapat auto-detect ni Nixpacks
 
@@ -168,10 +175,16 @@ cmds = [
 
 Tapos `git add nixpacks.toml && git commit -m "Add nixpacks build config" && git push`.
 
-### 4.3 Health check (optional pero maganda)
+### 4.3 Health check
 
 Sa **Settings** → **Deploy** → **Healthcheck Path**, ilagay: `/up`
 (May built-in health route na ang Laravel 12 dito.)
+
+### 4.4 "Cron schedules are not available for serverless services"
+
+Lalabas ito kung serverless mode ang service (natutulog kapag idle). **Ok lang muna** —
+gagana pa rin ang site, mas mura. Epekto lang: hindi tatakbo ang automatic appointment
+reminders (tignan 11.2). I-ayos mamaya kapag live na.
 
 ---
 

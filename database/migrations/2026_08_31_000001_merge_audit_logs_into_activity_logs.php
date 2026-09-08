@@ -28,8 +28,8 @@ return new class extends Migration {
             DB::statement("
                 UPDATE tbl_activityLogs al
                 LEFT JOIN tbl_useraccount ua ON ua.UserID = al.UserID
-                LEFT JOIN tbl_staffinfo si ON si.UserID = ua.UserID
-                LEFT JOIN tbl_patientinfo pi ON pi.UserID = ua.UserID
+                LEFT JOIN tbl_staffInfo si ON si.UserID = ua.UserID
+                LEFT JOIN tbl_patientInfo pi ON pi.UserID = ua.UserID
                 SET al.ActorName = COALESCE(
                     NULLIF(TRIM(CONCAT(COALESCE(si.FirstName, pi.FirstName, ''), ' ', COALESCE(si.LastName, pi.LastName, ''))), ''),
                     ua.Email

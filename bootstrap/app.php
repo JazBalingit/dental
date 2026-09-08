@@ -20,6 +20,13 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
+        // Behind Railway's load balancer (and any HTTPS-terminating proxy) the
+        // app only ever sees the proxy as the client. Trust it so Laravel reads
+        // the real client IP and, crucially, knows the original request was
+        // HTTPS — otherwise url()/route() generate http:// links and the
+        // emailed verification/reset URLs come out wrong.
+        $middleware->trustProxies(at: '*');
+
         $middleware->web(append: [
             EnsureStaffIsVerified::class,
             EnsureSuperAdminClaimed::class,

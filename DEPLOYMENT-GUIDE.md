@@ -270,45 +270,52 @@ I-save → magre-redeploy. Ngayon tama na ang lahat ng generated links, kasama a
 
 ---
 
-## 9. Resend — buksan ang production email
+## 9. Resend HTTP API — production email
 
-> Hanggang dito, Gmail SMTP pa rin ang gamit (gumagana naman). Optional ito pero mas propesyonal ang padala galing sa sarili mong domain.
+> **Railway HINAHARANG ang outbound SMTP** (ports 25/465/587). Kaya hindi gagana
+> ang Gmail SMTP doon — mag-ha-hang ang request ("loading forever"). Kailangan
+> ng HTTP-based email API na dumadaan sa port 443. Resend HTTP API ang gamit.
+> (Package `resend/resend-php` naka-install na; `config/mail.php` may `resend`
+> mailer na; `config/services.php` bumabasa ng `RESEND_API_KEY`. Walang code
+> change kailangan.)
 
 ### 9.1 Idagdag ang domain sa Resend
-1. https://resend.com → **Domains** → **Add Domain**
-2. I-type `puspusbritanico.online` (o subdomain tulad ng `mail.puspusbritanico.online` — mas ok ito para sa deliverability)
-3. Bibigyan ka ni Resend ng ~3 DNS records: isang `MX`, at 2–3 `TXT` (SPF + DKIM), minsan may `CNAME` para sa tracking.
+1. https://resend.com → sign up (libre) → **Domains** → **Add Domain**
+2. Name: `send.<domain-mo>` (hal. `send.puspusdentalclinic.online`) — subdomain, best practice
+3. Region: pinakamalapit (hal. Tokyo `ap-northeast-1`)
+4. **Add** → lalabas ang DNS records: 1 TXT (DKIM), 2 CNAME (SPF), 1 TXT (DMARC, optional)
 
-### 9.2 Sa Hostinger — idagdag lahat ng records na binigay ni Resend
-**Manage DNS records** → idagdag isa-isa, **eksaktong** kopya ng Name at Value galing Resend. Ingat sa:
-- Huwag idoble ang domain sa "Name" — kung sinabi ng Resend na `send`, `send` lang (hindi `send.puspusbritanico.online`) dahil kusa nang idinadagdag ng Hostinger ang domain.
-- Para sa SPF `TXT`: kung may existing `TXT` na `v=spf1...` ka na (galing dati), pagsamahin, huwag gumawa ng pangalawa.
+### 9.2 Sa Hostinger — idagdag lahat ng records
+**Domains → domain → DNS / Nameservers → Manage DNS records**. Bawat record → **Add Record**:
+- **Name:** eksaktong sabi ng Resend (hal. `resend._domainkey.send`). HUWAG isama ang `.<domain>` — kusang idadagdag ng Hostinger.
+- **TXT values:** walang quotes (kusang idadagdag ng Hostinger), isang linya, walang space/enter sa gitna (lalo ang mahabang DKIM).
+- **CNAME target:** as-is, walang `https://`.
+- Iwan lang ang existing na `A @` at `CNAME www` — hindi kaaway.
 
 ### 9.3 I-verify
-Balik sa Resend → **Domains** → **Verify DNS Records**. Kapag lahat ✅ (15 min – 1 oras), ready na.
+Resend → **Domains** → domain → **I've added the records** / **Verify**. 15–30 min sa Hostinger. Kapag **Verified** (green, DKIM + SPF ✅) → ready.
 
 ### 9.4 Kumuha ng API key
-Resend → **API Keys** → **Create API Key** → **Sending access** → kopyahin ang `re_...` (isang beses lang makikita).
+Resend → **API Keys** → **Create API Key** → **Sending access** → kopyahin ang `re_...` (isang beses lang).
 
 ### 9.5 Palitan ang MAIL vars sa Railway
-Railway → app service → **Variables** → palitan itong 6:
+Railway → app service → **Variables** → **Raw Editor**. Palitan/tanggalin ang MAIL lines:
 
 ```
-MAIL_MAILER=smtp
-MAIL_HOST=smtp.resend.com
-MAIL_PORT=587
-MAIL_USERNAME=resend
-MAIL_PASSWORD=<ang re_... API key>
-MAIL_FROM_ADDRESS=noreply@puspusbritanico.online
+MAIL_MAILER=resend
+RESEND_API_KEY=<ang re_... API key>
+MAIL_FROM_ADDRESS=noreply@send.<domain-mo>
 MAIL_FROM_NAME=Pus-Pus Britanico Dental Clinic
 ```
 
-- `MAIL_USERNAME` ay literal na salitang `resend`.
-- `MAIL_FROM_ADDRESS` ay **kailangang nasa verified domain**. Kung ang na-verify mo ay `mail.puspusbritanico.online`, gamitin `noreply@mail.puspusbritanico.online`.
+**Tanggalin** (hindi na kailangan ng Resend API): `MAIL_HOST`, `MAIL_PORT`, `MAIL_USERNAME`, `MAIL_PASSWORD`.
 
-I-save → redeploy.
+- `MAIL_FROM_ADDRESS` — kahit anong username basta `@send.<domain-mo>` (yung verified na subdomain).
 
-> Walang code change kailangan — pareho lang ang SMTP transport, iba lang ang host/credentials. Ang naka-comment sa local `.env` ay reference lang.
+I-apply → redeploy. Dumadaan sa HTTPS (Resend API) — hindi hinaharang ng Railway. ✅
+
+### 9.6 Test
+Signup gamit totoong email → dapat may OTP within seconds. Resend → **Logs** / **Emails** → makikita bawat padala + status.
 
 ---
 

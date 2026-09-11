@@ -117,7 +117,7 @@ class SystemSetting extends Model
             'logo' => '/images/puspus_logo.png',
             'phone' => '(02) 8404-5642',
             'mobile' => '+63 968-476-5943',
-            'email' => 'jahzielhawan@gmail.com',
+            'email' => 'puspusbritanicodentalclinic@gmail.com',
             // Landing-page footer: the short blurb and the copyright line. The
             // footer's quick links and contact block are generated elsewhere.
             'footerDescription' => 'Providing quality dental care with compassion and professionalism. Our clinic is dedicated to ensuring every patient receives personalized treatment in a comfortable and welcoming environment. Your smile is our priority.',

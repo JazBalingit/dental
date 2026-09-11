@@ -62,10 +62,9 @@
     <div class="container">
       <div class="hero-content">
         <span class="hero-eyebrow">Trusted Dental Care</span>
-        <h1 class="hero-title">PUS-PUS BRITANICO</h1>
-        <p class="lead mb-2">Providing quality and affordable dental care.</p>
-        <p>Your smile is our priority. Experience compassionate, professional dental care in a welcoming environment.
-        </p>
+        <h1 class="hero-title">{{ $aboutInfo['heroTitle'] }}</h1>
+        <p class="lead mb-2">{{ $aboutInfo['heroSubtitle'] }}</p>
+        <p>{{ $aboutInfo['heroDescription'] }}</p>
         <div class="hero-cta">
           <a href="{{ session('user_id') ? '#appointment' : route('login') }}" class="book"><i
               class="fa-regular fa-calendar-check me-2"></i>{{ session('user_id') ? 'Book Appointment' : 'Sign in to Book' }}</a>

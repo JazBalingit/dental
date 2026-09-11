@@ -36,9 +36,8 @@ use App\Http\Controllers\SuperAdminSetupController;
 |--------------------------------------------------------------------------
 */
 
-Route::get('/', function () {
-    return view('welcome');
-});
+// Route::view (not a closure) so `php artisan route:cache` can serialize it.
+Route::view('/', 'welcome');
 
 // ---- Public pages ----
 Route::get('landing-page', [UserController::class, 'showLandingPage'])->name('landingPage');

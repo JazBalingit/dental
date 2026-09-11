@@ -120,6 +120,9 @@ class ConfigurationController extends Controller
             'lunch_enabled' => 'nullable|boolean',
             'booking_lunch_start' => ['nullable', 'required_with:booking_lunch_end', 'date_format:H:i', 'regex:/^\d{2}:(00|30)$/'],
             'booking_lunch_end' => ['nullable', 'required_with:booking_lunch_start', 'date_format:H:i', 'regex:/^\d{2}:(00|30)$/', 'after:booking_lunch_start'],
+            'hero_title' => 'nullable|string|max:100',
+            'hero_subtitle' => 'nullable|string|max:200',
+            'hero_description' => 'nullable|string|max:400',
             'about_description' => 'nullable|string|max:1000',
             'footer_description' => 'nullable|string|max:1000',
             'footer_copyright' => 'nullable|string|max:255',
@@ -152,6 +155,9 @@ class ConfigurationController extends Controller
         SystemSetting::set('about_operating_days', $data['operating_days']);
         // Keep the public "Operating Hours" line in step with the booking window.
         SystemSetting::set('about_operating_hours', DentistSchedule::clinicHoursLabel());
+        SystemSetting::set('hero_title', $data['hero_title'] ?? '');
+        SystemSetting::set('hero_subtitle', $data['hero_subtitle'] ?? '');
+        SystemSetting::set('hero_description', $data['hero_description'] ?? '');
         SystemSetting::set('about_description', $data['about_description'] ?? '');
         SystemSetting::set('footer_description', $data['footer_description'] ?? '');
         SystemSetting::set('footer_copyright', $data['footer_copyright'] ?? '');

@@ -110,6 +110,27 @@
                       ])
                     </div>
 
+                    <div class="section-label mt-4"><i class="bi bi-megaphone"></i> Landing Page Hero</div>
+                    <p class="small text-muted-2 mb-3">The headline text shown over the banner image at the very top
+                      of the landing page.</p>
+                    <div class="row g-3">
+                      <div class="col-md-6">
+                        <label class="form-label">Hero Title</label>
+                        <input type="text" name="hero_title" class="form-control"
+                          value="{{ old('hero_title', $aboutInfo['heroTitle']) }}" maxlength="100">
+                      </div>
+                      <div class="col-md-6">
+                        <label class="form-label">Hero Subtitle</label>
+                        <input type="text" name="hero_subtitle" class="form-control"
+                          value="{{ old('hero_subtitle', $aboutInfo['heroSubtitle']) }}" maxlength="200">
+                      </div>
+                      <div class="col-12">
+                        <label class="form-label">Hero Description</label>
+                        <textarea name="hero_description" class="form-control" rows="2"
+                          maxlength="400">{{ old('hero_description', $aboutInfo['heroDescription']) }}</textarea>
+                      </div>
+                    </div>
+
                     <div class="section-label mt-4"><i class="bi bi-card-text"></i> About the Clinic</div>
                     <div class="row g-3">
                       <div class="col-12">

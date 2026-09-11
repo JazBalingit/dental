@@ -1,0 +1,18 @@
+# Railway build config. Nixpacks auto-detects PHP (composer.json) and Node
+# (package.json) and runs composer install + npm build on its own; this file
+# only adds Laravel's route/view caching after the default build, and lets
+# Nixpacks provide the production web server (nginx + php-fpm) instead of the
+# single-threaded `php artisan serve`.
+#
+# IMPORTANT: leave the service's "Custom Start Command" EMPTY in Railway so the
+# Nixpacks-generated nginx start command is used. Run migrations from the
+# pre-deploy step instead: php artisan migrate --force
+
+providers = ["php", "node"]
+
+[phases.optimize]
+dependsOn = ["build"]
+cmds = [
+  "php artisan route:cache",
+  "php artisan view:cache",
+]

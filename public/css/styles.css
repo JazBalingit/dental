@@ -294,6 +294,58 @@ h6 {
   min-width: 150px;
 }
 
+/* ---------- Sign-up wizard: plain progress bar + step label, no badges ---------- */
+.wizard-progress {
+  height: 4px;
+  border-radius: 2px;
+  background: var(--ink-100);
+  overflow: hidden;
+  margin-bottom: .4rem;
+}
+
+.wizard-progress-bar {
+  height: 100%;
+  background: linear-gradient(90deg, #0f7a33, #3bd965);
+  transition: width .25s ease;
+}
+
+.wizard-step-label {
+  font-size: .74rem;
+  font-weight: 600;
+  color: var(--ink-500);
+  margin-bottom: 1rem;
+}
+
+.wizard-nav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: .75rem 1.5rem;
+  margin-top: .5rem;
+  flex-wrap: wrap;
+}
+
+.wizard-nav .btn {
+  min-width: 120px;
+}
+
+@media (max-width: 575.98px) {
+  .wizard-nav {
+    flex-direction: column-reverse;
+    align-items: stretch;
+  }
+
+  .wizard-nav>div {
+    display: flex;
+    gap: .5rem;
+  }
+
+  .wizard-nav .btn {
+    flex: 1;
+    min-width: 0;
+  }
+}
+
 /* Compact security-tips strip under the password fields on the sign-up form.
    Laid out horizontally so it costs almost no vertical space. */
 .auth-tips {

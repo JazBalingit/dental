@@ -14,17 +14,24 @@ class UserNotificationComposer
         $isPatient = $userId && session('account_type') !== 'staff'
             && !in_array(session('user_role'), UserAccount::ADMIN_ROLES, true);
 
-        // Avatar for the navbar account menu — the patient's uploaded photo,
-        // otherwise the shared default. Available on every user-facing page.
+        // Avatar + display name for the navbar/portal account menu — the
+        // patient's uploaded photo and "First Last" name, otherwise the
+        // shared default avatar and their email. Available on every
+        // user-facing page.
         $navUserPhoto = asset('images/default.png');
+        $navUserName = session('user_email');
         if ($userId) {
             $account = UserAccount::with('patientInfo')->find($userId);
             $photo = $account?->patientInfo?->ProfilePicture;
             if ($photo) {
                 $navUserPhoto = asset($photo);
             }
+            $fullName = trim(($account?->patientInfo?->FirstName ?? '') . ' ' . ($account?->patientInfo?->LastName ?? ''));
+            if ($fullName) {
+                $navUserName = $fullName;
+            }
         }
-        $view->with('navUserPhoto', $navUserPhoto);
+        $view->with(['navUserPhoto' => $navUserPhoto, 'navUserName' => $navUserName]);
 
         if (!$isPatient) {
             $view->with([

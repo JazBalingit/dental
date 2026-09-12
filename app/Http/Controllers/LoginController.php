@@ -99,7 +99,7 @@ class LoginController extends Controller
 
         return in_array($user->AccountRole, UserAccount::ADMIN_ROLES, true)
             ? redirect()->route('dashboard')
-            : redirect()->route('landingPage');
+            : redirect()->route('userAppointment');
     }
 
     /**

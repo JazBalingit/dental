@@ -8,10 +8,25 @@
 
     Expected variables: $bookWeeks, $bookCurrent, $bookSchedules,
     $bookOccupiedSlots, $bookSlots, $bookToday, $services,
-    $bookCurrentPatientId, $calendarMode ('post'|'select')
+    $bookCurrentPatientId, $calendarMode ('post'|'select').
+
+    Optional: $readOnly (default false) — renders the calendar as a pure
+    display (no service picker/Select button/login link on available slots,
+    no Reschedule/Cancel on your own slots, no confirm-booking form). Used
+    for the guest schedule preview on the public landing page. $bookBaseUrl
+    lets a 'post'-mode caller other than the landing page (e.g. the Patient
+    Portal's Appointments page) point month navigation at its own route.
 --}}
 @php
     $calendarMode = $calendarMode ?? 'post';
+    $readOnly = $readOnly ?? false;
+    // The "mine" slot's Reschedule/Cancel buttons target these modal IDs —
+    // default to the landing page's dynamic pair (populated via JS from
+    // data-remove-url on show.bs.modal). A caller with its own static
+    // modals already bound to the current appointment (e.g. the Patient
+    // Portal's Appointments page) can override these instead.
+    $rescheduleModalId = $rescheduleModalId ?? 'landingRescheduleModal';
+    $cancelModalId = $cancelModalId ?? 'landingCancelModal';
 @endphp
 
 <style>
@@ -96,8 +111,8 @@
 </style>
 
 @php
-    $bookBaseUrl = $calendarMode === 'select' ? route('walkIn') : route('landingPage');
-    $bookHash = $calendarMode === 'select' ? '' : '#appointment';
+    $bookBaseUrl = $bookBaseUrl ?? ($calendarMode === 'select' ? route('walkIn') : route('landingPage'));
+    $bookHash = $bookHash ?? ($calendarMode === 'select' ? '' : '#appointment');
 @endphp
 <div class="content">
     <div class="schedule-wrap booking-calendar">
@@ -306,7 +321,13 @@
                 <span><span class="dot" style="background: #e0a800;"></span>Pending</span>
             </div>
             <div class="small text-muted-2">
-                {{ $calendarMode === 'select' ? 'Click any date to view open times and select one.' : 'Click any date to view open times and book.' }}
+                @if ($readOnly)
+                    Click any date to view open times.
+                @elseif ($calendarMode === 'select')
+                    Click any date to view open times and select one.
+                @else
+                    Click any date to view open times and book.
+                @endif
             </div>
         </div>
     </div>
@@ -379,7 +400,9 @@
                                     <div class="slot {{ $isAvailable ? 'js-slot-pane' : 'slot-taken' }}">
 
                                         @if ($isAvailable)
-                                            @if ($calendarMode === 'select')
+                                            @if ($readOnly)
+                                                <div class="slot-btn is-available text-center">Available</div>
+                                            @elseif ($calendarMode === 'select')
                                                 <div class="d-flex gap-2 w-100 align-items-center flex-wrap px-3 py-2" style="background:#eaf8ec;border:1px solid #198754;border-radius:8px;">
                                                     <div class="dropdown wi-slot-service" style="max-width:240px;">
                                                         <button type="button" class="form-select form-select-sm wi-slot-service-toggle" data-bs-toggle="dropdown" data-bs-auto-close="outside" aria-expanded="false">
@@ -435,13 +458,13 @@
                                         @else
                                             <div class="slot-btn booking-status {{ $statusClass }} text-center">
                                                 <div>{{ $statusLabel }}@if($isMine) · {{ $apptForSlot->TypeOfAppointment ?: ($apptForSlot->service?->ServiceName) }} · {{ $apptForSlot->duration_label }}@endif</div>
-                                                @if($calendarMode === 'post' && $isMine && $isStartSlot && $apptForSlot->Status !== 'Completed')
+                                                @if(!$readOnly && $calendarMode === 'post' && $isMine && $isStartSlot && $apptForSlot->Status !== 'Completed')
                                                     <div class="d-flex justify-content-center gap-2 mt-2">
                                                         <button type="button" class="btn btn-sm text-white" style="background: var(--brand-700); border-color: var(--brand-700);"
-                                                            data-bs-toggle="modal" data-bs-target="#landingRescheduleModal"
+                                                            data-bs-toggle="modal" data-bs-target="#{{ $rescheduleModalId }}"
                                                             data-remove-url="{{ route('userAppointment.remove', $apptForSlot) }}">Reschedule</button>
                                                         <button type="button" class="btn btn-sm btn-outline-danger"
-                                                            data-bs-toggle="modal" data-bs-target="#landingCancelModal"
+                                                            data-bs-toggle="modal" data-bs-target="#{{ $cancelModalId }}"
                                                             data-remove-url="{{ route('userAppointment.remove', $apptForSlot) }}"
                                                             data-appt-date="{{ $d->format('M j') }}"
                                                             data-appt-service="{{ $apptForSlot->TypeOfAppointment ?: ($apptForSlot->service->ServiceName ?? '') }}">Cancel</button>
@@ -455,7 +478,7 @@
                             </div>
                             </div>
 
-                            @if ($calendarMode === 'post' && session('user_email'))
+                            @if (!$readOnly && $calendarMode === 'post' && session('user_email'))
                                 <div class="book-confirm-view" hidden>
                                     <div class="text-center mb-3">
                                         <div class="d-inline-flex align-items-center justify-content-center rounded-circle mb-2"
@@ -579,6 +602,147 @@
     // Every time a day modal opens, start from the collapsed list.
     document.addEventListener('show.bs.modal', function (e) {
         if (e.target.querySelector) closeAll(e.target);
+    });
+})();
+</script>
+
+{{--
+    'post'-mode booking interactions — month-nav form, the multi-service
+    dropdown label, and the Review & Confirm step inside a day modal
+    (select service(s) -> review -> submit). Lives here (not on the
+    consuming page) so every 'post'-mode caller — the landing page's guest
+    preview and the Patient Portal's Appointments page — gets a working
+    booking flow without duplicating this script. Guarded so including the
+    partial more than once per page only wires it up once.
+--}}
+<script>
+(function () {
+    if (window.__bookingCalendarInteractions) return;
+    window.__bookingCalendarInteractions = true;
+
+    document.getElementById('bookMonthForm')?.addEventListener('submit', function () {
+      var month = document.getElementById('bookMonthNum').value.padStart(2, '0');
+      var year = document.getElementById('bookYear').value;
+      document.getElementById('bookMonth').value = year + '-' + month;
+    });
+
+    // ---------- Clinic slot grid, mirrors DentistSchedule on the server — used to
+    // preview the actual end time (skipping the lunch-hour gap) before submitting ----------
+    var SLOT_TIMES = @json(\App\Models\DentistSchedule::slotTimes());
+    var SLOT_MINUTES = {{ \App\Models\DentistSchedule::SLOT_MINUTES }};
+
+    function formatTime12h(hours, minutes) {
+      var period = hours >= 12 ? 'PM' : 'AM';
+      var hour12 = hours % 12 || 12;
+      return hour12 + ':' + String(minutes).padStart(2, '0') + ' ' + period;
+    }
+
+    // "1 hour 30 minutes" / "30 minutes" — mirrors DentistSchedule::formatSlotDuration().
+    function formatDurationLabel(totalMinutes) {
+      var hours = Math.floor(totalMinutes / 60);
+      var minutes = totalMinutes % 60;
+      var parts = [];
+      if (hours > 0) parts.push(hours + ' hour' + (hours > 1 ? 's' : ''));
+      if (minutes > 0) parts.push(minutes + ' minute' + (minutes > 1 ? 's' : ''));
+      return parts.length ? parts.join(' ') : '0 minutes';
+    }
+
+    // The last reserved slot's end time for a booking of totalMinutes
+    // starting at startTime — null if it would run past closing (the
+    // actual check still happens server-side; this is just a preview).
+    function computeEndTimeLabel(startTime, totalMinutes) {
+      var slotsNeeded = Math.max(1, Math.ceil(totalMinutes / SLOT_MINUTES));
+      var startIndex = SLOT_TIMES.indexOf(startTime);
+      if (startIndex === -1) return null;
+      var lastIndex = startIndex + slotsNeeded - 1;
+      if (lastIndex >= SLOT_TIMES.length) return null;
+      var lastSlot = SLOT_TIMES[lastIndex].split(':').map(Number);
+      var endMinutesTotal = lastSlot[0] * 60 + lastSlot[1] + SLOT_MINUTES;
+      return formatTime12h(Math.floor(endMinutesTotal / 60), endMinutesTotal % 60);
+    }
+
+    // ---------- Multi-service dropdown: keep each toggle button's label in sync ----------
+    function updateServiceToggleLabel(wrapper) {
+      var text = wrapper.querySelector('.book-slot-service-toggle-text');
+      var checked = wrapper.querySelectorAll('.book-slot-service-option:checked');
+      text.textContent = checked.length
+        ? Array.from(checked).map(function (c) { return c.dataset.name; }).join(', ')
+        : 'Select services';
+    }
+
+    document.addEventListener('change', function (e) {
+      if (e.target.matches('.book-slot-service-option')) {
+        var wrapper = e.target.closest('.book-slot-service');
+        updateServiceToggleLabel(wrapper);
+        wrapper.querySelector('.book-slot-service-toggle').classList.remove('is-invalid');
+      }
+    });
+
+    // ---------- Review & Confirm inside the day modal (select service(s) -> review -> confirm) ----------
+    document.addEventListener('click', function (e) {
+      var selectBtn = e.target.closest('.book-select-btn');
+      if (selectBtn) {
+        var row = selectBtn.closest('.d-flex');
+        var wrapper = row ? row.querySelector('.book-slot-service') : null;
+        var checked = wrapper ? Array.from(wrapper.querySelectorAll('.book-slot-service-option:checked')) : [];
+
+        if (!checked.length) {
+          if (wrapper) wrapper.querySelector('.book-slot-service-toggle').classList.add('is-invalid');
+          return;
+        }
+        wrapper.querySelector('.book-slot-service-toggle').classList.remove('is-invalid');
+
+        var modalEl = selectBtn.closest('.modal');
+        if (!modalEl) return;
+
+        var slotsView = modalEl.querySelector('.book-slots-view');
+        var confirmView = modalEl.querySelector('.book-confirm-view');
+        if (!slotsView || !confirmView) return;
+
+        var dateLabel = modalEl.querySelector('.modal-title')?.textContent || selectBtn.dataset.date;
+        var totalMinutes = checked.reduce(function (sum, c) { return sum + (parseInt(c.dataset.duration, 10) || 60); }, 0);
+        var startLabel = selectBtn.dataset.timeLabel || selectBtn.dataset.time;
+        var endLabel = computeEndTimeLabel(selectBtn.dataset.time, totalMinutes);
+
+        confirmView.querySelector('.book-confirm-service').textContent = checked.map(function (c) { return c.dataset.name; }).join(', ');
+        confirmView.querySelector('.book-confirm-date').textContent = dateLabel;
+        confirmView.querySelector('.book-confirm-time').textContent = endLabel ? (startLabel + ' - ' + endLabel) : startLabel;
+        confirmView.querySelector('.book-confirm-duration').textContent = formatDurationLabel(totalMinutes);
+        confirmView.querySelector('.book-confirm-date-input').value = selectBtn.dataset.date;
+        confirmView.querySelector('.book-confirm-time-input').value = selectBtn.dataset.time;
+
+        var inputsContainer = confirmView.querySelector('.book-confirm-service-inputs');
+        inputsContainer.innerHTML = '';
+        checked.forEach(function (c) {
+          var input = document.createElement('input');
+          input.type = 'hidden';
+          input.name = 'service_ids[]';
+          input.value = c.value;
+          inputsContainer.appendChild(input);
+        });
+
+        slotsView.hidden = true;
+        confirmView.hidden = false;
+        return;
+      }
+
+      var backBtn = e.target.closest('.book-confirm-back-btn');
+      if (backBtn) {
+        var modal = backBtn.closest('.modal');
+        if (!modal) return;
+        var slots = modal.querySelector('.book-slots-view');
+        var confirm = modal.querySelector('.book-confirm-view');
+        if (slots) slots.hidden = false;
+        if (confirm) confirm.hidden = true;
+      }
+    });
+
+    // Reset every day-modal back to the slot list whenever it's (re)opened.
+    document.addEventListener('show.bs.modal', function (e) {
+      var slotsView = e.target.querySelector('.book-slots-view');
+      var confirmView = e.target.querySelector('.book-confirm-view');
+      if (slotsView) slotsView.hidden = false;
+      if (confirmView) confirmView.hidden = true;
     });
 })();
 </script>

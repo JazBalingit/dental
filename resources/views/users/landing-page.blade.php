@@ -33,9 +33,6 @@
       {{-- Phone / tablet: notification bell sits next to the hamburger, outside the
       collapsing menu, so opening it never disturbs the nav links. --}}
       <div class="d-flex align-items-center gap-2 d-lg-none">
-        @if (session('user_id'))
-          @include('partials.user-notif-dropdown')
-        @endif
         <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarSupportedContent">
           <span class="navbar-toggler-icon"></span>
         </button>
@@ -45,9 +42,7 @@
           <li class="nav-item"><a class="nav-link navh" href="#home">Home</a></li>
           <li class="nav-item"><a class="nav-link navh" href="#services">Services</a></li>
           <li class="nav-item"><a class="nav-link navh" href="#how">How It Works</a></li>
-          @if (session('user_id'))
-            <li class="nav-item"><a class="nav-link navh" href="#appointment">Appointment</a></li>
-          @endif
+          <li class="nav-item"><a class="nav-link navh" href="#appointment">Appointment</a></li>
           <li class="nav-item"><a class="nav-link navh" href="#about">About</a></li>
           <li class="nav-item"><a class="nav-link navh" href="#contact">Contact</a></li>
         </ul>
@@ -66,8 +61,8 @@
         <p class="lead mb-2">{{ $aboutInfo['heroSubtitle'] }}</p>
         <p>{{ $aboutInfo['heroDescription'] }}</p>
         <div class="hero-cta">
-          <a href="{{ session('user_id') ? '#appointment' : route('login') }}" class="book"><i
-              class="fa-regular fa-calendar-check me-2"></i>{{ session('user_id') ? 'Book Appointment' : 'Sign in to Book' }}</a>
+          <a href="{{ route('login') }}" class="book"><i
+              class="fa-regular fa-calendar-check me-2"></i>Sign in to Book</a>
           <a href="#how" class="book-ghost">How It Works</a>
         </div>
       </div>
@@ -155,35 +150,34 @@
       </div>
     </div>
   </section>
-  @if (session('user_id'))
-    <!-- APPOINTMENT -->
-    <section id="appointment" class="section" style="background: linear-gradient(180deg, #c2f2c677 0%, #d1ffca30 100%);">
+  <!-- SCHEDULE PREVIEW (guests only — sign in to book from the Patient Portal) -->
+  <section id="appointment" class="section" style="background: linear-gradient(180deg, #c2f2c677 0%, #d1ffca30 100%);">
 
-      <div class="container">
-        <div class="text-center">
-          <span class="section-eyebrow">Book Now</span>
-          <h2 class="section-title">Schedule Your Appointment</h2>
-          <hr class="section-divider mx-auto">
-          <p class="section-intro mx-auto">Click a date on the calendar, pick a service, and choose an open time slot.</p>
-        </div>
-
-        @include('partials.booking-calendar', [
-          'calendarMode' => 'post',
-          'bookWeeks' => $bookWeeks,
-          'bookCurrent' => $bookCurrent,
-          'bookSchedules' => $bookSchedules,
-          'bookOccupiedSlots' => $bookOccupiedSlots,
-          'bookSlots' => $bookSlots,
-          'bookToday' => $bookToday,
-          'services' => $services,
-          'bookCurrentPatientId' => $bookCurrentPatientId,
-          'bookDentists' => $bookDentists,
-          'bookSelectedDentist' => $bookSelectedDentist,
-          'bookSelectedDentistId' => $bookSelectedDentistId,
-        ])
+    <div class="container">
+      <div class="text-center">
+        <span class="section-eyebrow">See Our Schedule</span>
+        <h2 class="section-title">Dentist Availability</h2>
+        <hr class="section-divider mx-auto">
+        <p class="section-intro mx-auto">Browse open dates and times below. <a href="{{ route('login') }}">Sign in</a> to book a slot from your Patient Portal.</p>
       </div>
-    </section>
-  @endif
+
+      @include('partials.booking-calendar', [
+        'calendarMode' => 'post',
+        'readOnly' => true,
+        'bookWeeks' => $bookWeeks,
+        'bookCurrent' => $bookCurrent,
+        'bookSchedules' => $bookSchedules,
+        'bookOccupiedSlots' => $bookOccupiedSlots,
+        'bookSlots' => $bookSlots,
+        'bookToday' => $bookToday,
+        'services' => $services,
+        'bookCurrentPatientId' => $bookCurrentPatientId,
+        'bookDentists' => $bookDentists,
+        'bookSelectedDentist' => $bookSelectedDentist,
+        'bookSelectedDentistId' => $bookSelectedDentistId,
+      ])
+    </div>
+  </section>
   <!-- ABOUT -->
   <section id="about" class="section" style="background: linear-gradient(180deg, #eef9f0 0%, #ffffff 100%);">
     <div class="container">
@@ -314,9 +308,7 @@
           <a class="footer-link" href="#home">Home</a>
           <a class="footer-link" href="#services">Services</a>
           <a class="footer-link" href="#how">How It Works</a>
-          @if (session('user_id'))
-            <a class="footer-link" href="#appointment">Appointment</a>
-          @endif
+          <a class="footer-link" href="#appointment">Schedule</a>
           <a class="footer-link" href="#about">About</a>
           <a class="footer-link" href="#contact">Contact</a>
         </div>
@@ -340,60 +332,6 @@
   </footer>
 
   @include('partials.user-notif-modal')
-
-  @if (session('user_id'))
-    <!-- RESCHEDULE CONFIRMATION MODAL -->
-    <div class="modal fade confirm-modal" id="landingRescheduleModal" tabindex="-1" aria-hidden="true">
-      <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content">
-          <div class="modal-header">
-            <h5 class="modal-title"><i class="fas fa-calendar-alt me-2" style="color:#0f7a33"></i>Reschedule Appointment
-            </h5>
-            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-          </div>
-          <div class="modal-body p-4">
-            <p class="mb-0" style="font-size:14px;line-height:1.7">Rescheduling removes this appointment and releases its
-              time. You can then choose a new available time from the booking calendar.</p>
-          </div>
-          <div class="modal-footer gap-2">
-            <button type="button" class="confirm-btn-sec" data-bs-dismiss="modal">Discard</button>
-            <form method="POST" id="landingRescheduleForm">
-              @csrf
-              <input type="hidden" name="action" value="reschedule">
-              <button class="confirm-btn-prim"><i class="fas fa-calendar-alt me-1"></i> Reschedule</button>
-            </form>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- CANCEL CONFIRMATION MODAL -->
-    <div class="modal fade confirm-modal" id="landingCancelModal" tabindex="-1" aria-hidden="true">
-      <div class="modal-dialog modal-dialog-centered modal-sm">
-        <div class="modal-content">
-          <div class="modal-header">
-            <h5 class="modal-title"><i class="fas fa-exclamation-triangle me-2" style="color:#ef4444"></i>Cancel
-              Appointment</h5>
-            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-          </div>
-          <div class="modal-body p-4">
-            <p style="font-size:14px;line-height:1.7">Are you sure you want to cancel your <strong id="landingCancelLabel"
-                style="color:#0f4c7a"></strong> appointment? This cannot be undone.</p>
-          </div>
-          <div class="modal-footer gap-2">
-            <button type="button" class="confirm-btn-sec" data-bs-dismiss="modal">Keep It</button>
-            <form method="POST" id="landingCancelForm">
-              @csrf
-              <input type="hidden" name="action" value="cancel">
-              <button class="confirm-btn-prim"
-                style="background:linear-gradient(135deg,#b91c1c,#ef4444);box-shadow:0 4px 12px rgba(239,68,68,0.3)"><i
-                  class="fas fa-times me-1"></i> Yes, Cancel</button>
-            </form>
-          </div>
-        </div>
-      </div>
-    </div>
-  @endif
 
   <div class="modal fade" id="modalOpenDay" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered modal-xl">
@@ -439,150 +377,6 @@
   </div>
 
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js"></script>
-  <script>
-    document.getElementById('bookMonthForm')?.addEventListener('submit', function () {
-      var month = document.getElementById('bookMonthNum').value.padStart(2, '0');
-      var year = document.getElementById('bookYear').value;
-      document.getElementById('bookMonth').value = year + '-' + month;
-    });
-
-    // ---------- Clinic slot grid, mirrors DentistSchedule on the server — used to
-    // preview the actual end time (skipping the lunch-hour gap) before submitting ----------
-    var SLOT_TIMES = @json(\App\Models\DentistSchedule::slotTimes());
-    var SLOT_MINUTES = {{ \App\Models\DentistSchedule::SLOT_MINUTES }};
-
-    function formatTime12h(hours, minutes) {
-      var period = hours >= 12 ? 'PM' : 'AM';
-      var hour12 = hours % 12 || 12;
-      return hour12 + ':' + String(minutes).padStart(2, '0') + ' ' + period;
-    }
-
-    // "1 hour 30 minutes" / "30 minutes" — mirrors DentistSchedule::formatSlotDuration().
-    function formatDurationLabel(totalMinutes) {
-      var hours = Math.floor(totalMinutes / 60);
-      var minutes = totalMinutes % 60;
-      var parts = [];
-      if (hours > 0) parts.push(hours + ' hour' + (hours > 1 ? 's' : ''));
-      if (minutes > 0) parts.push(minutes + ' minute' + (minutes > 1 ? 's' : ''));
-      return parts.length ? parts.join(' ') : '0 minutes';
-    }
-
-    // The last reserved slot's end time for a booking of totalMinutes
-    // starting at startTime — null if it would run past closing (the
-    // actual check still happens server-side; this is just a preview).
-    function computeEndTimeLabel(startTime, totalMinutes) {
-      var slotsNeeded = Math.max(1, Math.ceil(totalMinutes / SLOT_MINUTES));
-      var startIndex = SLOT_TIMES.indexOf(startTime);
-      if (startIndex === -1) return null;
-      var lastIndex = startIndex + slotsNeeded - 1;
-      if (lastIndex >= SLOT_TIMES.length) return null;
-      var lastSlot = SLOT_TIMES[lastIndex].split(':').map(Number);
-      var endMinutesTotal = lastSlot[0] * 60 + lastSlot[1] + SLOT_MINUTES;
-      return formatTime12h(Math.floor(endMinutesTotal / 60), endMinutesTotal % 60);
-    }
-
-    // ---------- Multi-service dropdown: keep each toggle button's label in sync ----------
-    function updateServiceToggleLabel(wrapper) {
-      var text = wrapper.querySelector('.book-slot-service-toggle-text');
-      var checked = wrapper.querySelectorAll('.book-slot-service-option:checked');
-      text.textContent = checked.length
-        ? Array.from(checked).map(function (c) { return c.dataset.name; }).join(', ')
-        : 'Select services';
-    }
-
-    document.addEventListener('change', function (e) {
-      if (e.target.matches('.book-slot-service-option')) {
-        var wrapper = e.target.closest('.book-slot-service');
-        updateServiceToggleLabel(wrapper);
-        wrapper.querySelector('.book-slot-service-toggle').classList.remove('is-invalid');
-      }
-    });
-
-    // ---------- Review & Confirm inside the day modal (select service(s) -> review -> confirm) ----------
-    document.addEventListener('click', function (e) {
-      var selectBtn = e.target.closest('.book-select-btn');
-      if (selectBtn) {
-        var row = selectBtn.closest('.d-flex');
-        var wrapper = row ? row.querySelector('.book-slot-service') : null;
-        var checked = wrapper ? Array.from(wrapper.querySelectorAll('.book-slot-service-option:checked')) : [];
-
-        if (!checked.length) {
-          if (wrapper) wrapper.querySelector('.book-slot-service-toggle').classList.add('is-invalid');
-          return;
-        }
-        wrapper.querySelector('.book-slot-service-toggle').classList.remove('is-invalid');
-
-        var modalEl = selectBtn.closest('.modal');
-        if (!modalEl) return;
-
-        var slotsView = modalEl.querySelector('.book-slots-view');
-        var confirmView = modalEl.querySelector('.book-confirm-view');
-        if (!slotsView || !confirmView) return;
-
-        var dateLabel = modalEl.querySelector('.modal-title')?.textContent || selectBtn.dataset.date;
-        var totalMinutes = checked.reduce(function (sum, c) { return sum + (parseInt(c.dataset.duration, 10) || 60); }, 0);
-        var startLabel = selectBtn.dataset.timeLabel || selectBtn.dataset.time;
-        var endLabel = computeEndTimeLabel(selectBtn.dataset.time, totalMinutes);
-
-        confirmView.querySelector('.book-confirm-service').textContent = checked.map(function (c) { return c.dataset.name; }).join(', ');
-        confirmView.querySelector('.book-confirm-date').textContent = dateLabel;
-        confirmView.querySelector('.book-confirm-time').textContent = endLabel ? (startLabel + ' - ' + endLabel) : startLabel;
-        confirmView.querySelector('.book-confirm-duration').textContent = formatDurationLabel(totalMinutes);
-        confirmView.querySelector('.book-confirm-date-input').value = selectBtn.dataset.date;
-        confirmView.querySelector('.book-confirm-time-input').value = selectBtn.dataset.time;
-
-        var inputsContainer = confirmView.querySelector('.book-confirm-service-inputs');
-        inputsContainer.innerHTML = '';
-        checked.forEach(function (c) {
-          var input = document.createElement('input');
-          input.type = 'hidden';
-          input.name = 'service_ids[]';
-          input.value = c.value;
-          inputsContainer.appendChild(input);
-        });
-
-        slotsView.hidden = true;
-        confirmView.hidden = false;
-        return;
-      }
-
-      var backBtn = e.target.closest('.book-confirm-back-btn');
-      if (backBtn) {
-        var modal = backBtn.closest('.modal');
-        if (!modal) return;
-        var slots = modal.querySelector('.book-slots-view');
-        var confirm = modal.querySelector('.book-confirm-view');
-        if (slots) slots.hidden = false;
-        if (confirm) confirm.hidden = true;
-      }
-    });
-
-    // Reset every day-modal back to the slot list whenever it's (re)opened.
-    document.addEventListener('show.bs.modal', function (e) {
-      var slotsView = e.target.querySelector('.book-slots-view');
-      var confirmView = e.target.querySelector('.book-confirm-view');
-      if (slotsView) slotsView.hidden = false;
-      if (confirmView) confirmView.hidden = true;
-    });
-
-    // ---------- Wire the Reschedule / Cancel confirmation modals to whichever slot triggered them ----------
-    document.addEventListener('show.bs.modal', function (e) {
-      var trigger = e.relatedTarget;
-      if (!trigger) return;
-
-      if (e.target.id === 'landingRescheduleModal') {
-        var rescheduleForm = document.getElementById('landingRescheduleForm');
-        if (rescheduleForm) rescheduleForm.action = trigger.dataset.removeUrl || '';
-      }
-
-      if (e.target.id === 'landingCancelModal') {
-        var cancelForm = document.getElementById('landingCancelForm');
-        if (cancelForm) cancelForm.action = trigger.dataset.removeUrl || '';
-        var label = document.getElementById('landingCancelLabel');
-        if (label) label.textContent = [trigger.dataset.apptDate, trigger.dataset.apptService].filter(Boolean).join(' – ');
-      }
-    });
-  </script>
 </body>
 
 </html>

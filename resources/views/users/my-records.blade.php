@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>My Dental Records — Pus-Pus Britanico</title>
+    <title>My Dental Records — Patient Portal — Pus-Pus Britanico</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/7.0.1/css/all.min.css"
@@ -13,76 +13,53 @@
     <link
         href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Poppins:wght@500;600;700&display=swap"
         rel="stylesheet">
+    <link rel="stylesheet" href="{{ asset('css/styles.css') }}">
     <link rel="stylesheet" href="/css/user_appointments.css">
     <link rel="stylesheet" href="/css/odontogram.css">
     <link rel="stylesheet" href="{{ asset('css/mobile.css') }}">
 </head>
 
 <body>
+    <div class="app">
+        <aside class="sidebar offcanvas position-sticky" tabindex="-1" id="sidebarOffcanvas">
+            <div class="brand">
+                <div><img class="logo" src="/images/puspus_logo.png" alt=""></div>
+                <div>
+                    <div class="name">PUS-PUS BRITANICO</div>
+                    <div class="sub">PATIENT PORTAL</div>
+                </div>
+            </div>
+            @include('partials.patient-sidebar-nav', ['active' => 'records'])
+            @include('partials.patient-profile-badge')
+        </aside>
 
-    <!-- NAVBAR -->
-    <nav class="navbar navbar-expand-lg navbar-light fixed-top mask-custom shadow-sm">
-        <div class="container-fluid px-3 px-lg-5">
-            <a class="navbar-brand d-flex align-items-center" href="{{ route('landingPage') }}#home">
-                <img class="logo" src="/images/puspus_logo.png" alt="Pus-Pus Britanico logo">
-                <span class="navt ms-1" style="color:#0f7a2d;">PUS-PUS</span>
-                <span class="navt ms-2" style="color:#144d25;">BRITANICO</span>
-            </a>
-            {{-- Phone / tablet: notification bell sits next to the hamburger, outside the
-                 collapsing menu, so opening it never disturbs the nav links. --}}
-            <div class="d-flex align-items-center gap-2 d-lg-none">
-                @if (session('user_id'))
+        <main>
+            <div class="topbar">
+                <div class="left">
+                    <button class="toggle d-lg-none" type="button" data-bs-toggle="offcanvas" data-bs-target="#sidebarOffcanvas" aria-controls="sidebarOffcanvas">
+                        <i class="bi bi-list"></i>
+                    </button>
+                </div>
+                <div class="right">
                     @include('partials.user-notif-dropdown')
-                @endif
-                <button class="navbar-toggler" type="button" data-bs-toggle="collapse"
-                    data-bs-target="#navbarSupportedContent">
-                    <span class="navbar-toggler-icon"></span>
-                </button>
+                </div>
             </div>
-            <div class="collapse navbar-collapse" id="navbarSupportedContent">
-                <ul class="navbar-nav mx-auto text-center">
-                    <li class="nav-item"><a class="nav-link navh" href="{{ route('landingPage') }}#home">Home</a></li>
-                    <li class="nav-item"><a class="nav-link navh" href="{{ route('landingPage') }}#services">Services</a></li>
-                    <li class="nav-item"><a class="nav-link navh" href="{{ route('landingPage') }}#how">How It Works</a></li>
-                    <li class="nav-item"><a class="nav-link navh" href="{{ route('landingPage') }}#appointment">Appointment</a></li>
-                    <li class="nav-item"><a class="nav-link navh" href="{{ route('landingPage') }}#about">About</a></li>
-                    <li class="nav-item"><a class="nav-link navh" href="{{ route('landingPage') }}#contact">Contact</a></li>
-                </ul>
-                @include('partials.user-nav-actions')
-            </div>
-        </div>
-    </nav>
 
-    <!-- PAGE HERO -->
-    <div class="page-hero">
-        <div class="container px-4">
-            <h1>USER PROFILE</h1>
-            <p class="page-hero-sub">My Dental Records</p>
-        </div>
-    </div>
+            <div class="content">
+                @include('partials.flash-toasts')
+                <div class="page-head">
+                    <div>
+                        <h2>My Dental Records</h2>
+                        <div class="crumbs">Every completed visit on your file, with the dentist's chart and notes.</div>
+                    </div>
+                </div>
 
-    <!-- SUB-NAV -->
-    <div class="subnav">
-        <div class="container px-4">
-            <div class="subnav-inner">
-                <a href="{{ route('userAppointment') }}" class="subnav-link"><i class="fas fa-calendar-check"></i>Appointments</a>
-                <a href="{{ route('myRecords') }}" class="subnav-link active"><i class="fas fa-folder-open"></i>My Records</a>
-                <a href="{{ route('settings') }}" class="subnav-link"><i class="fas fa-gear"></i>Settings</a>
-            </div>
-        </div>
-    </div>
+                @php
+                    $allRecords = $records->getCollection();
+                    $lastVisit = $allRecords->sortByDesc('VisitDate')->first();
+                @endphp
 
-    <!-- CONTENT -->
-    <div class="content-wrap">
-
-        @include('partials.flash-toasts', ['topOffset' => '100px'])
-
-        @php
-            $allRecords = $records->getCollection();
-            $lastVisit = $allRecords->sortByDesc('VisitDate')->first();
-        @endphp
-
-        <!-- Stats -->
+                <!-- Stats -->
         <div class="stats-row">
             <div class="stat-box">
                 <div class="stat-ico" style="background:rgba(34,197,94,0.1);color:#22c55e"><i class="fas fa-notes-medical"></i></div>
@@ -171,6 +148,8 @@
                 @endif
             </div>
         </div>
+            </div>
+        </main>
     </div>
 
     {{-- ===================== RECORD DETAIL MODALS ===================== --}}

@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Appointments — Pus-Pus Britanico</title>
+    <title>Appointments — Patient Portal — Pus-Pus Britanico</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/7.0.1/css/all.min.css"
@@ -13,76 +13,52 @@
     <link
         href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Poppins:wght@500;600;700&display=swap"
         rel="stylesheet">
+    <link rel="stylesheet" href="{{ asset('css/styles.css') }}">
     <link rel="stylesheet" href="/css/user_appointments.css">
     <link rel="stylesheet" href="/css/odontogram.css">
+    <style>
+        .booking-locked { display: flex; align-items: center; gap: .85rem; padding: 1rem 1.25rem; background: var(--warning-bg, #fdf3df); border: 1px solid #f3e0ad; border-radius: .85rem; color: #7a5b12; font-size: .9rem; }
+        .booking-locked i { font-size: 1.25rem; color: #c98a13; }
+    </style>
     <link rel="stylesheet" href="{{ asset('css/mobile.css') }}">
 </head>
 
 <body>
+    <div class="app">
+        <aside class="sidebar offcanvas position-sticky" tabindex="-1" id="sidebarOffcanvas">
+            <div class="brand">
+                <div><img class="logo" src="/images/puspus_logo.png" alt=""></div>
+                <div>
+                    <div class="name">PUS-PUS BRITANICO</div>
+                    <div class="sub">PATIENT PORTAL</div>
+                </div>
+            </div>
+            @include('partials.patient-sidebar-nav', ['active' => 'appointments'])
+            @include('partials.patient-profile-badge')
+        </aside>
 
-    <!-- NAVBAR -->
-    <nav class="navbar navbar-expand-lg navbar-light fixed-top mask-custom shadow-sm">
-        <div class="container-fluid px-3 px-lg-5">
-            <a class="navbar-brand d-flex align-items-center" href="#home">
-                <img class="logo" src="/images/puspus_logo.png" alt="Pus-Pus Britanico logo">
-                <span class="navt ms-1" style="color:#0f7a2d;">PUS-PUS</span>
-                <span class="navt ms-2" style="color:#144d25;">BRITANICO</span>
-            </a>
-            {{-- Phone / tablet: notification bell sits next to the hamburger, outside the
-                 collapsing menu, so opening it never disturbs the nav links. --}}
-            <div class="d-flex align-items-center gap-2 d-lg-none">
-                @if (session('user_id'))
+        <main>
+            <div class="topbar">
+                <div class="left">
+                    <button class="toggle d-lg-none" type="button" data-bs-toggle="offcanvas" data-bs-target="#sidebarOffcanvas" aria-controls="sidebarOffcanvas">
+                        <i class="bi bi-list"></i>
+                    </button>
+                </div>
+                <div class="right">
                     @include('partials.user-notif-dropdown')
-                @endif
-                <button class="navbar-toggler" type="button" data-bs-toggle="collapse"
-                    data-bs-target="#navbarSupportedContent">
-                    <span class="navbar-toggler-icon"></span>
-                </button>
+                </div>
             </div>
-            <div class="collapse navbar-collapse" id="navbarSupportedContent">
-                <ul class="navbar-nav mx-auto text-center">
-                    <li class="nav-item"><a class="nav-link navh" href="{{ route('landingPage') }}#home">Home</a></li>
-                    <li class="nav-item"><a class="nav-link navh"
-                            href="{{ route('landingPage') }}#services">Services</a></li>
-                    <li class="nav-item"><a class="nav-link navh" href="{{ route('landingPage') }}#how">How It Works</a>
-                    </li>
-                    <li class="nav-item"><a class="nav-link navh"
-                            href="{{ route('landingPage') }}#appointment">Appointment</a></li>
-                    <li class="nav-item"><a class="nav-link navh" href="{{ route('landingPage') }}#about">About</a></li>
-                    <li class="nav-item"><a class="nav-link navh" href="{{ route('landingPage') }}#contact">Contact</a>
-                    </li>
-                </ul>
-                @include('partials.user-nav-actions')
-            </div>
-        </div>
-    </nav>
 
-    <!-- PAGE HERO -->
-    <div class="page-hero">
-        <div class="container px-4">
-            <h1>USER PROFILE</h1>
-            <p class="page-hero-sub">Appointments</p>
-        </div>
-    </div>
+            <div class="content">
+                @include('partials.flash-toasts')
+                <div class="page-head">
+                    <div>
+                        <h2>Appointments</h2>
+                        <div class="crumbs">Book a new appointment and manage your existing ones.</div>
+                    </div>
+                </div>
 
-    <!-- SUB-NAV -->
-    <div class="subnav">
-        <div class="container px-4">
-            <div class="subnav-inner">
-                <a href="{{ route('userAppointment') }}" class="subnav-link active"><i
-                        class="fas fa-calendar-check"></i>Appointments</a>
-                <a href="{{ route('myRecords') }}" class="subnav-link"><i class="fas fa-folder-open"></i>My Records</a>
-                <a href="{{ route('settings') }}" class="subnav-link"><i class="fas fa-gear"></i>
-                    Settings</a>
-            </div>
-        </div>
-    </div>
-
-    <!-- CONTENT -->
-    <div class="content-wrap">
-
-        @include('partials.flash-toasts', ['topOffset' => '100px'])
-        <!-- Stats -->
+                <!-- Stats -->
         <div class="stats-row">
             <div class="stat-box">
                 <div class="stat-ico" style="background:rgba(59,217,101,0.1);color:#0f7a33"><i
@@ -162,6 +138,47 @@
             @else <div class="appt-body"><p class="mb-0 text-muted">You have no current appointment.</p></div> @endif
         </div>
 
+        <!-- Book an Appointment -->
+        <div class="section-card">
+            <div class="card-hd">
+                <div class="card-hd-left">
+                    <div class="card-hd-icon"><i class="fas fa-calendar-plus"></i></div>
+                    <div>
+                        <h4>Book an Appointment</h4>
+                        <p>Pick an open date and time on the dentist's schedule</p>
+                    </div>
+                </div>
+            </div>
+            @if ($current)
+                <div class="appt-body">
+                    <div class="booking-locked">
+                        <i class="fas fa-circle-info"></i>
+                        <div>You already have an active appointment above — book another once it's completed or cancelled.</div>
+                    </div>
+                </div>
+            @else
+                @include('partials.booking-calendar', [
+                    'calendarMode' => 'post',
+                    'readOnly' => false,
+                    'bookBaseUrl' => route('userAppointment'),
+                    'bookHash' => '',
+                    'rescheduleModalId' => 'rescheduleModal',
+                    'cancelModalId' => 'cancelModal',
+                    'bookWeeks' => $bookWeeks,
+                    'bookCurrent' => $bookCurrent,
+                    'bookSchedules' => $bookSchedules,
+                    'bookOccupiedSlots' => $bookOccupiedSlots,
+                    'bookSlots' => $bookSlots,
+                    'bookToday' => $bookToday,
+                    'services' => $services,
+                    'bookCurrentPatientId' => $bookCurrentPatientId,
+                    'bookDentists' => $bookDentists,
+                    'bookSelectedDentist' => $bookSelectedDentist,
+                    'bookSelectedDentistId' => $bookSelectedDentistId,
+                ])
+            @endif
+        </div>
+
         <!-- Appointment History -->
         <div class="section-card">
             <div class="card-hd">
@@ -221,6 +238,8 @@
                 @endif
             </div>
         </div>
+            </div>
+        </main>
     </div>
 
     {{-- ===================== APPOINTMENT INFORMATION MODALS ===================== --}}
@@ -327,81 +346,6 @@
         </div>
     </div>
 
-    <!-- BOOK MODAL -->
-    <div class="modal fade" id="bookModal" tabindex="-1" aria-hidden="true">
-        <div class="modal-dialog modal-dialog-centered">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title"><i class="fas fa-calendar-plus me-2" style="color:#0f7a33"></i>Book New
-                        Appointment</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                </div>
-                <div class="modal-body p-4">
-                    <div class="mb-3"><label class="ml">Type of Appointment</label>
-                        <select class="mi">
-                            <option disabled selected>Select a service</option>
-                            <option>General Cleaning</option>
-                            <option>Extraction</option>
-                            <option>Braces Consultation</option>
-                            <option>Whitening</option>
-                            <option>Implant Consultation</option>
-                        </select>
-                    </div>
-                    <div class="mb-3"><label class="ml">Preferred Date</label><input type="date" class="mi"></div>
-                    <div class="mb-3"><label class="ml">Preferred Time</label>
-                        <select class="mi">
-                            <option disabled selected>Select a time</option>
-                            <option>9:00 AM</option>
-                            <option>10:00 AM</option>
-                            <option>11:00 AM</option>
-                            <option>1:00 PM</option>
-                            <option>2:00 PM</option>
-                            <option>3:00 PM</option>
-                            <option>4:00 PM</option>
-                        </select>
-                    </div>
-                </div>
-                <div class="modal-footer gap-2">
-                    <button class="btn-sec" data-bs-dismiss="modal">Cancel</button>
-                    <button class="btn-prim" data-bs-dismiss="modal"><i class="fas fa-check me-1"></i> Confirm
-                        Booking</button>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- FOOTER -->
-    <footer id="contact">
-        <div class="container">
-            <div class="row mb-5">
-                <div class="col-lg-6 col-md-12 mb-4 mb-md-0">
-                    <h5 class="text-uppercase fw-bold">PUS-PUS BRITANICO DENTAL CLINIC</h5>
-                    <p>
-                        Providing quality dental care with compassion and professionalism. Our clinic is dedicated to
-                        ensuring every
-                        patient receives personalized treatment in a comfortable and welcoming environment. Your smile
-                        is our
-                        priority.
-                    </p>
-                </div>
-                <div class="col-md-6 col-lg-3 offset-lg-3">
-                    <h6 class="text-uppercase fw-bold mb-4">Contact Information</h6>
-                    <p><i class="fas fa-map-marker-alt me-3"></i> #50 Mainroad Ave. B21 L31 Phase 1 Pacita Complex 2 San
-                        Pedro,
-                        Laguna</p>
-                    <p><i class="fas fa-phone me-3"></i>(02)84045642</p>
-                    <p><i class="fa-solid fa-mobile me-3"></i>+63 968-476-5943</p>
-                </div>
-            </div>
-            <hr style="border-color: rgba(255, 255, 255, 0.934); margin: 30px 0;">
-            <div class="text-center">
-                <p style="color: rgba(255, 255, 255, 0.8); margin: 0;">&copy; 2026 Pus-Pus Britanico Dental Clinic. All
-                    rights
-                    reserved.
-                </p>
-            </div>
-        </div>
-    </footer>
     @include('partials.user-notif-modal')
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js"></script>

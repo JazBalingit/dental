@@ -22,11 +22,20 @@ class UserController extends Controller
     // show landing page front end
     public function showLandingPage(Request $request, \App\Http\Controllers\AppointmentBookingController $booking)
     {
-        // The appointment calendar is private to signed-in patients.
-        $bookingData = session('user_id') ? $booking->calendarData($request) : [];
+        // Booking and appointment management live in the Patient Portal now
+        // (see showUserAppointment) — a logged-in patient never sees this
+        // public page. Admin/staff sessions are left alone; they land on
+        // /dashboard at login and have no reason to hit this route anyway.
+        if (session('user_id') && !in_array(session('user_role'), UserAccount::ADMIN_ROLES, true)) {
+            return redirect()->route('userAppointment');
+        }
 
-        // Lets the Contact form skip asking for name/email when we already know them.
-        $currentPatient = session('user_id') ? UserAccount::with('patientInfo')->find(session('user_id')) : null;
+        // Read-only schedule preview for guests — calendarData() degrades
+        // gracefully with no session (bookCurrentPatientId simply ends up
+        // null), so this is safe to call unconditionally.
+        $bookingData = $booking->calendarData($request);
+
+        $currentPatient = null;
 
         // "Our Services" section — grouped by category so each admin-defined
         // category becomes its own card, instead of hardcoded copy. Services
@@ -47,8 +56,9 @@ class UserController extends Controller
             'uncategorizedServices' => $uncategorizedServices,
         ]));
     }
-    // show user appointment front end
-    public function showUserAppointment(Request $request)
+    // show user appointment front end — the Patient Portal's home page:
+    // book a new appointment (when none is active) + manage existing ones.
+    public function showUserAppointment(Request $request, \App\Http\Controllers\AppointmentBookingController $booking)
     {
         if (!session('user_id')) return redirect()->route('login');
 
@@ -69,7 +79,11 @@ class UserController extends Controller
             ->whereDate('AppointmentDate', '>=', today())
             ->orderBy('AppointmentDate')->orderBy('AppointmentTime')->first();
 
-        return view('users.user-appointment', compact('history', 'current', 'status', 'search'));
+        // Only needed for booking a new slot — skip the query work when the
+        // patient already has one active (the view shows a notice instead).
+        $bookingData = $current ? [] : $booking->calendarData($request);
+
+        return view('users.user-appointment', array_merge($bookingData, compact('history', 'current', 'status', 'search')));
     }
 
     public function removeAppointment(Request $request, Appointment $appointment)
@@ -84,7 +98,7 @@ class UserController extends Controller
         // a stale page still showing the button, a double submit, or the
         // back button. Don't blow up with a raw 422; just tell them.
         if (!in_array($appointment->Status, ['Pending', 'Approved'], true)) {
-            $target = $isReschedule ? route('landingPage') . '#appointment' : route('userAppointment');
+            $target = route('userAppointment');
 
             return redirect()->to($target)->with(
                 'success',
@@ -144,13 +158,8 @@ class UserController extends Controller
         );
 
         // Rescheduling is meant to drop the patient right back on the booking
-        // calendar so they can immediately pick a new slot, regardless of
-        // whether they started the reschedule from the landing page or the
-        // appointments page.
-        if ($isReschedule) {
-            return redirect(route('landingPage') . '#appointment')->with('success', $message);
-        }
-
+        // calendar (now part of the Patient Portal's Appointments page) so
+        // they can immediately pick a new slot.
         return redirect()->route('userAppointment')->with('success', $message);
     }
 

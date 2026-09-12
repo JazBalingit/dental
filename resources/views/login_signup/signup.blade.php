@@ -34,147 +34,201 @@
 
       @include('partials.flash-toasts', ['topOffset' => '20px'])
 
-          <form method="POST" action="{{ route('register.store') }}">
+          @php
+            // Which wizard step a field belongs to, so a validation failure
+            // reopens the form on the step that actually has the error
+            // instead of always dumping the patient back to step one.
+            $fieldStepMap = [
+              'last_name' => 'personal', 'first_name' => 'personal', 'middle_name' => 'personal',
+              'birthdate' => 'personal', 'gender' => 'personal', 'religion' => 'personal',
+              'nationality' => 'personal', 'occupation' => 'personal',
+              'address' => 'address', 'addr_street' => 'address', 'addr_barangay' => 'address',
+              'addr_city' => 'address', 'addr_province' => 'address', 'email' => 'address', 'phone' => 'address',
+              'guardian_name' => 'minor', 'guardian_occupation' => 'minor',
+              'password' => 'password', 'password_confirmation' => 'password', 'agree_terms' => 'password',
+            ];
+            $initialStep = 'personal';
+            foreach ($errors->keys() as $erroredField) {
+              if (isset($fieldStepMap[$erroredField])) {
+                $initialStep = $fieldStepMap[$erroredField];
+                break;
+              }
+            }
+          @endphp
+
+          <form method="POST" action="{{ route('register.store') }}" id="signupWizard" data-initial-step="{{ $initialStep }}">
             @csrf
-            <div class="section-label">Patient Information</div>
-            <div class="row g-3 mb-3">
-              <div class="col-md-6 col-lg-3">
-                <label class="form-label">Last name</label>
-                <div class="input-icon"><i class="bi bi-person"></i><input name="last_name" class="form-control"
-                    value="{{ old('last_name') }}" placeholder="Last name" required />
-                </div>
-              </div>
-              <div class="col-md-6 col-lg-3">
-                <label class="form-label">First name</label>
-                <div class="input-icon"><i class="bi bi-person"></i><input name="first_name" class="form-control"
-                    value="{{ old('first_name') }}" placeholder="First name" required />
-                </div>
-              </div>
-              <div class="col-md-6 col-lg-3">
-                <label class="form-label">Middle name</label>
-                <div class="input-icon"><i class="bi bi-person"></i><input name="middle_name" class="form-control"
-                    value="{{ old('middle_name') }}" placeholder="Middle name" />
-                </div>
-              </div>
-              <div class="col-md-6 col-lg-3">
-                <label class="form-label">Birthdate</label>
-                <div class="input-icon"><i class="bi bi-calendar-event"></i><input type="date" name="birthdate"
-                    class="form-control" value="{{ old('birthdate') }}" required />
-                </div>
-              </div>
 
-              <div class="col-md-6 col-lg-3">
-                <label class="form-label">Gender</label>
-                <div class="input-icon">
-                  <select name="gender" class="form-select" required>
-                    <option value="" disabled {{ old('gender') ? '' : 'selected' }}>Select gender</option>
-                    <option value="male" {{ old('gender') === 'male' ? 'selected' : '' }}>Male</option>
-                    <option value="female" {{ old('gender') === 'female' ? 'selected' : '' }}>Female</option>
-                    <option value="other" {{ old('gender') === 'other' ? 'selected' : '' }}>Other</option>
-                  </select>
-                </div>
-              </div>
-              <div class="col-md-6 col-lg-3">
-                <label class="form-label">Religion</label>
-                <div class="input-icon"><i class="bi bi-book"></i><input name="religion" class="form-control"
-                    value="{{ old('religion') }}" placeholder="Catholic" />
-                </div>
-              </div>
-              <div class="col-md-6 col-lg-3">
-                <label class="form-label">Nationality</label>
-                <div class="input-icon"><i class="bi bi-flag"></i><input name="nationality" class="form-control"
-                    value="{{ old('nationality') }}" placeholder="Filipino" required />
-                </div>
-              </div>
-              <div class="col-md-6 col-lg-3">
-                <label class="form-label">Occupation <span class="text-muted">(optional)</span></label>
-                <div class="input-icon"><i class="bi bi-briefcase"></i><input name="occupation" class="form-control"
-                    value="{{ old('occupation') }}" placeholder="Occupation" />
-                </div>
-              </div>
+            <div class="wizard-progress"><div class="wizard-progress-bar" id="wizardProgressBar"></div></div>
+            <div class="wizard-step-label" id="wizardStepLabel"></div>
 
-              <div class="col-12">
-                <label class="form-label">Home address</label>
-                <div class="input-icon"><i class="bi bi-geo-alt"></i><input name="address" class="form-control"
-                    value="{{ old('address') }}" placeholder="Street, City, Province" required /></div>
-              </div>
-            </div>
-
-            <div class="signup-split">
-              <div>
-                <div class="section-label">Contact Details</div>
-                <div class="row g-3 mb-3">
-                  <div class="col-sm-6">
-                    <label class="form-label">Email address</label>
-                    <div class="input-icon"><i class="bi bi-envelope"></i><input type="email" name="email"
-                        class="form-control" value="{{ old('email') }}" placeholder="you@clinic.com" required /></div>
-                  </div>
-                  <div class="col-sm-6">
-                    <label class="form-label">Cell/Mobile number</label>
-                    <div class="input-icon"><i class="bi bi-telephone"></i><input name="phone" class="form-control"
-                        value="{{ old('phone') }}" placeholder="+63 9XX XXX XXXX" required /></div>
+            {{-- ===================== STEP 1: PERSONAL INFORMATION ===================== --}}
+            <div class="wizard-step" data-step="personal">
+              <div class="section-label">Personal Information</div>
+              <div class="row g-3 mb-3">
+                <div class="col-md-6 col-lg-3">
+                  <label class="form-label">Last name</label>
+                  <div class="input-icon"><i class="bi bi-person"></i><input name="last_name" class="form-control"
+                      value="{{ old('last_name') }}" placeholder="Last name" required />
                   </div>
                 </div>
-              </div>
-
-              <div>
-                <div class="section-label">For Minors <span class="text-muted">(if applicable)</span></div>
-                <div class="row g-3 mb-3">
-                  <div class="col-sm-6">
-                    <label class="form-label">Parent/Guardian's name</label>
-                    <div class="input-icon"><i class="bi bi-person-heart"></i><input name="guardian_name"
-                        class="form-control" value="{{ old('guardian_name') }}" placeholder="Guardian's name" />
-                    </div>
+                <div class="col-md-6 col-lg-3">
+                  <label class="form-label">First name</label>
+                  <div class="input-icon"><i class="bi bi-person"></i><input name="first_name" class="form-control"
+                      value="{{ old('first_name') }}" placeholder="First name" required />
                   </div>
-                  <div class="col-sm-6">
-                    <label class="form-label">Guardian's occupation <span class="text-muted">(optional)</span></label>
-                    <div class="input-icon"><i class="bi bi-briefcase"></i><input name="guardian_occupation"
-                        class="form-control" value="{{ old('guardian_occupation') }}" placeholder="Occupation" /></div>
+                </div>
+                <div class="col-md-6 col-lg-3">
+                  <label class="form-label">Middle name</label>
+                  <div class="input-icon"><i class="bi bi-person"></i><input name="middle_name" class="form-control"
+                      value="{{ old('middle_name') }}" placeholder="Middle name" />
+                  </div>
+                </div>
+                <div class="col-md-6 col-lg-3">
+                  <label class="form-label">Birthdate</label>
+                  <div class="input-icon"><i class="bi bi-calendar-event"></i><input type="date" name="birthdate"
+                      id="signupBirthdate" class="form-control" value="{{ old('birthdate') }}" max="{{ now()->toDateString() }}" required />
+                  </div>
+                </div>
+
+                <div class="col-md-6 col-lg-3">
+                  <label class="form-label">Gender</label>
+                  <div class="input-icon">
+                    <select name="gender" class="form-select" required>
+                      <option value="" disabled {{ old('gender') ? '' : 'selected' }}>Select gender</option>
+                      <option value="male" {{ old('gender') === 'male' ? 'selected' : '' }}>Male</option>
+                      <option value="female" {{ old('gender') === 'female' ? 'selected' : '' }}>Female</option>
+                      <option value="other" {{ old('gender') === 'other' ? 'selected' : '' }}>Other</option>
+                    </select>
+                  </div>
+                </div>
+                <div class="col-md-6 col-lg-3">
+                  <label class="form-label">Religion</label>
+                  <div class="input-icon"><i class="bi bi-book"></i><input name="religion" class="form-control"
+                      value="{{ old('religion') }}" placeholder="Catholic" />
+                  </div>
+                </div>
+                <div class="col-md-6 col-lg-3">
+                  <label class="form-label">Nationality</label>
+                  <div class="input-icon"><i class="bi bi-flag"></i><input name="nationality" class="form-control"
+                      value="{{ old('nationality') }}" placeholder="Filipino" required />
+                  </div>
+                </div>
+                <div class="col-md-6 col-lg-3">
+                  <label class="form-label">Occupation <span class="text-muted">(optional)</span></label>
+                  <div class="input-icon"><i class="bi bi-briefcase"></i><input name="occupation" class="form-control"
+                      value="{{ old('occupation') }}" placeholder="Occupation" />
                   </div>
                 </div>
               </div>
             </div>
 
-            <div class="section-label">Credentials</div>
-            <div class="row g-3 mb-2">
-              <div class="col-md-6">
-                <label class="form-label">Password</label>
-                <div class="pw-field">
-                  <input type="checkbox" class="pw-toggle-checkbox" id="pwCheckSignup">
-                  <div class="input-icon"><i class="bi bi-lock"></i><input type="text" name="password"
-                      class="form-control pw-mask" placeholder="••••••••" required minlength="8"
-                      value="{{ old('password') }}" autocomplete="new-password" /></div>
-                  <label for="pwCheckSignup" class="pw-eye-btn">
-                    <i class="bi bi-eye"></i><i class="bi bi-eye-slash"></i>
-                  </label>
+            {{-- ===================== STEP 2: HOME ADDRESS & CONTACT DETAILS ===================== --}}
+            <div class="wizard-step" data-step="address" hidden>
+              <div class="section-label">Home Address</div>
+              <div class="row g-3 mb-3">
+                <div class="col-md-6">
+                  <label class="form-label">Street / House No.</label>
+                  <div class="input-icon"><i class="bi bi-signpost-2"></i><input name="addr_street" class="form-control addr-part"
+                      value="{{ old('addr_street') }}" placeholder="123 Sample St." />
+                  </div>
+                </div>
+                <div class="col-md-6">
+                  <label class="form-label">Barangay</label>
+                  <div class="input-icon"><i class="bi bi-geo"></i><input name="addr_barangay" class="form-control addr-part"
+                      value="{{ old('addr_barangay') }}" placeholder="Barangay" />
+                  </div>
+                </div>
+                <div class="col-md-6">
+                  <label class="form-label">City / Municipality</label>
+                  <div class="input-icon"><i class="bi bi-buildings"></i><input name="addr_city" class="form-control addr-part"
+                      value="{{ old('addr_city') }}" placeholder="City / Municipality" required />
+                  </div>
+                </div>
+                <div class="col-md-6">
+                  <label class="form-label">Province</label>
+                  <div class="input-icon"><i class="bi bi-map"></i><input name="addr_province" class="form-control addr-part"
+                      value="{{ old('addr_province') }}" placeholder="Province" required />
+                  </div>
                 </div>
               </div>
-              <div class="col-md-6">
-                <label class="form-label">Confirm password</label>
-                <div class="pw-field">
-                  <input type="checkbox" class="pw-toggle-checkbox" id="pwCheckSignupConfirm">
-                  <div class="input-icon"><i class="bi bi-shield-lock"></i><input type="text"
-                      name="password_confirmation" class="form-control pw-mask" placeholder="••••••••" required
-                      value="{{ old('password_confirmation') }}" autocomplete="new-password" /></div>
-                  <label for="pwCheckSignupConfirm" class="pw-eye-btn">
-                    <i class="bi bi-eye"></i><i class="bi bi-eye-slash"></i>
-                  </label>
+              <input type="hidden" name="address" id="signupAddress" value="{{ old('address') }}">
+
+              <div class="section-label">Contact Details</div>
+              <div class="row g-3 mb-3">
+                <div class="col-sm-6">
+                  <label class="form-label">Email address</label>
+                  <div class="input-icon"><i class="bi bi-envelope"></i><input type="email" name="email"
+                      class="form-control" value="{{ old('email') }}" placeholder="you@clinic.com" required /></div>
+                </div>
+                <div class="col-sm-6">
+                  <label class="form-label">Cell/Mobile number</label>
+                  <div class="input-icon"><i class="bi bi-telephone"></i><input name="phone" class="form-control"
+                      value="{{ old('phone') }}" placeholder="+63 9XX XXX XXXX" required /></div>
                 </div>
               </div>
             </div>
 
-            <div class="auth-tips mb-3">
-              <span class="auth-tips-title"><i class="fa-solid fa-lightbulb"></i> Security Tips</span>
-              <ul>
-                <li><i class="fa-solid fa-circle-check"></i> Mix uppercase, lowercase, numbers &amp; symbols</li>
-                <li><i class="fa-solid fa-circle-check"></i> Never reuse a password from another site</li>
-                <li><i class="fa-solid fa-circle-check"></i> At least 8 characters long</li>
-                <li><i class="fa-solid fa-circle-check"></i> Avoid your name or birthday</li>
-              </ul>
+            {{-- ===================== STEP 3: FOR MINORS (only if under 18) ===================== --}}
+            <div class="wizard-step" data-step="minor" hidden>
+              <div class="section-label">For Minors</div>
+              <p class="text-muted small mb-3">The patient is under 18 based on the birthdate provided — a parent or guardian needs to be on file.</p>
+              <div class="row g-3 mb-3">
+                <div class="col-sm-6">
+                  <label class="form-label">Parent/Guardian's name</label>
+                  <div class="input-icon"><i class="bi bi-person-heart"></i><input name="guardian_name"
+                      class="form-control" value="{{ old('guardian_name') }}" placeholder="Guardian's name" />
+                  </div>
+                </div>
+                <div class="col-sm-6">
+                  <label class="form-label">Guardian's occupation <span class="text-muted">(optional)</span></label>
+                  <div class="input-icon"><i class="bi bi-briefcase"></i><input name="guardian_occupation"
+                      class="form-control" value="{{ old('guardian_occupation') }}" placeholder="Occupation" /></div>
+                </div>
+              </div>
             </div>
 
-            <div class="signup-actions">
-              <div class="form-check m-0">
+            {{-- ===================== STEP 4: PASSWORD ===================== --}}
+            <div class="wizard-step" data-step="password" hidden>
+              <div class="section-label">Credentials</div>
+              <div class="row g-3 mb-2">
+                <div class="col-md-6">
+                  <label class="form-label">Password</label>
+                  <div class="pw-field">
+                    <input type="checkbox" class="pw-toggle-checkbox" id="pwCheckSignup">
+                    <div class="input-icon"><i class="bi bi-lock"></i><input type="text" name="password"
+                        class="form-control pw-mask" placeholder="••••••••" required minlength="8"
+                        value="{{ old('password') }}" autocomplete="new-password" /></div>
+                    <label for="pwCheckSignup" class="pw-eye-btn">
+                      <i class="bi bi-eye"></i><i class="bi bi-eye-slash"></i>
+                    </label>
+                  </div>
+                </div>
+                <div class="col-md-6">
+                  <label class="form-label">Confirm password</label>
+                  <div class="pw-field">
+                    <input type="checkbox" class="pw-toggle-checkbox" id="pwCheckSignupConfirm">
+                    <div class="input-icon"><i class="bi bi-shield-lock"></i><input type="text"
+                        name="password_confirmation" class="form-control pw-mask" placeholder="••••••••" required
+                        value="{{ old('password_confirmation') }}" autocomplete="new-password" /></div>
+                    <label for="pwCheckSignupConfirm" class="pw-eye-btn">
+                      <i class="bi bi-eye"></i><i class="bi bi-eye-slash"></i>
+                    </label>
+                  </div>
+                </div>
+              </div>
+
+              <div class="auth-tips mb-3">
+                <span class="auth-tips-title"><i class="fa-solid fa-lightbulb"></i> Security Tips</span>
+                <ul>
+                  <li><i class="fa-solid fa-circle-check"></i> Mix uppercase, lowercase, numbers &amp; symbols</li>
+                  <li><i class="fa-solid fa-circle-check"></i> Never reuse a password from another site</li>
+                  <li><i class="fa-solid fa-circle-check"></i> At least 8 characters long</li>
+                  <li><i class="fa-solid fa-circle-check"></i> Avoid your name or birthday</li>
+                </ul>
+              </div>
+
+              <div class="form-check mb-2">
                 <input type="checkbox" class="form-check-input" name="agree_terms" id="agreeTerms" value="1"
                   {{ old('agree_terms') ? 'checked' : '' }} required>
                 <label class="form-check-label small text-muted-2" for="agreeTerms">
@@ -184,14 +238,129 @@
                   <a href="#" data-bs-toggle="modal" data-bs-target="#legalTermsModal">Terms</a>.
                 </label>
               </div>
-              <div class="d-flex gap-2">
-                <a href="{{ route('login') }}" class="btn btn-ghost">Back to Login</a>
-                <button type="submit" class="btn btn-brand">Create Account</button>
+            </div>
+
+            <div class="wizard-nav">
+              <div>
+                <a href="{{ route('login') }}" class="btn btn-ghost" id="wizardCancelLink">Back to Login</a>
+                <button type="button" class="btn btn-ghost" id="wizardBackBtn" hidden>Back</button>
+              </div>
+              <div>
+                <button type="button" class="btn btn-brand" id="wizardNextBtn">Next</button>
+                <button type="submit" class="btn btn-brand" id="wizardSubmitBtn" hidden>Create Account</button>
               </div>
             </div>
           </form>
     </div>
   </main>
+
+  <script>
+    (function () {
+      var form = document.getElementById('signupWizard');
+      if (!form) return;
+
+      var STEP_ORDER = ['personal', 'address', 'minor', 'password'];
+      var steps = Array.prototype.slice.call(form.querySelectorAll('.wizard-step'));
+      var backBtn = document.getElementById('wizardBackBtn');
+      var nextBtn = document.getElementById('wizardNextBtn');
+      var submitBtn = document.getElementById('wizardSubmitBtn');
+      var cancelLink = document.getElementById('wizardCancelLink');
+      var stepLabel = document.getElementById('wizardStepLabel');
+      var progressBar = document.getElementById('wizardProgressBar');
+      var birthdateInput = document.getElementById('signupBirthdate');
+      var addressHidden = document.getElementById('signupAddress');
+
+      var currentStepId = form.dataset.initialStep || 'personal';
+      if (STEP_ORDER.indexOf(currentStepId) === -1) currentStepId = 'personal';
+
+      function isMinor() {
+        if (!birthdateInput.value) return false;
+        var dob = new Date(birthdateInput.value);
+        if (isNaN(dob.getTime())) return false;
+        var today = new Date();
+        var age = today.getFullYear() - dob.getFullYear();
+        var m = today.getMonth() - dob.getMonth();
+        if (m < 0 || (m === 0 && today.getDate() < dob.getDate())) age--;
+        return age < 18;
+      }
+
+      function activeStepIds() {
+        return STEP_ORDER.filter(function (id) {
+          return id !== 'minor' || isMinor();
+        });
+      }
+
+      function syncAddress() {
+        var parts = ['addr_street', 'addr_barangay', 'addr_city', 'addr_province'].map(function (name) {
+          var el = form.querySelector('[name="' + name + '"]');
+          return el ? el.value.trim() : '';
+        }).filter(Boolean);
+        addressHidden.value = parts.join(', ');
+      }
+
+      function stepById(id) {
+        return steps.filter(function (s) { return s.dataset.step === id; })[0];
+      }
+
+      function validateStep(stepEl) {
+        var fields = stepEl.querySelectorAll('input, select, textarea');
+        for (var i = 0; i < fields.length; i++) {
+          if (!fields[i].checkValidity()) {
+            fields[i].reportValidity();
+            return false;
+          }
+        }
+        return true;
+      }
+
+      function render() {
+        var active = activeStepIds();
+        if (active.indexOf(currentStepId) === -1) currentStepId = active[0];
+
+        steps.forEach(function (s) { s.hidden = s.dataset.step !== currentStepId; });
+
+        var idx = active.indexOf(currentStepId);
+        stepLabel.textContent = 'Step ' + (idx + 1) + ' of ' + active.length;
+        progressBar.style.width = (((idx + 1) / active.length) * 100) + '%';
+
+        var isFirst = idx === 0;
+        var isLast = idx === active.length - 1;
+        backBtn.hidden = isFirst;
+        cancelLink.hidden = !isFirst;
+        nextBtn.hidden = isLast;
+        submitBtn.hidden = !isLast;
+      }
+
+      nextBtn.addEventListener('click', function () {
+        var active = activeStepIds();
+        var idx = active.indexOf(currentStepId);
+        if (!validateStep(stepById(currentStepId))) return;
+        if (idx < active.length - 1) {
+          currentStepId = active[idx + 1];
+          render();
+          form.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+      });
+
+      backBtn.addEventListener('click', function () {
+        var active = activeStepIds();
+        var idx = active.indexOf(currentStepId);
+        if (idx > 0) {
+          currentStepId = active[idx - 1];
+          render();
+          form.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+      });
+
+      form.querySelectorAll('.addr-part').forEach(function (el) {
+        el.addEventListener('input', syncAddress);
+      });
+      form.addEventListener('submit', syncAddress);
+
+      syncAddress();
+      render();
+    })();
+  </script>
 
   {{-- ===================== PRIVACY POLICY / LEGAL TERMS MODALS ===================== --}}
   <div class="modal fade" id="privacyPolicyModal" tabindex="-1" aria-hidden="true">

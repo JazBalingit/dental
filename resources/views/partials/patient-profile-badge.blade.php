@@ -1,0 +1,47 @@
+{{--
+    Bottom-of-sidebar account menu for the patient portal — mirrors
+    partials/admin-profile-badge.blade.php.
+
+    $navUserName / $navUserPhoto come from UserNotificationComposer (real
+    "First Last" name from PatientInfo + uploaded profile photo, falling
+    back to the account email and the shared default avatar).
+--}}
+@php
+    $displayName = $navUserName ?? session('user_email', 'Account');
+    $accountEmail = session('user_email');
+    $accountPhoto = $navUserPhoto ?? asset('images/default.png');
+@endphp
+<div class="sidebar-footer dropdown">
+    <button class="sidebar-profile-badge" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+        <img class="avatar" src="{{ $accountPhoto }}" alt=""
+            onerror="this.onerror=null;this.src='{{ asset('images/default.png') }}'">
+        <span class="meta">
+            <span class="name">{{ $displayName }}</span>
+            <span class="role">Patient</span>
+        </span>
+        <i class="bi bi-chevron-expand caret" aria-hidden="true"></i>
+    </button>
+    <ul class="dropdown-menu shadow-sm account-menu">
+        <li class="account-menu-head">
+            <img class="avatar" src="{{ $accountPhoto }}" alt=""
+                onerror="this.onerror=null;this.src='{{ asset('images/default.png') }}'">
+            <div class="account-menu-id">
+                <div class="account-menu-name">{{ $displayName }}</div>
+                @if ($accountEmail && $accountEmail !== $displayName)
+                    <div class="account-menu-email">{{ $accountEmail }}</div>
+                @endif
+                <div class="account-menu-role">Patient</div>
+            </div>
+        </li>
+        <li><hr class="dropdown-divider"></li>
+        <li><a class="dropdown-item" href="{{ route('settings') }}"><i class="bi bi-person-circle"></i> My Profile</a></li>
+        <li><a class="dropdown-item" href="{{ route('settings', ['tab' => 'security']) }}"><i class="bi bi-shield-lock"></i> Security</a></li>
+        <li><hr class="dropdown-divider"></li>
+        <li>
+            <form method="POST" action="{{ route('logout') }}" class="m-0">
+                @csrf
+                <button type="submit" class="dropdown-item text-danger"><i class="bi bi-box-arrow-right"></i> Log Out</button>
+            </form>
+        </li>
+    </ul>
+</div>

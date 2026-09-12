@@ -172,6 +172,27 @@
       render();
     }
 
+    // Writes the editor's current picks (condition / surfaces / description)
+    // straight into `state` and repaints — so the tooth turns color the
+    // moment a condition is picked instead of only after "Apply" is
+    // clicked. Without this, picking a color only highlighted the swatch;
+    // if the dentist went straight to "Save Odontogram" the chart looked
+    // colored in the editor but nothing had actually been written yet, so
+    // the save persisted an empty chart.
+    function commitDraft() {
+      if (!selected) return;
+      if (!draftCondition) {
+        delete state[selected];
+      } else {
+        state[selected] = {
+          condition: draftCondition,
+          surfaces: surfaceInputs.filter(function (i) { return i.checked; }).map(function (i) { return i.value; }),
+          description: descInput.value.trim()
+        };
+      }
+      render();
+    }
+
     teeth.forEach(function (btn) {
       btn.addEventListener('click', function () {
         var t = btn.dataset.tooth;
@@ -186,22 +207,20 @@
         conditionBtns.forEach(function (x) {
           x.classList.toggle('is-active', x.dataset.condition === draftCondition);
         });
+        commitDraft();
       });
     });
+
+    surfaceInputs.forEach(function (i) {
+      i.addEventListener('change', commitDraft);
+    });
+
+    descInput.addEventListener('input', commitDraft);
 
     editor.querySelector('.odontogram-editor-close').addEventListener('click', closeEditor);
 
     editor.querySelector('.odontogram-apply').addEventListener('click', function () {
-      if (!selected) return;
-      if (!draftCondition) {
-        delete state[selected];
-      } else {
-        state[selected] = {
-          condition: draftCondition,
-          surfaces: surfaceInputs.filter(function (i) { return i.checked; }).map(function (i) { return i.value; }),
-          description: descInput.value.trim()
-        };
-      }
+      commitDraft();
       closeEditor();
     });
 

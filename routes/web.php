@@ -71,8 +71,10 @@ Route::post('/forgot-password/cancel', [LoginController::class, 'cancelReset'])-
 */
 Route::middleware('auth.session')->group(function () {
 
-    // Patient — my appointments
+    // Patient — my appointments (3 pages under one sidebar dropdown)
     Route::get('user-appointment', [UserController::class, 'showUserAppointment'])->name('userAppointment');
+    Route::get('user-appointment/book', [UserController::class, 'showBookAppointment'])->name('userAppointment.book');
+    Route::get('user-appointment/history', [UserController::class, 'showAppointmentHistory'])->name('userAppointment.history');
     Route::post('/user-appointment/{appointment}/remove', [UserController::class, 'removeAppointment'])->name('userAppointment.remove');
 
     // Patient — my dental records (read-only view of my own completed visits)

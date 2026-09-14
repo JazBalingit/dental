@@ -68,7 +68,7 @@ class StaffAccountController extends Controller
             'email' => 'required|email|unique:tbl_useraccount,Email',
             'phone' => 'required|string|max:20',
             'password' => ['required', 'confirmed', Password::defaults()],
-            'photo' => 'nullable|image|mimes:jpg,jpeg,png|max:2048',
+            'photo' => 'nullable|image|mimes:jpg,jpeg,png|max:5120',
         ]);
 
         $account = UserAccount::create([
@@ -126,7 +126,7 @@ class StaffAccountController extends Controller
             'address' => 'required|string|max:255',
             'email' => 'required|email|unique:tbl_useraccount,Email,' . $account->UserID . ',UserID',
             'phone' => 'required|string|max:20',
-            'photo' => 'nullable|image|mimes:jpg,jpeg,png|max:2048',
+            'photo' => 'nullable|image|mimes:jpg,jpeg,png|max:5120',
         ]);
 
         $account->Email = $data['email'];

@@ -3,6 +3,7 @@
 
 <head>
   <meta charset="utf-8" />
+  <link rel="icon" type="image/png" href="/images/puspus_logo.png">
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Patient Records • Dental Clinic</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
@@ -125,10 +126,13 @@
                             <td class="text-end">
                                 <button type="button" class="btn-pill btn-pill-edit me-1" data-bs-toggle="modal" data-bs-target="#viewModal{{ $record->RecordID }}"><i
                                         class="bi bi-eye"></i> View</button>
-                                <form method="POST" action="{{ route('patientRecords.archive', $record->RecordID) }}" class="d-inline">
-                                    @csrf
-                                    <button type="submit" class="btn-pill btn-pill-archive"><i class="bi bi-archive"></i> Archive</button>
-                                </form>
+                                <button type="button" class="btn-pill btn-pill-archive" data-bs-toggle="modal"
+                                    data-bs-target="#confirmActionModal"
+                                    data-action-url="{{ route('patientRecords.archive', $record->RecordID) }}"
+                                    data-title="Archive Patient Record"
+                                    data-message="Archive this record for {{ trim(($p->FirstName ?? '') . ' ' . ($p->LastName ?? '')) }}?"
+                                    data-confirm-label="Archive" data-confirm-class="btn-pill-archive">
+                                    <i class="bi bi-archive"></i> Archive</button>
                             </td>
                         </tr>
                     @empty
@@ -189,10 +193,13 @@
                             <td class="text-end">
                                 <button type="button" class="btn-pill btn-pill-edit me-1" data-bs-toggle="modal" data-bs-target="#viewModal{{ $record->RecordID }}"><i
                                         class="bi bi-eye"></i> View</button>
-                                <form method="POST" action="{{ route('patientRecords.unarchive', $record->RecordID) }}" class="d-inline">
-                                    @csrf
-                                    <button type="submit" class="btn-pill btn-pill-archive"><i class="bi bi-archive"></i> Unarchive</button>
-                                </form>
+                                <button type="button" class="btn-pill btn-pill-archive" data-bs-toggle="modal"
+                                    data-bs-target="#confirmActionModal"
+                                    data-action-url="{{ route('patientRecords.unarchive', $record->RecordID) }}"
+                                    data-title="Unarchive Patient Record"
+                                    data-message="Restore this record for {{ trim(($p->FirstName ?? '') . ' ' . ($p->LastName ?? '')) }}?"
+                                    data-confirm-label="Unarchive" data-confirm-class="btn-pill-archive">
+                                    <i class="bi bi-archive"></i> Unarchive</button>
                             </td>
                         </tr>
                     @empty
@@ -358,6 +365,7 @@
 
 
   @include('partials.admin-notif-modal')
+  @include('partials.confirm-action-modal')
 
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 

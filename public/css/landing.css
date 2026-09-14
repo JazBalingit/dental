@@ -1477,11 +1477,6 @@ footer .footer-link {
     border-right: none;
 }
 
-.week-grid>.time:last-of-type,
-.week-grid>.slot:nth-last-child(-n+8) {
-    border-bottom: none;
-}
-
 .legend {
     display: flex;
     align-items: center;
@@ -1834,4 +1829,99 @@ video {
     .appointment-card {
         padding: 16px 12px;
     }
+}
+
+/* The guest preview's "Available" link never got a distinct look — with
+   no .is-available rule here it just fell back to the base .slot-btn's
+   dashed placeholder styling. Give it the same solid green treatment as
+   the logged-in booking flow. */
+.slot-btn.is-available {
+    background: #e9f7ea;
+    border-color: #167d1d;
+    color: #0f7a33;
+    text-decoration: none;
+}
+
+.slot-btn.is-available:hover {
+    background: #d7f0d9;
+}
+
+/* =========================================================
+   Day-modal time grid (tablet & desktop) — redesigned as a
+   clean, organized set of rows instead of a stack of loose,
+   individually-dashed pills. Mirrors the same block in
+   styles.css so the guest schedule preview here matches the
+   patient portal / walk-in / dentist-schedule day modals.
+
+   Scoped to ≥576px on purpose — below that, mobile.css already
+   replaces this same markup with its own stacked list / two-
+   column accordion. */
+@media (min-width: 576px) {
+    .week-grid {
+        border: 1px solid var(--ink-100, #f1f5f9);
+        border-radius: 10px;
+        overflow: hidden;
+        background: #fff;
+    }
+
+    .week-grid > .time,
+    .week-grid > .slot {
+        display: flex;
+        align-items: center;
+        min-height: 52px;
+        background-color: #fff;
+        border-bottom: 1px solid var(--ink-100, #f1f5f9);
+    }
+
+    .week-grid > .time {
+        justify-content: flex-end;
+        padding: .5rem .9rem;
+        font-size: .78rem;
+        font-weight: 600;
+        color: #64748b;
+        border-right: 1px solid var(--ink-100, #f1f5f9);
+    }
+
+    .week-grid > .slot {
+        padding: .4rem .65rem;
+    }
+
+    /* Zebra each time+slot pair (children 3&4 = row 1, 5&6 = row 2, …) so
+       alternating rows share a faint tint and read as one distinct line
+       instead of a loose vertical stack. */
+    .week-grid > *:nth-child(4n+3),
+    .week-grid > *:nth-child(4n) {
+        background-color: var(--brand-50, #f1fcf0);
+    }
+
+    /* The last row's own divider would double up with the grid's outer
+       border right below it. */
+    .week-grid > *:nth-last-child(-n+2) {
+        border-bottom: 0;
+    }
+
+    /* Flatter, solid-bordered chips — the row itself now does the visual
+       organizing, so the button no longer needs a big dashed outline to
+       stand apart from its neighbors. */
+    .week-grid .slot-btn {
+        width: 100%;
+        min-height: 40px;
+        border-radius: 8px;
+        border-style: solid;
+        font-weight: 600;
+    }
+}
+
+/* The plain default-blue "Sign in" link inside the guest schedule
+   preview's intro line clashed with the rest of the branded page. */
+.section-intro a {
+    color: var(--brand-700, #16944a);
+    font-weight: 700;
+    text-decoration: underline;
+    text-decoration-color: currentColor;
+    text-underline-offset: 2px;
+}
+
+.section-intro a:hover {
+    color: var(--brand-800, #0f7a33);
 }

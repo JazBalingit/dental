@@ -3,6 +3,7 @@
 
 <head>
     <meta charset="utf-8" />
+  <link rel="icon" type="image/png" href="/images/puspus_logo.png">
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Walk-in Appointment • Dental Clinic</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
@@ -810,6 +811,15 @@
         // "submitted" instead of deleting it outright, so a validation/business-logic
         // failure (which DOES redirect back here) still has everything to restore.
         form.addEventListener('submit', function () {
+            // Guards against a double-click firing two submissions — the second
+            // would silently fail server-side (slot/patient already taken) with
+            // no obvious feedback since the page is already mid-navigation.
+            const submitBtn = form.querySelector('button[type=submit]');
+            if (submitBtn && !submitBtn.disabled) {
+                submitBtn.disabled = true;
+                submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Booking…';
+            }
+
             saveDraft();
             try {
                 const raw = sessionStorage.getItem(DRAFT_KEY);

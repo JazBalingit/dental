@@ -39,27 +39,27 @@ class AppointmentBookingController extends Controller
         $dentist = UserAccount::dentists()->where('UserID', $data['dentist_id'])->first();
 
         if (!$dentist) {
-            return redirect()->to(route('userAppointment'))
+            return redirect()->to(route('userAppointment.book'))
                 ->with('booking_error', 'Please choose a dentist for your appointment.');
         }
 
         $user = UserAccount::with('patientInfo')->findOrFail(session('user_id'));
 
         if (!$user->patientInfo) {
-            return redirect()->to(route('userAppointment'))->with('booking_error', 'Your patient profile is incomplete.');
+            return redirect()->to(route('userAppointment.book'))->with('booking_error', 'Your patient profile is incomplete.');
         }
 
         // One active appointment at a time — the next slot opens up once
         // this one is completed, declined, or cancelled.
         if (Appointment::where('PatientID', $user->patientInfo->PatientID)->whereIn('Status', ['Pending', 'Approved'])->exists()) {
-            return redirect()->to(route('userAppointment'))
+            return redirect()->to(route('userAppointment.book'))
                 ->with('booking_error', 'You already have an upcoming appointment. Please wait until it\'s completed, or cancel it, before booking another.');
         }
 
         $date = Carbon::parse($data['date']);
 
         if ($date->isSunday() || $date->lt(today())) {
-            return redirect()->to(route('userAppointment'))
+            return redirect()->to(route('userAppointment.book'))
                 ->with('booking_error', 'That date is not available for booking.');
         }
 
@@ -67,12 +67,12 @@ class AppointmentBookingController extends Controller
         // booked either — the calendar hides these, but the check belongs
         // here too since this is what actually decides what gets created.
         if (Carbon::parse($data['date'] . ' ' . $data['time'])->lt(now())) {
-            return redirect()->to(route('userAppointment'))
+            return redirect()->to(route('userAppointment.book'))
                 ->with('booking_error', 'That time has already passed today. Please choose an upcoming time.');
         }
 
         if ($date->gt(today()->addMonths(2))) {
-            return redirect()->to(route('userAppointment'))
+            return redirect()->to(route('userAppointment.book'))
                 ->with('booking_error', 'Appointments can only be booked up to 2 months in advance.');
         }
 
@@ -122,7 +122,7 @@ class AppointmentBookingController extends Controller
 
             $this->activityLog->log('Failed Booking', "Appointment booking failed: {$failureMessage}", $user->UserID);
 
-            return redirect()->to(route('userAppointment'))
+            return redirect()->to(route('userAppointment.book'))
                 ->with('booking_error', $failureMessage);
         }
 

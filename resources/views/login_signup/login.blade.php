@@ -3,6 +3,7 @@
 
 <head>
   <meta charset="utf-8" />
+  <link rel="icon" type="image/png" href="/images/puspus_logo.png">
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Login • Dental Clinic</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
@@ -20,6 +21,11 @@
 <body class="auth-page">
   @php
     $showReset = session('show_reset_form', false);
+
+    // A login attempt that actually submitted the form (vs. being redirected
+    // here by an auth guard with nothing typed in yet) gets its error shown
+    // inline under the password field instead of a top-of-page toast.
+    $loginFormError = old('email') !== null ? session('login_error') : null;
   @endphp
 
   @include('login_signup.partials.auth-navbar')
@@ -32,13 +38,13 @@
         <p class="auth-subtitle mb-0">Sign in to your Dental Clinic account</p>
       </div>
 
-      @include('partials.flash-toasts', ['topOffset' => '20px'])
+      @include('partials.flash-toasts', ['topOffset' => '20px', 'suppress' => $loginFormError ? ['login_error'] : []])
 
       <form method="POST" action="{{ route('login.store') }}">
         @csrf
         <div class="mb-3">
           <label class="form-label">Email address</label>
-          <div class="input-icon">
+          <div class="input-icon {{ $loginFormError ? 'has-error' : '' }}">
             <i class="bi bi-envelope"></i>
             <input type="email" name="email" class="form-control" value="{{ old('email') }}"
               placeholder="you@clinic.com" required autofocus />
@@ -49,7 +55,7 @@
           <label class="form-label">Password</label>
           <div class="pw-field">
             <input type="checkbox" class="pw-toggle-checkbox" id="pwCheckLogin">
-            <div class="input-icon">
+            <div class="input-icon {{ $loginFormError ? 'has-error' : '' }}">
               <i class="bi bi-lock"></i>
               <input type="text" name="password" class="form-control pw-mask" placeholder="••••••••" required
                 value="{{ old('password') }}" autocomplete="current-password" />
@@ -58,6 +64,9 @@
               <i class="bi bi-eye"></i><i class="bi bi-eye-slash"></i>
             </label>
           </div>
+          @if ($loginFormError)
+            <div class="field-error"><i class="bi bi-exclamation-circle-fill"></i> {{ $loginFormError }}</div>
+          @endif
         </div>
 
         <div class="d-flex justify-content-end align-items-center mb-4">

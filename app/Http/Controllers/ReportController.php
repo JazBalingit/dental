@@ -52,6 +52,9 @@ class ReportController extends Controller
             if ($includePatientDetails) {
                 $data['appointmentsList'] = (clone $appointments)
                     ->with(['patientInfo.userAccount', 'service'])
+                    // Completed > Approved > Pending > Declined > Cancelled,
+                    // then newest-first within each status group.
+                    ->orderByRaw("FIELD(Status, 'Completed', 'Approved', 'Pending', 'Declined', 'Cancelled')")
                     ->orderByDesc('AppointmentDate')
                     ->orderByDesc('AppointmentTime')
                     ->get();

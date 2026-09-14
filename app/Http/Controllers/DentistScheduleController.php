@@ -119,6 +119,8 @@ class DentistScheduleController extends Controller
             $monthCursor->addDay();
         }
 
+        $viewer = UserAccount::find(session('user_id'));
+
         return $this->panelView('dentist-schedule', [
             'weeks' => $weeks,
             'current' => $current,
@@ -132,6 +134,10 @@ class DentistScheduleController extends Controller
             'dentists' => $dentists,
             'selectedDentist' => $selectedDentist,
             'selectedDentistId' => $selectedDentistId,
+            // A dentist viewing their own grid sees "My Schedule"; staff and
+            // the super admin (who manage every dentist's grid) still see
+            // "Dentist Schedule".
+            'viewerIsDentist' => $viewer?->Position === 'Dentist',
         ]);
     }
 

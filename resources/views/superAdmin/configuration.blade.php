@@ -3,6 +3,7 @@
 
 <head>
   <meta charset="utf-8" />
+  <link rel="icon" type="image/png" href="/images/puspus_logo.png">
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Configuration • Dental Clinic</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
@@ -83,7 +84,8 @@
                   <span class="small text-muted-2">Logo, landing-page photos &amp; the public clinic details</span>
                 </div>
                 <div class="card-body">
-                  <form method="POST" action="{{ route('configuration.about.update') }}" enctype="multipart/form-data">
+                  <form method="POST" action="{{ route('configuration.about.update') }}" enctype="multipart/form-data"
+                    onsubmit="return confirm('Save these changes to the clinic information? This updates what visitors see on the landing page.');">
                     @csrf
 
                     <div class="section-label"><i class="bi bi-images"></i> Images</div>
@@ -298,18 +300,25 @@
                                 <td class="fw-semibold">{{ $service->ServiceName }}</td>
                                 <td>{{ $service->category->Name ?? '—' }}</td>
                                 <td>{{ $service->duration_label }}</td>
-                                <td>{{ $service->Description ?: '—' }}</td>
+                                <td>
+                                  @if ($service->Description)
+                                    <span class="d-inline-block text-truncate" style="max-width: 260px;"
+                                      data-bs-toggle="tooltip" title="{{ $service->Description }}">{{ $service->Description }}</span>
+                                  @else
+                                    —
+                                  @endif
+                                </td>
                                 <td class="text-end">
                                   <button type="button" class="btn btn-pill btn-pill-edit me-1" data-bs-toggle="modal"
                                     data-bs-target="#editServiceModal{{ $service->ServiceID }}"><i
                                       class="bi bi-pencil-square"></i> Edit</button>
-                                  <form method="POST"
-                                    action="{{ route('configuration.services.archive', $service->ServiceID) }}"
-                                    class="d-inline">
-                                    @csrf
-                                    <button type="submit" class="btn btn-pill btn-pill-archive"><i
-                                        class="bi bi-archive"></i> Archive</button>
-                                  </form>
+                                  <button type="button" class="btn btn-pill btn-pill-archive" data-bs-toggle="modal"
+                                    data-bs-target="#confirmActionModal"
+                                    data-action-url="{{ route('configuration.services.archive', $service->ServiceID) }}"
+                                    data-title="Archive Service"
+                                    data-message="Archive &ldquo;{{ $service->ServiceName }}&rdquo;? Patients won't be able to select it when booking until you unarchive it."
+                                    data-confirm-label="Archive" data-confirm-class="btn-pill-archive">
+                                    <i class="bi bi-archive"></i> Archive</button>
                                 </td>
                               </tr>
                             @empty
@@ -352,18 +361,25 @@
                                 <td class="fw-semibold">{{ $service->ServiceName }}</td>
                                 <td>{{ $service->category->Name ?? '—' }}</td>
                                 <td>{{ $service->duration_label }}</td>
-                                <td>{{ $service->Description ?: '—' }}</td>
+                                <td>
+                                  @if ($service->Description)
+                                    <span class="d-inline-block text-truncate" style="max-width: 260px;"
+                                      data-bs-toggle="tooltip" title="{{ $service->Description }}">{{ $service->Description }}</span>
+                                  @else
+                                    —
+                                  @endif
+                                </td>
                                 <td class="text-end">
                                   <button type="button" class="btn btn-pill btn-pill-edit me-1" data-bs-toggle="modal"
                                     data-bs-target="#editServiceModal{{ $service->ServiceID }}"><i
                                       class="bi bi-pencil-square"></i> Edit</button>
-                                  <form method="POST"
-                                    action="{{ route('configuration.services.unarchive', $service->ServiceID) }}"
-                                    class="d-inline">
-                                    @csrf
-                                    <button type="submit" class="btn btn-pill btn-pill-archive"><i
-                                        class="bi bi-archive"></i> Unarchive</button>
-                                  </form>
+                                  <button type="button" class="btn btn-pill btn-pill-archive" data-bs-toggle="modal"
+                                    data-bs-target="#confirmActionModal"
+                                    data-action-url="{{ route('configuration.services.unarchive', $service->ServiceID) }}"
+                                    data-title="Unarchive Service"
+                                    data-message="Restore &ldquo;{{ $service->ServiceName }}&rdquo;? Patients will be able to select it when booking again."
+                                    data-confirm-label="Unarchive" data-confirm-class="btn-pill-archive">
+                                    <i class="bi bi-archive"></i> Unarchive</button>
                                 </td>
                               </tr>
                             @empty
@@ -433,7 +449,8 @@
                     section</span>
                 </div>
                 <div class="card-body">
-                  <form method="POST" action="{{ route('configuration.appointmentSteps.update') }}">
+                  <form method="POST" action="{{ route('configuration.appointmentSteps.update') }}"
+                    onsubmit="return confirm('Save these changes to the appointment steps? This updates the \'How to Book Your Appointment\' section on the landing page.');">
                     @csrf
                     <div id="appointmentStepsContainer">
                       @foreach ($appointmentSteps as $n => $step)
@@ -551,7 +568,12 @@
                                   </td>
                                   <td><span class="pill {{ $pillClass }}">{{ $log->ActivityType }}</span></td>
                                   <td>
-                                    {{ $log->Description ?: '—' }}
+                                    @if ($log->Description)
+                                      <span class="d-inline-block text-truncate" style="max-width: 320px;"
+                                        data-bs-toggle="tooltip" title="{{ $log->Description }}">{{ $log->Description }}</span>
+                                    @else
+                                      —
+                                    @endif
                                     @if ($log->ActivityType === 'Login' && $log->LoggedOutTime)
                                       <div class="small text-muted-2">Signed out {{ $log->LoggedOutTime->format('M j, Y g:i A') }}</div>
                                     @elseif ($log->ActivityType === 'Login')
@@ -560,15 +582,16 @@
                                   </td>
                                   <td>{{ optional($when)->format('M j, Y g:i A') ?? '—' }}</td>
                                   <td class="text-end">
-                                    <form method="POST"
-                                      action="{{ $paneKey === 'archived'
+                                    <button type="button" class="btn btn-pill btn-pill-archive" data-bs-toggle="modal"
+                                      data-bs-target="#confirmActionModal"
+                                      data-action-url="{{ $paneKey === 'archived'
                                           ? route('configuration.activityLogs.unarchive', $log->ActivityLogsID)
                                           : route('configuration.activityLogs.archive', $log->ActivityLogsID) }}"
-                                      class="d-inline">
-                                      @csrf
-                                      <button type="submit" class="btn btn-pill btn-pill-archive"><i
-                                          class="bi bi-archive"></i> {{ $paneKey === 'archived' ? 'Unarchive' : 'Archive' }}</button>
-                                    </form>
+                                      data-title="{{ $paneKey === 'archived' ? 'Unarchive' : 'Archive' }} Log Entry"
+                                      data-message="{{ $paneKey === 'archived' ? 'Restore' : 'Archive' }} this activity log entry?"
+                                      data-confirm-label="{{ $paneKey === 'archived' ? 'Unarchive' : 'Archive' }}"
+                                      data-confirm-class="btn-pill-archive">
+                                      <i class="bi bi-archive"></i> {{ $paneKey === 'archived' ? 'Unarchive' : 'Archive' }}</button>
                                   </td>
                                 </tr>
                               @empty
@@ -839,9 +862,16 @@
   @endforeach
 
   @include('partials.admin-notif-modal')
+  @include('partials.confirm-action-modal')
 
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
   <script>
+    // Long table cells (Service / Activity Log descriptions) are truncated
+    // to one line with a Bootstrap tooltip showing the full text on hover.
+    document.querySelectorAll('[data-bs-toggle="tooltip"]').forEach(function (el) {
+      new bootstrap.Tooltip(el);
+    });
+
     // Image tiles — preview the chosen file and show its name.
     document.querySelectorAll('[data-cfg-img]').forEach(function (input) {
       input.addEventListener('change', function () {
@@ -883,6 +913,7 @@
         btn.addEventListener('click', function () {
           var rows = container.querySelectorAll('.appointment-step-row');
           if (rows.length <= 1) return;
+          if (!confirm('Remove this step? It will be gone once you Save Changes.')) return;
           btn.closest('.appointment-step-row').remove();
           renumber();
         });

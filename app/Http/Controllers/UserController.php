@@ -56,15 +56,42 @@ class UserController extends Controller
             'uncategorizedServices' => $uncategorizedServices,
         ]));
     }
-    // show user appointment front end — the Patient Portal's home page:
-    // book a new appointment (when none is active) + manage existing ones.
-    public function showUserAppointment(Request $request, \App\Http\Controllers\AppointmentBookingController $booking)
+    /**
+     * The Patient Portal's "Appointments" section is 3 pages sharing one
+     * sidebar dropdown: Current Appointments (this one — the default landing
+     * page), Book Appointment, and Appointment History. All three need the
+     * same patient/PatientID guard and a couple of them need the same
+     * queries, so those live in the private helpers below instead of being
+     * copy-pasted three times.
+     */
+    public function showUserAppointment(Request $request)
     {
-        if (!session('user_id')) return redirect()->route('login');
+        $patientId = $this->currentPatientId();
 
-        $user = UserAccount::with('patientInfo')->findOrFail(session('user_id'));
-        abort_unless($user->patientInfo, 403, 'Please complete your patient profile first.');
-        $patientId = $user->patientInfo->PatientID;
+        $counts = $this->appointmentCounts($patientId);
+        $current = $this->currentAppointment($patientId);
+
+        return view('users.user-appointment', compact('counts', 'current'));
+    }
+
+    // Patient Portal — Book Appointment (the dentist-schedule calendar).
+    public function showBookAppointment(Request $request, \App\Http\Controllers\AppointmentBookingController $booking)
+    {
+        $patientId = $this->currentPatientId();
+
+        $current = $this->currentAppointment($patientId);
+
+        // Only needed for booking a new slot — skip the query work when the
+        // patient already has one active (the view shows a notice instead).
+        $bookingData = $current ? [] : $booking->calendarData($request);
+
+        return view('users.user-appointment-book', array_merge($bookingData, compact('current')));
+    }
+
+    // Patient Portal — Appointment History (searchable/filterable past visits).
+    public function showAppointmentHistory(Request $request)
+    {
+        $patientId = $this->currentPatientId();
         $status = $request->query('status');
         $search = $request->query('search');
 
@@ -74,16 +101,38 @@ class UserController extends Controller
             ->orderByDesc('AppointmentDate')->orderByDesc('AppointmentTime')
             ->paginate(10)->withQueryString();
 
-        $current = Appointment::with(['service', 'dentist.staffInfo', 'patientRecord.odontogramTeeth'])->where('PatientID', $patientId)
+        return view('users.user-appointment-history', compact('history', 'status', 'search'));
+    }
+
+    // The 'auth.session' middleware on these routes already guarantees a
+    // signed-in session — this just resolves it to a PatientID.
+    protected function currentPatientId(): int
+    {
+        $user = UserAccount::with('patientInfo')->findOrFail(session('user_id'));
+        abort_unless($user->patientInfo, 403, 'Please complete your patient profile first.');
+
+        return $user->patientInfo->PatientID;
+    }
+
+    protected function currentAppointment(int $patientId): ?Appointment
+    {
+        return Appointment::with(['service', 'dentist.staffInfo', 'patientRecord.odontogramTeeth'])->where('PatientID', $patientId)
             ->whereIn('Status', ['Pending', 'Approved'])
             ->whereDate('AppointmentDate', '>=', today())
             ->orderBy('AppointmentDate')->orderBy('AppointmentTime')->first();
+    }
 
-        // Only needed for booking a new slot — skip the query work when the
-        // patient already has one active (the view shows a notice instead).
-        $bookingData = $current ? [] : $booking->calendarData($request);
+    /** Upcoming / Completed / Cancelled / Total counts for the stat cards. */
+    protected function appointmentCounts(int $patientId): array
+    {
+        $base = Appointment::where('PatientID', $patientId);
 
-        return view('users.user-appointment', array_merge($bookingData, compact('history', 'current', 'status', 'search')));
+        return [
+            'upcoming' => (clone $base)->whereIn('Status', ['Pending', 'Approved'])->count(),
+            'completed' => (clone $base)->where('Status', 'Completed')->count(),
+            'cancelled' => (clone $base)->where('Status', 'Declined')->count(),
+            'total' => (clone $base)->count(),
+        ];
     }
 
     public function removeAppointment(Request $request, Appointment $appointment)
@@ -157,10 +206,11 @@ class UserController extends Controller
             $user->UserID
         );
 
-        // Rescheduling is meant to drop the patient right back on the booking
-        // calendar (now part of the Patient Portal's Appointments page) so
-        // they can immediately pick a new slot.
-        return redirect()->route('userAppointment')->with('success', $message);
+        // Rescheduling is meant to drop the patient right back on the Book
+        // Appointment page so they can immediately pick a new slot; a plain
+        // cancel just returns to Current Appointments (now empty).
+        return redirect()->route($isReschedule ? 'userAppointment.book' : 'userAppointment')
+            ->with('success', $message);
     }
 
     protected function releaseAppointmentSlots(Appointment $appointment): void

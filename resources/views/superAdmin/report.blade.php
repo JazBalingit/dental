@@ -3,6 +3,7 @@
 
 <head>
   <meta charset="utf-8" />
+  <link rel="icon" type="image/png" href="/images/puspus_logo.png">
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   @php
     $typeTitles = [
@@ -69,6 +70,12 @@
     .pill-mini.warn { background: #fff8e1; color: #b45309; }
     .pill-mini.bad { background: #fdecea; color: #c0392b; }
     .report-empty { color: var(--ink-500); font-size: .85rem; font-style: italic; }
+    .report-signature { display: flex; justify-content: flex-end; margin-top: 3rem; }
+    .report-signature-block { width: 260px; text-align: center; }
+    .report-signature-space { height: 50px; }
+    .report-signature-line { border-top: 1px solid var(--ink-700); padding-top: .4rem; }
+    .report-signature-name { font-weight: 700; color: var(--ink-900); font-size: .9rem; }
+    .report-signature-role { font-size: .75rem; color: var(--ink-500); text-transform: uppercase; letter-spacing: .04em; margin-top: .1rem; }
     @media print {
       body { background: #fff; }
       .no-print { display: none !important; }
@@ -102,7 +109,7 @@
         <div class="meta">
           <div><strong>Range:</strong> {{ $rangeLabel }}</div>
           <div><strong>Generated:</strong> {{ $generatedAt->format('M j, Y g:i A') }}</div>
-          <div><strong>By:</strong> Administrator</div>
+          <div><strong>By:</strong> {{ $adminAccountName ?? 'Administrator' }}</div>
         </div>
       </div>
 
@@ -111,11 +118,11 @@
           <h2><i class="bi bi-calendar-check"></i> Appointments</h2>
           <div class="report-stats">
             <div class="report-stat"><div class="label">Total</div><div class="value">{{ $appointmentStats['total'] }}</div></div>
-            <div class="report-stat"><div class="label">Pending</div><div class="value">{{ $appointmentStats['pending'] }}</div></div>
-            <div class="report-stat"><div class="label">Approved</div><div class="value">{{ $appointmentStats['approved'] }}</div></div>
             <div class="report-stat"><div class="label">Completed</div><div class="value">{{ $appointmentStats['completed'] }}</div></div>
-            <div class="report-stat"><div class="label">Cancelled</div><div class="value">{{ $appointmentStats['cancelled'] }}</div></div>
+            <div class="report-stat"><div class="label">Approved</div><div class="value">{{ $appointmentStats['approved'] }}</div></div>
+            <div class="report-stat"><div class="label">Pending</div><div class="value">{{ $appointmentStats['pending'] }}</div></div>
             <div class="report-stat"><div class="label">Declined</div><div class="value">{{ $appointmentStats['declined'] }}</div></div>
+            <div class="report-stat"><div class="label">Cancelled</div><div class="value">{{ $appointmentStats['cancelled'] }}</div></div>
           </div>
 
           @if (!empty($dailyChart))
@@ -275,6 +282,16 @@
           </div>
         </div>
       @endif
+
+      <div class="report-signature">
+        <div class="report-signature-block">
+          <div class="report-signature-space"></div>
+          <div class="report-signature-line">
+            <div class="report-signature-name">{{ $adminAccountName ?? 'Administrator' }}</div>
+            <div class="report-signature-role">Administrator</div>
+          </div>
+        </div>
+      </div>
 
     </div>
   </div>

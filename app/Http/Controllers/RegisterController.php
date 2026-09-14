@@ -43,7 +43,7 @@ class RegisterController extends Controller
             'last_name' => 'required|string|max:100',
             'first_name' => 'required|string|max:100',
             'middle_name' => 'nullable|string|max:100',
-            'birthdate' => 'required|date|before:today',
+            'birthdate' => 'required|date|before_or_equal:2023-12-31',
             'gender' => 'required|string',
             'religion' => 'nullable|string|max:100',
             'nationality' => 'required|string|max:100',
@@ -57,6 +57,7 @@ class RegisterController extends Controller
             'password' => ['required', 'confirmed', Password::defaults()],
             'agree_terms' => 'accepted',
         ], [
+            'birthdate.before_or_equal' => 'Patients must be born on or before December 31, 2023 to sign up for their own account.',
             'agree_terms.accepted' => 'You must agree to the Privacy Policy and Terms to create an account.',
         ]);
 

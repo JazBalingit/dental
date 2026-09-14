@@ -52,6 +52,8 @@ class AppServiceProvider extends ServiceProvider
         View::composer([
             'users.landing-page',
             'users.user-appointment',
+            'users.user-appointment-book',
+            'users.user-appointment-history',
             'users.settings',
             'users.my-records',
         ], UserNotificationComposer::class);

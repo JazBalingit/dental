@@ -250,7 +250,7 @@ class ConfigurationController extends Controller
 
         $this->activityLog->log('Create', "Added a new service: {$data['service_name']}.");
 
-        return redirect()->route('configuration')->with('success', 'Service added.');
+        return redirect()->route('configuration', ['settingsTab' => 'services'])->with('success', 'Service added.');
     }
 
     public function updateService(Request $request, $id)
@@ -272,7 +272,7 @@ class ConfigurationController extends Controller
 
         $this->activityLog->log('Edit', "Edited service: {$data['service_name']}.");
 
-        return redirect()->route('configuration')->with('success', 'Service updated.');
+        return redirect()->route('configuration', ['settingsTab' => 'services'])->with('success', 'Service updated.');
     }
 
     public function archiveService($id)
@@ -282,7 +282,7 @@ class ConfigurationController extends Controller
 
         $this->activityLog->log('Archive', "Archived service: {$service->ServiceName}.");
 
-        return redirect()->route('configuration')->with('success', 'Service archived.');
+        return redirect()->route('configuration', ['settingsTab' => 'services'])->with('success', 'Service archived.');
     }
 
     public function unarchiveService($id)
@@ -292,7 +292,7 @@ class ConfigurationController extends Controller
 
         $this->activityLog->log('Unarchive', "Unarchived service: {$service->ServiceName}.");
 
-        return redirect()->route('configuration')->with('success', 'Service restored.');
+        return redirect()->route('configuration', ['settingsTab' => 'services'])->with('success', 'Service restored.');
     }
 
     public function storeCategory(Request $request)
@@ -352,7 +352,7 @@ class ConfigurationController extends Controller
 
         $this->activityLog->log('Archive', "Archived activity log entry #{$id}.");
 
-        return redirect()->route('configuration')->with('success', 'Activity log archived.');
+        return redirect()->route('configuration', ['settingsTab' => 'activity'])->with('success', 'Activity log archived.');
     }
 
     public function unarchiveActivityLog($id)
@@ -361,6 +361,6 @@ class ConfigurationController extends Controller
 
         $this->activityLog->log('Unarchive', "Restored activity log entry #{$id}.");
 
-        return redirect()->route('configuration')->with('success', 'Activity log restored.');
+        return redirect()->route('configuration', ['settingsTab' => 'activity'])->with('success', 'Activity log restored.');
     }
 }

@@ -40,7 +40,7 @@ class ProfileController extends Controller
             'phone' => 'required|string|max:20',
             'guardian_name' => 'nullable|string|max:150',
             'guardian_occupation' => 'nullable|string|max:150',
-            'photo' => 'nullable|image|mimes:jpg,jpeg,png|max:2048',
+            'photo' => 'nullable|image|mimes:jpg,jpeg,png|max:5120',
         ]);
 
         // Age is recomputed from birthdate every time, same as at signup.

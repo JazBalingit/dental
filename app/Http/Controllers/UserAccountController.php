@@ -70,7 +70,7 @@ class UserAccountController extends Controller
             'guardian_occupation' => 'nullable|string|max:150',
             'email' => 'required|email|unique:tbl_useraccount,Email,' . $account->UserID . ',UserID',
             'phone' => 'required|string|max:20',
-            'photo' => 'nullable|image|mimes:jpg,jpeg,png|max:2048',
+            'photo' => 'nullable|image|mimes:jpg,jpeg,png|max:5120',
         ]);
 
         $account->Email = $data['email'];

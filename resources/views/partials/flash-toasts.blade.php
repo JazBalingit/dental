@@ -10,9 +10,17 @@
     sticky topbar/navbar (e.g. login/signup). Defaults to 84px, which clears
     the 68px admin `.topbar`. Pages using the public `.navbar.fixed-top`
     (landing page, patient settings/profile/appointments) pass '100px'.
+
+    Optional: pass ['suppress' => ['login_error', ...]] to skip specific
+    flash keys — for a page that renders that message inline next to the
+    field it belongs to instead (see login/signup). Pass ['suppressErrors'
+    => true] to likewise skip the default $errors bag toast when every
+    validation error is already shown inline per field.
 --}}
 @php
     $topOffset = $topOffset ?? '84px';
+    $suppress = $suppress ?? [];
+    $suppressErrors = $suppressErrors ?? false;
 
     $flashes = [
         ['key' => 'success', 'type' => 'success'],
@@ -60,7 +68,7 @@
 
 <div class="flash-toast-container" style="top: {{ $topOffset }};">
     @foreach ($flashes as $flash)
-        @if (session($flash['key']))
+        @if (!in_array($flash['key'], $suppress, true) && session($flash['key']))
             <div class="flash-toast flash-toast-{{ $flash['type'] }}" role="alert" aria-live="assertive" aria-atomic="true">
                 <div class="flash-toast-icon"><i class="bi {{ $icons[$flash['type']] }}"></i></div>
                 <div class="flash-toast-body">
@@ -73,7 +81,7 @@
         @endif
     @endforeach
 
-    @if ($errors->any())
+    @if (!$suppressErrors && $errors->any())
         <div class="flash-toast flash-toast-danger" role="alert" aria-live="assertive" aria-atomic="true">
             <div class="flash-toast-icon"><i class="bi {{ $icons['danger'] }}"></i></div>
             <div class="flash-toast-body">

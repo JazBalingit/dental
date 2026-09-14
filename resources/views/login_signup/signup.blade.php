@@ -3,6 +3,7 @@
 
 <head>
   <meta charset="utf-8" />
+  <link rel="icon" type="image/png" href="/images/puspus_logo.png">
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Sign Up • Dental Clinic</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
@@ -32,7 +33,7 @@
         <p class="auth-subtitle mb-0">Join the Dental Clinic patient portal</p>
       </div>
 
-      @include('partials.flash-toasts', ['topOffset' => '20px'])
+      @include('partials.flash-toasts', ['topOffset' => '20px', 'suppressErrors' => true])
 
           @php
             // Which wizard step a field belongs to, so a validation failure
@@ -68,32 +69,37 @@
               <div class="row g-3 mb-3">
                 <div class="col-md-6 col-lg-3">
                   <label class="form-label">Last name</label>
-                  <div class="input-icon"><i class="bi bi-person"></i><input name="last_name" class="form-control"
+                  <div class="input-icon @error('last_name') has-error @enderror"><i class="bi bi-person"></i><input name="last_name" class="form-control"
                       value="{{ old('last_name') }}" placeholder="Last name" required />
                   </div>
+                  @error('last_name') <div class="field-error"><i class="bi bi-exclamation-circle-fill"></i> {{ $message }}</div> @enderror
                 </div>
                 <div class="col-md-6 col-lg-3">
                   <label class="form-label">First name</label>
-                  <div class="input-icon"><i class="bi bi-person"></i><input name="first_name" class="form-control"
+                  <div class="input-icon @error('first_name') has-error @enderror"><i class="bi bi-person"></i><input name="first_name" class="form-control"
                       value="{{ old('first_name') }}" placeholder="First name" required />
                   </div>
+                  @error('first_name') <div class="field-error"><i class="bi bi-exclamation-circle-fill"></i> {{ $message }}</div> @enderror
                 </div>
                 <div class="col-md-6 col-lg-3">
                   <label class="form-label">Middle name</label>
-                  <div class="input-icon"><i class="bi bi-person"></i><input name="middle_name" class="form-control"
+                  <div class="input-icon @error('middle_name') has-error @enderror"><i class="bi bi-person"></i><input name="middle_name" class="form-control"
                       value="{{ old('middle_name') }}" placeholder="Middle name" />
                   </div>
+                  @error('middle_name') <div class="field-error"><i class="bi bi-exclamation-circle-fill"></i> {{ $message }}</div> @enderror
                 </div>
                 <div class="col-md-6 col-lg-3">
                   <label class="form-label">Birthdate</label>
-                  <div class="input-icon"><i class="bi bi-calendar-event"></i><input type="date" name="birthdate"
-                      id="signupBirthdate" class="form-control" value="{{ old('birthdate') }}" max="{{ now()->toDateString() }}" required />
+                  <div class="input-icon @error('birthdate') has-error @enderror"><i class="bi bi-calendar-event"></i><input type="date" name="birthdate"
+                      id="signupBirthdate" class="form-control" value="{{ old('birthdate') }}" max="2023-12-31" required />
                   </div>
+                  @error('birthdate') <div class="field-error"><i class="bi bi-exclamation-circle-fill"></i> {{ $message }}</div> @enderror
+                  <div class="small text-muted-2 mt-1">Must be born on or before Dec 31, 2023.</div>
                 </div>
 
                 <div class="col-md-6 col-lg-3">
                   <label class="form-label">Gender</label>
-                  <div class="input-icon">
+                  <div class="input-icon @error('gender') has-error @enderror">
                     <select name="gender" class="form-select" required>
                       <option value="" disabled {{ old('gender') ? '' : 'selected' }}>Select gender</option>
                       <option value="male" {{ old('gender') === 'male' ? 'selected' : '' }}>Male</option>
@@ -101,24 +107,28 @@
                       <option value="other" {{ old('gender') === 'other' ? 'selected' : '' }}>Other</option>
                     </select>
                   </div>
+                  @error('gender') <div class="field-error"><i class="bi bi-exclamation-circle-fill"></i> {{ $message }}</div> @enderror
                 </div>
                 <div class="col-md-6 col-lg-3">
                   <label class="form-label">Religion</label>
-                  <div class="input-icon"><i class="bi bi-book"></i><input name="religion" class="form-control"
+                  <div class="input-icon @error('religion') has-error @enderror"><i class="bi bi-book"></i><input name="religion" class="form-control"
                       value="{{ old('religion') }}" placeholder="Catholic" />
                   </div>
+                  @error('religion') <div class="field-error"><i class="bi bi-exclamation-circle-fill"></i> {{ $message }}</div> @enderror
                 </div>
                 <div class="col-md-6 col-lg-3">
                   <label class="form-label">Nationality</label>
-                  <div class="input-icon"><i class="bi bi-flag"></i><input name="nationality" class="form-control"
+                  <div class="input-icon @error('nationality') has-error @enderror"><i class="bi bi-flag"></i><input name="nationality" class="form-control"
                       value="{{ old('nationality') }}" placeholder="Filipino" required />
                   </div>
+                  @error('nationality') <div class="field-error"><i class="bi bi-exclamation-circle-fill"></i> {{ $message }}</div> @enderror
                 </div>
                 <div class="col-md-6 col-lg-3">
                   <label class="form-label">Occupation <span class="text-muted">(optional)</span></label>
-                  <div class="input-icon"><i class="bi bi-briefcase"></i><input name="occupation" class="form-control"
+                  <div class="input-icon @error('occupation') has-error @enderror"><i class="bi bi-briefcase"></i><input name="occupation" class="form-control"
                       value="{{ old('occupation') }}" placeholder="Occupation" />
                   </div>
+                  @error('occupation') <div class="field-error"><i class="bi bi-exclamation-circle-fill"></i> {{ $message }}</div> @enderror
                 </div>
               </div>
             </div>
@@ -151,6 +161,7 @@
                       value="{{ old('addr_province') }}" placeholder="Province" required />
                   </div>
                 </div>
+                @error('address') <div class="col-12"><div class="field-error"><i class="bi bi-exclamation-circle-fill"></i> {{ $message }}</div></div> @enderror
               </div>
               <input type="hidden" name="address" id="signupAddress" value="{{ old('address') }}">
 
@@ -158,13 +169,15 @@
               <div class="row g-3 mb-3">
                 <div class="col-sm-6">
                   <label class="form-label">Email address</label>
-                  <div class="input-icon"><i class="bi bi-envelope"></i><input type="email" name="email"
+                  <div class="input-icon @error('email') has-error @enderror"><i class="bi bi-envelope"></i><input type="email" name="email"
                       class="form-control" value="{{ old('email') }}" placeholder="you@clinic.com" required /></div>
+                  @error('email') <div class="field-error"><i class="bi bi-exclamation-circle-fill"></i> {{ $message }}</div> @enderror
                 </div>
                 <div class="col-sm-6">
                   <label class="form-label">Cell/Mobile number</label>
-                  <div class="input-icon"><i class="bi bi-telephone"></i><input name="phone" class="form-control"
+                  <div class="input-icon @error('phone') has-error @enderror"><i class="bi bi-telephone"></i><input name="phone" class="form-control"
                       value="{{ old('phone') }}" placeholder="+63 9XX XXX XXXX" required /></div>
+                  @error('phone') <div class="field-error"><i class="bi bi-exclamation-circle-fill"></i> {{ $message }}</div> @enderror
                 </div>
               </div>
             </div>
@@ -176,14 +189,16 @@
               <div class="row g-3 mb-3">
                 <div class="col-sm-6">
                   <label class="form-label">Parent/Guardian's name</label>
-                  <div class="input-icon"><i class="bi bi-person-heart"></i><input name="guardian_name"
+                  <div class="input-icon @error('guardian_name') has-error @enderror"><i class="bi bi-person-heart"></i><input name="guardian_name"
                       class="form-control" value="{{ old('guardian_name') }}" placeholder="Guardian's name" />
                   </div>
+                  @error('guardian_name') <div class="field-error"><i class="bi bi-exclamation-circle-fill"></i> {{ $message }}</div> @enderror
                 </div>
                 <div class="col-sm-6">
                   <label class="form-label">Guardian's occupation <span class="text-muted">(optional)</span></label>
-                  <div class="input-icon"><i class="bi bi-briefcase"></i><input name="guardian_occupation"
+                  <div class="input-icon @error('guardian_occupation') has-error @enderror"><i class="bi bi-briefcase"></i><input name="guardian_occupation"
                       class="form-control" value="{{ old('guardian_occupation') }}" placeholder="Occupation" /></div>
+                  @error('guardian_occupation') <div class="field-error"><i class="bi bi-exclamation-circle-fill"></i> {{ $message }}</div> @enderror
                 </div>
               </div>
             </div>
@@ -196,13 +211,14 @@
                   <label class="form-label">Password</label>
                   <div class="pw-field">
                     <input type="checkbox" class="pw-toggle-checkbox" id="pwCheckSignup">
-                    <div class="input-icon"><i class="bi bi-lock"></i><input type="text" name="password"
+                    <div class="input-icon @error('password') has-error @enderror"><i class="bi bi-lock"></i><input type="text" name="password"
                         class="form-control pw-mask" placeholder="••••••••" required minlength="8"
                         value="{{ old('password') }}" autocomplete="new-password" /></div>
                     <label for="pwCheckSignup" class="pw-eye-btn">
                       <i class="bi bi-eye"></i><i class="bi bi-eye-slash"></i>
                     </label>
                   </div>
+                  @error('password') <div class="field-error"><i class="bi bi-exclamation-circle-fill"></i> {{ $message }}</div> @enderror
                 </div>
                 <div class="col-md-6">
                   <label class="form-label">Confirm password</label>
@@ -237,6 +253,7 @@
                   and
                   <a href="#" data-bs-toggle="modal" data-bs-target="#legalTermsModal">Terms</a>.
                 </label>
+                @error('agree_terms') <div class="field-error"><i class="bi bi-exclamation-circle-fill"></i> {{ $message }}</div> @enderror
               </div>
             </div>
 

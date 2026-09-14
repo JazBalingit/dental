@@ -28,6 +28,9 @@ class AppointmentApprovalController extends Controller
         $search = $request->query('search');
 
         $query = Appointment::with(['patientInfo', 'service', 'schedule', 'dentist.staffInfo'])
+            // Completed > Approved > Pending > Declined > Cancelled, then
+            // newest-first within each status group.
+            ->orderByRaw("FIELD(Status, 'Completed', 'Approved', 'Pending', 'Declined', 'Cancelled')")
             ->orderByDesc('created_at');
 
         if ($status && in_array($status, ['Pending', 'Approved', 'Declined', 'Completed'])) {

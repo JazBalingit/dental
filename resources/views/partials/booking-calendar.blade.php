@@ -401,7 +401,7 @@
 
                                         @if ($isAvailable)
                                             @if ($readOnly)
-                                                <div class="slot-btn is-available text-center">Available</div>
+                                                <a href="{{ route('login') }}" class="slot-btn is-available text-center">Available</a>
                                             @elseif ($calendarMode === 'select')
                                                 <div class="d-flex gap-2 w-100 align-items-center flex-wrap px-3 py-2" style="background:#eaf8ec;border:1px solid #198754;border-radius:8px;">
                                                     <div class="dropdown wi-slot-service" style="max-width:240px;">
@@ -456,7 +456,8 @@
                                                 <a href="{{ route('login') }}" class="slot-btn is-available text-center">Log in to book this slot</a>
                                             @endif
                                         @else
-                                            <div class="slot-btn booking-status {{ $statusClass }} text-center">
+                                            <div class="slot-btn booking-status {{ $statusClass }} text-center" role="button" tabindex="0"
+                                                data-slot-notice="{{ $statusLabel }} — this time can't be selected. Please choose an open slot instead.">
                                                 <div>{{ $statusLabel }}@if($isMine) · {{ $apptForSlot->TypeOfAppointment ?: ($apptForSlot->service?->ServiceName) }} · {{ $apptForSlot->duration_label }}@endif</div>
                                                 @if(!$readOnly && $calendarMode === 'post' && $isMine && $isStartSlot && $apptForSlot->Status !== 'Completed')
                                                     <div class="d-flex justify-content-center gap-2 mt-2">
@@ -743,6 +744,46 @@
       var confirmView = e.target.querySelector('.book-confirm-view');
       if (slotsView) slotsView.hidden = false;
       if (confirmView) confirmView.hidden = true;
+    });
+
+    // ---------- Taken/unavailable slots gave zero feedback on click (nothing
+    // visibly happened, no explanation) — show a small toast instead so a
+    // second attempt to book an already-booked slot is obviously rejected. ----------
+    function showSlotNotice(message) {
+      var existing = document.getElementById('slotNoticeToast');
+      if (existing) existing.remove();
+      var el = document.createElement('div');
+      el.id = 'slotNoticeToast';
+      el.setAttribute('role', 'alert');
+      el.style.cssText = 'position:fixed;top:84px;right:1.25rem;z-index:1080;background:#fff;'
+        + 'border-left:4px solid #dc3545;border-radius:12px;box-shadow:0 18px 40px -12px rgba(15,23,42,.18);'
+        + 'padding:.85rem 1.1rem;max-width:320px;font-size:.85rem;color:#334155;';
+      el.textContent = message;
+      document.body.appendChild(el);
+      setTimeout(function () { el.remove(); }, 4000);
+    }
+
+    document.addEventListener('click', function (e) {
+      if (e.target.closest('button')) return;
+      var notice = e.target.closest('[data-slot-notice]');
+      if (notice) showSlotNotice(notice.dataset.slotNotice);
+    });
+    document.addEventListener('keydown', function (e) {
+      if (e.key !== 'Enter' && e.key !== ' ') return;
+      var notice = e.target.closest && e.target.closest('[data-slot-notice]');
+      if (notice) { e.preventDefault(); showSlotNotice(notice.dataset.slotNotice); }
+    });
+
+    // ---------- Prevent double-booking from a double-click: disable the
+    // Confirm Booking submit the moment it's pressed. ----------
+    document.addEventListener('submit', function (e) {
+      var form = e.target;
+      if (!(form instanceof HTMLFormElement) || !form.closest('.book-confirm-view')) return;
+      var btn = form.querySelector('button[type=submit]');
+      if (btn && !btn.disabled) {
+        btn.disabled = true;
+        btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Booking…';
+      }
     });
 })();
 </script>

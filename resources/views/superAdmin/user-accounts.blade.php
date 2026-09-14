@@ -3,6 +3,7 @@
 
 <head>
     <meta charset="utf-8" />
+  <link rel="icon" type="image/png" href="/images/puspus_logo.png">
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>User Accounts • Dental Clinic</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
@@ -110,11 +111,13 @@
                                                     <button class="btn btn-pill btn-pill-edit me-1" data-bs-toggle="modal"
                                                         data-bs-target="#editUserModal{{ $acc->UserID }}"><i class="bi bi-pencil-square"></i>
                                                         Edit</button>
-                                                    <form method="POST" action="{{ route('userAcc.archive', $acc->UserID) }}" class="d-inline">
-                                                        @csrf
-                                                        <button type="submit" class="btn btn-pill btn-pill-archive"><i class="bi bi-archive"></i>
-                                                            Archive</button>
-                                                    </form>
+                                                    <button type="button" class="btn btn-pill btn-pill-archive" data-bs-toggle="modal"
+                                                        data-bs-target="#confirmActionModal"
+                                                        data-action-url="{{ route('userAcc.archive', $acc->UserID) }}"
+                                                        data-title="Archive User"
+                                                        data-message="Archive {{ trim(($pi->FirstName ?? '') . ' ' . ($pi->LastName ?? '')) ?: $acc->Email }}? They won't be able to log in until you unarchive their account."
+                                                        data-confirm-label="Archive" data-confirm-class="btn-pill-archive">
+                                                        <i class="bi bi-archive"></i> Archive</button>
                                                 </td>
                                             </tr>
                                         @empty
@@ -165,11 +168,13 @@
                                                     <button class="btn btn-pill btn-pill-edit me-1" data-bs-toggle="modal"
                                                         data-bs-target="#editUserModal{{ $acc->UserID }}"><i class="bi bi-pencil-square"></i>
                                                         Edit</button>
-                                                    <form method="POST" action="{{ route('userAcc.unarchive', $acc->UserID) }}" class="d-inline">
-                                                        @csrf
-                                                        <button type="submit" class="btn btn-pill btn-pill-archive"><i class="bi bi-archive"></i>
-                                                            Unarchive</button>
-                                                    </form>
+                                                    <button type="button" class="btn btn-pill btn-pill-archive" data-bs-toggle="modal"
+                                                        data-bs-target="#confirmActionModal"
+                                                        data-action-url="{{ route('userAcc.unarchive', $acc->UserID) }}"
+                                                        data-title="Unarchive User"
+                                                        data-message="Restore {{ trim(($pi->FirstName ?? '') . ' ' . ($pi->LastName ?? '')) ?: $acc->Email }}? They'll be able to log in again."
+                                                        data-confirm-label="Unarchive" data-confirm-class="btn-pill-archive">
+                                                        <i class="bi bi-archive"></i> Unarchive</button>
                                                 </td>
                                             </tr>
                                         @empty
@@ -218,7 +223,7 @@
         @endif
         <div class="modal fade {{ $editFailed ? 'show' : '' }}" id="editUserModal{{ $acc->UserID }}" tabindex="-1"
             aria-hidden="{{ $editFailed ? 'false' : 'true' }}" style="{{ $editFailed ? 'display:block;' : '' }}">
-            <div class="modal-dialog modal-dialog-centered modal-lg">
+            <div class="modal-dialog modal-dialog-centered modal-xl modal-dialog-scrollable">
                 <div class="modal-content">
                     <div class="modal-header border-0 pb-0">
                         <div>
@@ -249,7 +254,7 @@
                                         Photo
                                         <input type="file" name="photo" accept=".jpg,.jpeg,.png" class="d-none">
                                     </label>
-                                    <div class="small text-muted-2 mt-1">JPG or PNG, max 2MB.</div>
+                                    <div class="small text-muted-2 mt-1">JPG or PNG, max 5MB.</div>
                                 </div>
                             </div>
 
@@ -367,8 +372,20 @@
     @endforeach
 
     @include('partials.admin-notif-modal')
+    @include('partials.confirm-action-modal')
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        document.querySelectorAll('input[type="file"][name="photo"]').forEach(function (input) {
+            input.addEventListener('change', function () {
+                var file = input.files[0];
+                if (file && file.size > 5 * 1024 * 1024) {
+                    alert('The photo is too large. Please choose an image up to 5MB only.');
+                    input.value = '';
+                }
+            });
+        });
+    </script>
 </body>
 
 </html>

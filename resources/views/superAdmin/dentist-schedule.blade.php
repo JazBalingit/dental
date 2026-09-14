@@ -3,6 +3,7 @@
 
 <head>
     <meta charset="utf-8" />
+  <link rel="icon" type="image/png" href="/images/puspus_logo.png">
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Dentist Schedule • Dental Clinic</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
@@ -44,7 +45,7 @@
             <div class="content">
                 <div class="page-head">
                     <div>
-                        <h2>Dentist Schedule</h2>
+                        <h2>{{ ($viewerIsDentist ?? false) ? 'My Schedule' : 'Dentist Schedule' }}</h2>
                         <div class="crumbs">View and manage availability for all dentists.</div>
                     </div>
                 </div>

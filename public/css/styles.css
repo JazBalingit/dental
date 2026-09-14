@@ -488,6 +488,39 @@ h6 {
   font-size: 1.05rem;
 }
 
+/* ---------- Inline field errors (below the input, not a top-of-page alert) ---------- */
+.input-icon.has-error .form-control,
+.input-icon.has-error .form-select {
+  border-color: var(--danger, #ef4444);
+  background: #fff6f6;
+}
+
+.input-icon.has-error .form-control:focus,
+.input-icon.has-error .form-select:focus {
+  border-color: var(--danger, #ef4444);
+  box-shadow: 0 0 0 4px rgba(239, 68, 68, .14);
+}
+
+.input-icon.has-error>i {
+  color: var(--danger, #ef4444);
+}
+
+.field-error {
+  display: flex;
+  align-items: flex-start;
+  gap: .4rem;
+  color: var(--danger, #ef4444);
+  font-size: .78rem;
+  line-height: 1.35;
+  margin-top: .4rem;
+}
+
+.field-error i {
+  font-size: .8rem;
+  margin-top: .1rem;
+  flex: none;
+}
+
 .btn-brand {
   background: linear-gradient(135deg, var(--brand-700), var(--brand-600));
   color: #fff;
@@ -687,6 +720,89 @@ h6 {
   height: 1px;
   background: rgba(255, 255, 255, .08);
   margin: .5rem 1rem;
+}
+
+/* Collapsible sidebar group (e.g. patient "Appointments" -> Book / Current /
+   History) — the toggle row looks and behaves like a plain .nav a link. */
+.sidebar .nav-toggle {
+  display: flex;
+  align-items: center;
+  gap: .75rem;
+  width: 100%;
+  background: none;
+  border: 0;
+  color: #c5dcf1;
+  text-decoration: none;
+  padding: .65rem .85rem;
+  border-radius: 10px;
+  font-size: .92rem;
+  font-weight: 500;
+  margin-bottom: 2px;
+  cursor: pointer;
+  transition: background .15s ease, color .15s ease;
+}
+
+.sidebar .nav-toggle i:first-child {
+  font-size: 1.05rem;
+  width: 20px;
+  text-align: center;
+}
+
+.sidebar .nav-toggle span {
+  flex: 1;
+  text-align: left;
+}
+
+.sidebar .nav-toggle-caret {
+  font-size: .75rem;
+  width: auto;
+  transition: transform .2s ease;
+}
+
+.sidebar .nav-toggle[aria-expanded="true"] .nav-toggle-caret {
+  transform: rotate(180deg);
+}
+
+.sidebar .nav-toggle:hover {
+  background: rgba(255, 255, 255, .06);
+  color: #fff;
+}
+
+.sidebar .nav-toggle.active {
+  background: linear-gradient(135deg, var(--brand-700), var(--brand-600));
+  color: #fff;
+  box-shadow: 0 8px 18px -8px rgba(42, 134, 214, .7);
+}
+
+.sidebar .nav-sub-link {
+  display: flex;
+  align-items: center;
+  gap: .6rem;
+  color: #a9c6e3;
+  text-decoration: none;
+  padding: .5rem .85rem .5rem 2.35rem;
+  font-size: .86rem;
+  font-weight: 500;
+  border-radius: 10px;
+  margin-bottom: 2px;
+  transition: background .15s ease, color .15s ease;
+}
+
+.sidebar .nav-sub-link i {
+  font-size: .85rem;
+  width: 16px;
+  text-align: center;
+}
+
+.sidebar .nav-sub-link:hover {
+  background: rgba(255, 255, 255, .06);
+  color: #fff;
+}
+
+.sidebar .nav-sub-link.active {
+  background: rgba(255, 255, 255, .14);
+  color: #fff;
+  font-weight: 600;
 }
 
 .sidebar .footer {
@@ -1043,6 +1159,10 @@ h6 {
   padding: 1.25rem;
   box-shadow: var(--shadow-sm);
   border: 1px solid var(--ink-100);
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
 }
 
 .stat-card::before {
@@ -2548,6 +2668,15 @@ h6 {
   padding: 9px 12px;
 }
 
+/* .form-select's padding shorthand above collapses the right padding
+   Bootstrap needs to keep its chevron background-image clear of the
+   selected option text (it needs ~2.25rem, not 12px) — once a longer
+   option is chosen, the text runs under/over the chevron and it looks
+   like the icon vanished. */
+.form-select {
+  padding-right: 2.25rem;
+}
+
 .form-control:focus,
 .form-select:focus {
   border-color: var(--brand);
@@ -2739,11 +2868,6 @@ h6 {
 
 .slot:last-child {
   border-right: none;
-}
-
-.week-grid>.time:last-of-type,
-.week-grid>.slot:nth-last-child(-n+8) {
-  border-bottom: none;
 }
 
 .legend {
@@ -3283,5 +3407,73 @@ canvas {
   .btn-group,
   .d-flex.gap-2 {
     flex-wrap: wrap;
+  }
+}
+
+/* =========================================================
+   Day-modal time grid (tablet & desktop) — redesigned as a
+   clean, organized set of rows instead of a stack of loose,
+   individually-dashed pills. Shared by every .week-grid in the
+   app: the booking calendar's day modal (walk-in, patient
+   portal booking, the guest schedule preview) and the dentist's
+   own schedule-editing modal (admin & super admin).
+
+   Scoped to ≥576px on purpose — below that, mobile.css already
+   replaces this same markup with its own stacked list / two-
+   column accordion (see mobile.css section 5b/5b-2), which this
+   must never compete with. */
+@media (min-width: 576px) {
+  .week-grid {
+    border: 1px solid var(--ink-100, #f1f5f9);
+    border-radius: var(--radius-md, .85rem);
+    overflow: hidden;
+    background: #fff;
+  }
+
+  .week-grid > .time,
+  .week-grid > .slot {
+    display: flex;
+    align-items: center;
+    min-height: 52px;
+    background-color: #fff;
+    border-bottom: 1px solid var(--ink-100, #f1f5f9);
+  }
+
+  .week-grid > .time {
+    justify-content: flex-end;
+    padding: .5rem .9rem;
+    font-size: .78rem;
+    font-weight: 600;
+    color: var(--ink-500, #64748b);
+    border-right: 1px solid var(--ink-100, #f1f5f9);
+  }
+
+  .week-grid > .slot {
+    padding: .4rem .65rem;
+  }
+
+  /* Zebra each time+slot pair (children 3&4 = row 1, 5&6 = row 2, …) so
+     alternating rows share a faint tint and read as one distinct line
+     instead of a loose vertical stack. */
+  .week-grid > *:nth-child(4n+3),
+  .week-grid > *:nth-child(4n) {
+    background-color: var(--brand-50, #f1fcf0);
+  }
+
+  /* The last row's own divider would double up with the grid's outer
+     border right below it. */
+  .week-grid > *:nth-last-child(-n+2) {
+    border-bottom: 0;
+  }
+
+  /* Flatter, solid-bordered chips — the row itself now does the visual
+     organizing, so the button no longer needs a big dashed outline to
+     stand apart from its neighbors. */
+  .week-grid .slot-btn {
+    width: 100%;
+    min-height: 40px;
+    border-radius: 8px;
+    border-style: solid;
+    font-weight: 600;
   }
 }

@@ -24,7 +24,9 @@ class LoginController extends Controller
 
     public function create()
     {
-        return view('login_signup.login');
+        return view('login_signup.login', [
+            'resetRetrySeconds' => $this->otpResendRetryAfter('reset'),
+        ]);
     }
 
     public function login(Request $request)

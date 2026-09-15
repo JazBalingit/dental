@@ -12,17 +12,18 @@ use Illuminate\Database\QueryException;
 class SendAppointmentReminders extends Command
 {
     protected $signature = 'appointments:send-reminders';
-    protected $description = 'Send day-before, hour-before, and on-time reminders for approved appointments';
+    protected $description = 'Send day-before, hour-before, 20-minutes-before, and on-time reminders for approved appointments';
 
     /**
-     * Threshold offsets from the appointment datetime, checked in order.
-     * Using a "now has crossed the threshold" check (rather than an exact
-     * time match) means this works correctly no matter how often the
-     * scheduler actually runs.
+     * Threshold offsets (in minutes) from the appointment datetime, checked
+     * in order. Using a "now has crossed the threshold" check (rather than
+     * an exact time match) means this works correctly no matter how often
+     * the scheduler actually runs.
      */
     protected array $stages = [
-        'day_before' => -24, // hours before appointment
-        'hour_before' => -1,
+        'day_before' => -1440, // 24 hours before appointment
+        'hour_before' => -60,
+        'coming_now' => -20,
         'on_time' => 0,
     ];
 
@@ -60,8 +61,8 @@ class SendAppointmentReminders extends Command
 
             $timeLabel = $dt->format('g:i A');
 
-            foreach ($this->stages as $type => $hoursOffset) {
-                $threshold = $dt->copy()->addHours($hoursOffset);
+            foreach ($this->stages as $type => $minutesOffset) {
+                $threshold = $dt->copy()->addMinutes($minutesOffset);
 
                 if ($now->lt($threshold)) {
                     continue; // hasn't crossed this threshold yet
@@ -76,6 +77,7 @@ class SendAppointmentReminders extends Command
                 $message = match ($type) {
                     'day_before' => "Your appointment is tomorrow at {$timeLabel}.",
                     'hour_before' => "Your appointment is in 1 hour at {$timeLabel}.",
+                    'coming_now' => "You can come now — your appointment is in 20 minutes at {$timeLabel}.",
                     'on_time' => 'Your appointment is now.',
                 };
 

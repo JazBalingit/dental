@@ -200,7 +200,8 @@
             <form method="POST" action="{{ route('password.resend') }}" class="text-center">
               @csrf
               <span class="small text-muted-2">Didn't receive the code?</span>
-              <button type="submit" class="btn btn-link btn-sm p-0 ms-1">Resend</button>
+              <button type="submit" class="btn btn-link btn-sm p-0 ms-1" style="color:#0f7a23;"
+                data-resend-cooldown="{{ $resetRetrySeconds }}">Resend</button>
             </form>
           @endunless
         </div>
@@ -209,6 +210,7 @@
   </div>
 
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="{{ asset('js/otp-resend-cooldown.js') }}"></script>
 </body>
 
 </html>

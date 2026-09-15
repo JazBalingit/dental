@@ -73,6 +73,7 @@ class SettingsController extends Controller
             'activitySearch' => $search,
             'activityType' => $type,
             'activityTypes' => $activityTypes,
+            'settingsResetRetrySeconds' => $this->otpResendRetryAfter('settings_reset'),
         ]);
     }
 

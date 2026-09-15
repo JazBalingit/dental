@@ -10,7 +10,7 @@ return new class extends Migration {
         Schema::table('tbl_notifications', function (Blueprint $table) {
             $table->unsignedBigInteger('AppointmentID')->nullable()->after('UserID');
             $table->string('Status')->nullable()->after('Type'); // snapshot of appointment status at notification time
-            $table->string('ReminderType')->nullable()->after('Status'); // 'day_before' | 'hour_before' | 'on_time'
+            $table->string('ReminderType')->nullable()->after('Status'); // 'day_before' | 'hour_before' | 'coming_now' | 'on_time'
 
             $table->foreign('AppointmentID')->references('AppointmentID')->on('tbl_appointments')->nullOnDelete();
             $table->unique(['AppointmentID', 'ReminderType'], 'notif_appt_reminder_unique');

@@ -225,7 +225,9 @@
                                         </form>
                                         <form method="POST" action="{{ route('staffProfile.sendVerification') }}" class="mt-2">
                                             @csrf
-                                            <button type="submit" class="btn btn-link btn-sm p-0">Didn't receive the code? Resend</button>
+                                            <span class="small text-muted-2">Didn't receive the code?</span>
+                                            <button type="submit" class="btn btn-link btn-sm p-0 ms-1" style="color:#0f7a23;"
+                                                data-resend-cooldown="{{ $staffVerifyRetrySeconds }}">Resend</button>
                                         </form>
                                     @else
                                         <form method="POST" action="{{ route('staffProfile.sendVerification') }}">
@@ -338,7 +340,9 @@
                                         </form>
                                         <form method="POST" action="{{ route('superAdminRelease.sendCode') }}" class="mt-2">
                                             @csrf
-                                            <button type="submit" class="btn btn-link btn-sm p-0">Didn't receive the code? Resend</button>
+                                            <span class="small text-muted-2">Didn't receive the code?</span>
+                                            <button type="submit" class="btn btn-link btn-sm p-0 ms-1" style="color:#0f7a23;"
+                                                data-resend-cooldown="{{ $releaseRetrySeconds }}">Resend</button>
                                         </form>
                                     @else
                                         <form method="POST" action="{{ route('superAdminRelease.sendCode') }}">
@@ -361,6 +365,7 @@
     <script src="{{ asset('js/field-restrictions.js') }}"></script>
     <script src="{{ asset('js/birthdate-age.js') }}"></script>
     <script src="{{ asset('js/profile-edit-toggle.js') }}"></script>
+    <script src="{{ asset('js/otp-resend-cooldown.js') }}"></script>
     <script>
         document.querySelectorAll('[data-profile-tab]').forEach(function (btn) {
             btn.addEventListener('click', function () {

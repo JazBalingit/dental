@@ -45,6 +45,8 @@ class StaffProfileController extends Controller
             // is still configured (there must be a way back in after a release).
             'bootstrapEmail' => config('superadmin.email'),
             'bootstrapConfigured' => (bool) config('superadmin.email') && (bool) config('superadmin.password'),
+            'staffVerifyRetrySeconds' => $this->otpResendRetryAfter('staff_verify'),
+            'releaseRetrySeconds' => $this->otpResendRetryAfter('super_admin_release'),
         ]);
     }
 

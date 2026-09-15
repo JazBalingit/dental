@@ -28,6 +28,7 @@ class RegisterController extends Controller
         return view('login_signup.signup', [
             'privacyPolicy' => SystemSetting::get('privacy_policy_content', ''),
             'legalTerms' => SystemSetting::get('legal_terms_content', ''),
+            'otpRetrySeconds' => $this->otpResendRetryAfter('otp'),
         ]);
     }
 

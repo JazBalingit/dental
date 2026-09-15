@@ -559,7 +559,8 @@
                     <form method="POST" action="{{ route('settings.reset.resend') }}" class="text-center">
                         @csrf
                         <span class="small text-muted">Didn't receive the code?</span>
-                        <button type="submit" class="btn-link btn-sm p-0 ms-1" style="background:none;border:none;color:#0f7a23;">Resend</button>
+                        <button type="submit" class="btn-link btn-sm p-0 ms-1" style="background:none;border:none;color:#0f7a23;"
+                            data-resend-cooldown="{{ $settingsResetRetrySeconds }}">Resend</button>
                     </form>
                 </div>
             </div>
@@ -572,6 +573,7 @@
     <script src="{{ asset('js/address-sync.js') }}"></script>
     <script src="{{ asset('js/birthdate-age.js') }}"></script>
     <script src="{{ asset('js/profile-edit-toggle.js') }}"></script>
+    <script src="{{ asset('js/otp-resend-cooldown.js') }}"></script>
     <script>
         document.querySelectorAll('.settings-tab-btn').forEach(function (btn) {
             btn.addEventListener('click', function () {

@@ -210,7 +210,8 @@
                                     <form method="POST" action="{{ route('superAdminSetup.resendCode') }}" class="m-0">
                                         @csrf
                                         <span class="small text-muted-2">Didn't get the code?</span>
-                                        <button type="submit" class="btn btn-link btn-sm p-0 ms-1">Resend</button>
+                                        <button type="submit" class="btn btn-link btn-sm p-0 ms-1" style="color:#0f7a23;"
+                                            data-resend-cooldown="{{ $verifyRetrySeconds }}">Resend</button>
                                     </form>
                                     <a href="{{ route('superAdminSetup', ['edit' => 1]) }}"
                                         class="small text-muted-2">Use a different email</a>
@@ -225,6 +226,7 @@
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="{{ asset('js/otp-resend-cooldown.js') }}"></script>
 </body>
 
 </html>

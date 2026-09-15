@@ -79,6 +79,7 @@ class SuperAdminSetupController extends Controller
             'roleLabel' => 'Super Admin',
             'showVerify' => $showVerify,
             'pendingEmail' => session('super_admin_setup_email'),
+            'verifyRetrySeconds' => $this->otpResendRetryAfter($this->otpPrefix),
         ]);
     }
 

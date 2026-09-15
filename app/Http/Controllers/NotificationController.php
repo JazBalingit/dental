@@ -33,4 +33,22 @@ class NotificationController extends Controller
 
         return redirect()->back();
     }
+
+    /**
+     * Marks every one of the logged-in user's notifications as read — fired
+     * via fetch() the moment they open the bell dropdown, so the unread
+     * badge clears without navigating away from whatever page they're on.
+     */
+    public function markAllRead(Request $request)
+    {
+        if (!session('user_id')) {
+            return response()->json(['ok' => false], 401);
+        }
+
+        Notification::where('UserID', session('user_id'))
+            ->where('IsRead', false)
+            ->update(['IsRead' => true]);
+
+        return response()->json(['ok' => true]);
+    }
 }

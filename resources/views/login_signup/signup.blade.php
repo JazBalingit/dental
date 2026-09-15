@@ -91,10 +91,15 @@
                 <div class="col-md-6 col-lg-3">
                   <label class="form-label">Birthdate</label>
                   <div class="input-icon @error('birthdate') has-error @enderror"><i class="bi bi-calendar-event"></i><input type="date" name="birthdate"
-                      id="signupBirthdate" class="form-control" value="{{ old('birthdate') }}" max="2023-12-31" required />
+                      id="signupBirthdate" class="form-control" value="{{ old('birthdate') }}" max="2023-12-31" required
+                      data-age-target="#signupAge" />
                   </div>
                   @error('birthdate') <div class="field-error"><i class="bi bi-exclamation-circle-fill"></i> {{ $message }}</div> @enderror
                   <div class="small text-muted-2 mt-1">Must be born on or before Dec 31, 2023.</div>
+                </div>
+                <div class="col-md-6 col-lg-3">
+                  <label class="form-label">Age</label>
+                  <div class="input-icon"><i class="bi bi-person-vcard"></i><input type="text" id="signupAge" class="form-control" placeholder="—" disabled /></div>
                 </div>
 
                 <div class="col-md-6 col-lg-3">
@@ -175,8 +180,8 @@
                 </div>
                 <div class="col-sm-6">
                   <label class="form-label">Cell/Mobile number</label>
-                  <div class="input-icon @error('phone') has-error @enderror"><i class="bi bi-telephone"></i><input name="phone" class="form-control"
-                      value="{{ old('phone') }}" placeholder="+63 9XX XXX XXXX" required /></div>
+                  <div class="input-icon @error('phone') has-error @enderror"><i class="bi bi-telephone"></i><input type="tel" name="phone" id="signupPhone" class="form-control"
+                      value="{{ old('phone') }}" placeholder="09XXXXXXXXX" inputmode="numeric" pattern="[0-9]{11}" title="Enter an 11-digit mobile number" required /></div>
                   @error('phone') <div class="field-error"><i class="bi bi-exclamation-circle-fill"></i> {{ $message }}</div> @enderror
                 </div>
               </div>
@@ -211,8 +216,8 @@
                   <label class="form-label">Password</label>
                   <div class="pw-field">
                     <input type="checkbox" class="pw-toggle-checkbox" id="pwCheckSignup">
-                    <div class="input-icon @error('password') has-error @enderror"><i class="bi bi-lock"></i><input type="text" name="password"
-                        class="form-control pw-mask" placeholder="••••••••" required minlength="8"
+                    <div class="input-icon @error('password') has-error @enderror" id="signupPwWrap"><i class="bi bi-lock"></i><input type="text" name="password"
+                        id="signupPw" class="form-control pw-mask" placeholder="••••••••" required minlength="8"
                         value="{{ old('password') }}" autocomplete="new-password" /></div>
                     <label for="pwCheckSignup" class="pw-eye-btn">
                       <i class="bi bi-eye"></i><i class="bi bi-eye-slash"></i>
@@ -224,13 +229,14 @@
                   <label class="form-label">Confirm password</label>
                   <div class="pw-field">
                     <input type="checkbox" class="pw-toggle-checkbox" id="pwCheckSignupConfirm">
-                    <div class="input-icon"><i class="bi bi-shield-lock"></i><input type="text"
-                        name="password_confirmation" class="form-control pw-mask" placeholder="••••••••" required
+                    <div class="input-icon @error('password') has-error @enderror" id="signupConfirmPwWrap"><i class="bi bi-shield-lock"></i><input type="text"
+                        name="password_confirmation" id="signupConfirmPw" class="form-control pw-mask" placeholder="••••••••" required
                         value="{{ old('password_confirmation') }}" autocomplete="new-password" /></div>
                     <label for="pwCheckSignupConfirm" class="pw-eye-btn">
                       <i class="bi bi-eye"></i><i class="bi bi-eye-slash"></i>
                     </label>
                   </div>
+                  <div class="field-error" id="signupConfirmPwError" hidden><i class="bi bi-exclamation-circle-fill"></i> Passwords do not match.</div>
                 </div>
               </div>
 
@@ -372,7 +378,38 @@
       form.querySelectorAll('.addr-part').forEach(function (el) {
         el.addEventListener('input', syncAddress);
       });
-      form.addEventListener('submit', syncAddress);
+
+      var phoneInput = document.getElementById('signupPhone');
+      if (phoneInput) {
+        phoneInput.addEventListener('input', function () {
+          phoneInput.value = phoneInput.value.replace(/\D/g, '').slice(0, 11);
+        });
+      }
+      form.addEventListener('submit', function (e) {
+        syncAddress();
+        if (pwInput && confirmInput && !checkPasswordsMatch()) {
+          e.preventDefault();
+          confirmInput.focus();
+        }
+      });
+
+      var pwInput = document.getElementById('signupPw');
+      var pwWrap = document.getElementById('signupPwWrap');
+      var confirmInput = document.getElementById('signupConfirmPw');
+      var confirmWrap = document.getElementById('signupConfirmPwWrap');
+      var confirmError = document.getElementById('signupConfirmPwError');
+
+      function passwordsMismatched() {
+        return confirmInput.value.length > 0 && pwInput.value !== confirmInput.value;
+      }
+
+      function checkPasswordsMatch() {
+        var mismatched = passwordsMismatched();
+        pwWrap.classList.toggle('has-error', mismatched);
+        confirmWrap.classList.toggle('has-error', mismatched);
+        confirmError.hidden = !mismatched;
+        return !mismatched;
+      }
 
       syncAddress();
       render();
@@ -439,15 +476,14 @@
           @if (session('otp_expired'))
             <div class="alert alert-warning py-2 small">Your session expired. Please fill out the form again.</div>
           @endif
-          @if (session('otp_error'))
-            <div class="alert alert-danger py-2 small">{{ session('otp_error') }}</div>
-          @endif
-
           <form method="POST" action="{{ route('register.verify') }}" class="mb-2">
             @csrf
             <label class="form-label">Verification code</label>
-            <input type="text" name="code" class="form-control text-center" maxlength="6" inputmode="numeric"
-              pattern="[0-9]*" placeholder="••••••" required style="letter-spacing: 6px; font-size: 1.25rem;">
+            <input type="text" name="code" class="form-control text-center {{ session('otp_error') ? 'has-error' : '' }}" maxlength="6" inputmode="numeric"
+              pattern="[0-9]*" placeholder="••••••" required value="{{ old('code') }}" style="letter-spacing: 6px; font-size: 1.25rem;">
+            @if (session('otp_error'))
+              <div class="field-error mt-1"><i class="bi bi-exclamation-circle-fill"></i> {{ session('otp_error') }}</div>
+            @endif
             <button type="submit" class="btn btn-brand w-100 mt-3">Verify &amp; Create Account</button>
           </form>
 
@@ -462,6 +498,8 @@
   </div>
 
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="{{ asset('js/field-restrictions.js') }}"></script>
+  <script src="{{ asset('js/birthdate-age.js') }}"></script>
 </body>
 
 </html>

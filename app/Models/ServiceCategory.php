@@ -13,10 +13,12 @@ class ServiceCategory extends Model
         'Name',
         'Icon',
         'DisplayOrder',
+        'IsArchived',
     ];
 
     protected $casts = [
         'DisplayOrder' => 'integer',
+        'IsArchived' => 'boolean',
     ];
 
     /**

@@ -96,6 +96,7 @@ Route::middleware('auth.session')->group(function () {
 
     // Notifications — shared by the admin side and the patient side
     Route::post('/notifications/{id}/read', [NotificationController::class, 'markRead'])->name('notifications.read');
+    Route::post('/notifications/read-all', [NotificationController::class, 'markAllRead'])->name('notifications.readAll');
 });
 
 
@@ -145,6 +146,7 @@ Route::middleware('admin')->group(function () {
 
     // Staff self-service profile (view info, verify email, change password)
     Route::get('/staff-profile', [StaffProfileController::class, 'edit'])->name('staffProfile');
+    Route::post('/staff-profile/update', [StaffProfileController::class, 'updateProfile'])->name('staffProfile.updateProfile');
     Route::post('/staff-profile/send-verification', [StaffProfileController::class, 'sendVerification'])->name('staffProfile.sendVerification');
     Route::post('/staff-profile/verify-email', [StaffProfileController::class, 'verifyEmail'])->name('staffProfile.verifyEmail');
     Route::post('/staff-profile/update-password', [StaffProfileController::class, 'updatePassword'])->name('staffProfile.password.update');
@@ -193,11 +195,15 @@ Route::middleware('admin')->group(function () {
         Route::post('/configuration/services/{id}/unarchive', [ConfigurationController::class, 'unarchiveService'])->name('configuration.services.unarchive');
         Route::post('/configuration/categories', [ConfigurationController::class, 'storeCategory'])->name('configuration.categories.store');
         Route::post('/configuration/categories/{id}/update', [ConfigurationController::class, 'updateCategory'])->name('configuration.categories.update');
-        Route::post('/configuration/categories/{id}/delete', [ConfigurationController::class, 'destroyCategory'])->name('configuration.categories.destroy');
+        Route::post('/configuration/categories/{id}/archive', [ConfigurationController::class, 'archiveCategory'])->name('configuration.categories.archive');
+        Route::post('/configuration/categories/{id}/unarchive', [ConfigurationController::class, 'unarchiveCategory'])->name('configuration.categories.unarchive');
         Route::post('/configuration/activity-logs/{id}/archive', [ConfigurationController::class, 'archiveActivityLog'])->name('configuration.activityLogs.archive');
         Route::post('/configuration/activity-logs/{id}/unarchive', [ConfigurationController::class, 'unarchiveActivityLog'])->name('configuration.activityLogs.unarchive');
         Route::post('/configuration/about', [ConfigurationController::class, 'updateAboutInfo'])->name('configuration.about.update');
         Route::post('/configuration/privacy-legal', [ConfigurationController::class, 'updatePrivacyLegal'])->name('configuration.privacyLegal.update');
-        Route::post('/configuration/appointment-steps', [ConfigurationController::class, 'updateAppointmentSteps'])->name('configuration.appointmentSteps.update');
+        Route::post('/configuration/appointment-steps', [ConfigurationController::class, 'storeAppointmentStep'])->name('configuration.appointmentSteps.store');
+        Route::post('/configuration/appointment-steps/{id}/update', [ConfigurationController::class, 'updateAppointmentStep'])->name('configuration.appointmentSteps.update');
+        Route::post('/configuration/appointment-steps/{id}/archive', [ConfigurationController::class, 'archiveAppointmentStep'])->name('configuration.appointmentSteps.archive');
+        Route::post('/configuration/appointment-steps/{id}/unarchive', [ConfigurationController::class, 'unarchiveAppointmentStep'])->name('configuration.appointmentSteps.unarchive');
     });
 });

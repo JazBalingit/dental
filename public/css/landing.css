@@ -1528,7 +1528,7 @@ footer .footer-link {
     align-items: center;
     justify-content: center;
     gap: .35rem;
-    box-shadow: 0 10px 22px -10px rgba(29, 111, 184, .7);
+    box-shadow: 0 10px 22px -10px rgba(46, 133, 50, .7);
     transition: transform .15s ease, box-shadow .15s ease;
     white-space: nowrap;
 }
@@ -1541,7 +1541,7 @@ footer .footer-link {
 .btn-brand:hover {
     color: #fff;
     transform: translateY(-1px);
-    box-shadow: 0 14px 28px -10px rgba(29, 111, 184, .8);
+    box-shadow: 0 14px 28px -10px rgba(46, 133, 50, .8);
 }
 
 .btn-ghost {
@@ -1817,7 +1817,7 @@ video {
     }
 
     .modal-dialog {
-        margin: .5rem;
+        margin: .5rem auto;
     }
 }
 

@@ -132,11 +132,7 @@
                             <div class="pagination-soft">
                                 <div>Showing {{ $users->count() }} of {{ $users->total() }} entries</div>
                                 <div class="pages">
-                                    <a href="{{ $users->previousPageUrl() ?? '#' }}"><i class="bi bi-chevron-left"></i></a>
-                                    @for ($i = 1; $i <= $users->lastPage(); $i++)
-                                        <a href="{{ $users->url($i) }}" class="{{ $users->currentPage() === $i ? 'active' : '' }}">{{ $i }}</a>
-                                    @endfor
-                                    <a href="{{ $users->nextPageUrl() ?? '#' }}"><i class="bi bi-chevron-right"></i></a>
+                                    @include('partials.pagination-pages', ['paginator' => $users])
                                 </div>
                             </div>
                         </div>
@@ -189,11 +185,7 @@
                             <div class="pagination-soft">
                                 <div>Showing {{ $archivedUsers->count() }} of {{ $archivedUsers->total() }} entries</div>
                                 <div class="pages">
-                                    <a href="{{ $archivedUsers->previousPageUrl() ?? '#' }}"><i class="bi bi-chevron-left"></i></a>
-                                    @for ($i = 1; $i <= $archivedUsers->lastPage(); $i++)
-                                        <a href="{{ $archivedUsers->url($i) }}" class="{{ $archivedUsers->currentPage() === $i ? 'active' : '' }}">{{ $i }}</a>
-                                    @endfor
-                                    <a href="{{ $archivedUsers->nextPageUrl() ?? '#' }}"><i class="bi bi-chevron-right"></i></a>
+                                    @include('partials.pagination-pages', ['paginator' => $archivedUsers])
                                 </div>
                             </div>
                         </div>
@@ -217,10 +209,10 @@
             $pi = $acc->patientInfo;
             $editFailed = $errors->any() && old('form_source') === 'edit_' . $acc->UserID;
             $ev = fn ($field, $default = '') => $editFailed ? old($field) : $default;
+            $eErr = fn ($field) => $editFailed && $errors->has($field) ? 'has-error' : '';
+            $eMsg = fn ($field) => $editFailed && $errors->has($field) ? $errors->first($field) : null;
+            $addrParts = array_pad(array_map('trim', explode(',', $pi->Address ?? '', 4)), 4, '');
         @endphp
-        @if ($editFailed)
-            <div class="modal-backdrop fade show"></div>
-        @endif
         <div class="modal fade {{ $editFailed ? 'show' : '' }}" id="editUserModal{{ $acc->UserID }}" tabindex="-1"
             aria-hidden="{{ $editFailed ? 'false' : 'true' }}" style="{{ $editFailed ? 'display:block;' : '' }}">
             <div class="modal-dialog modal-dialog-centered modal-xl modal-dialog-scrollable">
@@ -262,98 +254,140 @@
                             <div class="row g-3 mb-3">
                                 <div class="col-md-4">
                                     <label class="form-label">Last name</label>
-                                    <div class="input-icon"><i class="bi bi-person"></i><input type="text" name="last_name" class="form-control"
+                                    <div class="input-icon {{ $eErr('last_name') }}"><i class="bi bi-person"></i><input type="text" name="last_name" class="form-control"
                                             value="{{ $ev('last_name', $pi->LastName ?? '') }}" required /></div>
+                                    @if ($eMsg('last_name')) <div class="field-error"><i class="bi bi-exclamation-circle-fill"></i> {{ $eMsg('last_name') }}</div> @endif
                                 </div>
                                 <div class="col-md-4">
                                     <label class="form-label">First name</label>
-                                    <div class="input-icon"><i class="bi bi-person"></i><input type="text" name="first_name" class="form-control"
+                                    <div class="input-icon {{ $eErr('first_name') }}"><i class="bi bi-person"></i><input type="text" name="first_name" class="form-control"
                                             value="{{ $ev('first_name', $pi->FirstName ?? '') }}" required /></div>
+                                    @if ($eMsg('first_name')) <div class="field-error"><i class="bi bi-exclamation-circle-fill"></i> {{ $eMsg('first_name') }}</div> @endif
                                 </div>
                                 <div class="col-md-4">
                                     <label class="form-label">Middle name</label>
-                                    <div class="input-icon"><i class="bi bi-person"></i><input type="text" name="middle_name" class="form-control"
+                                    <div class="input-icon {{ $eErr('middle_name') }}"><i class="bi bi-person"></i><input type="text" name="middle_name" class="form-control"
                                             value="{{ $ev('middle_name', $pi->MiddleName ?? '') }}" /></div>
+                                    @if ($eMsg('middle_name')) <div class="field-error"><i class="bi bi-exclamation-circle-fill"></i> {{ $eMsg('middle_name') }}</div> @endif
                                 </div>
 
-                                <div class="col-md-6">
+                                <div class="col-md-4">
                                     <label class="form-label">Birthdate</label>
-                                    <div class="input-icon"><i class="bi bi-calendar-event"></i><input type="date" name="birthdate"
-                                            class="form-control" value="{{ $ev('birthdate', optional($pi->DateOfBirth ?? null)->format('Y-m-d')) }}" required />
+                                    <div class="input-icon {{ $eErr('birthdate') }}"><i class="bi bi-calendar-event"></i><input type="date" name="birthdate"
+                                            class="form-control" value="{{ $ev('birthdate', optional($pi->DateOfBirth ?? null)->format('Y-m-d')) }}" max="2023-12-31" required
+                                            data-age-target="#userAge{{ $acc->UserID }}" data-minor-target="#userMinorSection{{ $acc->UserID }}" />
                                     </div>
-                                    <div class="small text-muted-2 mt-1">Age is calculated automatically from the birthdate.</div>
+                                    @if ($eMsg('birthdate'))
+                                        <div class="field-error"><i class="bi bi-exclamation-circle-fill"></i> {{ $eMsg('birthdate') }}</div>
+                                    @else
+                                        <div class="small text-muted-2 mt-1">Age is calculated automatically from the birthdate.</div>
+                                    @endif
+                                </div>
+                                <div class="col-md-2">
+                                    <label class="form-label">Age</label>
+                                    <div class="input-icon"><i class="bi bi-person-vcard"></i><input type="text" class="form-control" id="userAge{{ $acc->UserID }}" placeholder="—" disabled></div>
                                 </div>
 
                                 <div class="col-md-6">
                                     <label class="form-label">Gender</label>
-                                    <div class="input-icon">
+                                    <div class="input-icon {{ $eErr('gender') }}">
                                         <select class="form-select" name="gender" required>
                                             <option value="male" {{ $ev('gender', $pi->Gender ?? '') === 'male' ? 'selected' : '' }}>Male</option>
                                             <option value="female" {{ $ev('gender', $pi->Gender ?? '') === 'female' ? 'selected' : '' }}>Female</option>
                                             <option value="other" {{ $ev('gender', $pi->Gender ?? '') === 'other' ? 'selected' : '' }}>Other</option>
                                         </select>
                                     </div>
+                                    @if ($eMsg('gender')) <div class="field-error"><i class="bi bi-exclamation-circle-fill"></i> {{ $eMsg('gender') }}</div> @endif
                                 </div>
                                 <div class="col-md-6">
                                     <label class="form-label">Religion</label>
-                                    <div class="input-icon"><i class="bi bi-book"></i><input class="form-control" name="religion"
+                                    <div class="input-icon {{ $eErr('religion') }}"><i class="bi bi-book"></i><input class="form-control" name="religion"
                                             value="{{ $ev('religion', $pi->Religion ?? '') }}" />
                                     </div>
+                                    @if ($eMsg('religion')) <div class="field-error"><i class="bi bi-exclamation-circle-fill"></i> {{ $eMsg('religion') }}</div> @endif
                                 </div>
 
                                 <div class="col-md-6">
                                     <label class="form-label">Nationality</label>
-                                    <div class="input-icon"><i class="bi bi-flag"></i><input class="form-control" name="nationality"
+                                    <div class="input-icon {{ $eErr('nationality') }}"><i class="bi bi-flag"></i><input class="form-control" name="nationality"
                                             value="{{ $ev('nationality', $pi->Nationality ?? '') }}" required />
                                     </div>
+                                    @if ($eMsg('nationality')) <div class="field-error"><i class="bi bi-exclamation-circle-fill"></i> {{ $eMsg('nationality') }}</div> @endif
                                 </div>
-                                <div class="col-md-6">
+                                <div class="col-12">
                                     <label class="form-label">Occupation</label>
-                                    <div class="input-icon"><i class="bi bi-briefcase"></i><input class="form-control" name="occupation"
+                                    <div class="input-icon {{ $eErr('occupation') }}"><i class="bi bi-briefcase"></i><input class="form-control" name="occupation"
                                             value="{{ $ev('occupation', $pi->Occupation ?? '') }}" />
                                     </div>
+                                    @if ($eMsg('occupation')) <div class="field-error"><i class="bi bi-exclamation-circle-fill"></i> {{ $eMsg('occupation') }}</div> @endif
                                 </div>
+                            </div>
 
-                                <div class="col-12">
-                                    <label class="form-label">Home address</label>
-                                    <div class="input-icon"><i class="bi bi-geo-alt"></i><input class="form-control" name="address"
-                                            value="{{ $ev('address', $pi->Address ?? '') }}" required /></div>
+                            <div class="section-label mt-2">Home Address</div>
+                            <div class="row g-3 mb-3">
+                                <div class="col-md-6">
+                                    <label class="form-label">Street / House No.</label>
+                                    <div class="input-icon"><i class="bi bi-signpost-2"></i><input class="form-control addr-part" name="addr_street"
+                                            value="{{ $editFailed ? old('addr_street') : $addrParts[0] }}" placeholder="123 Sample St." /></div>
                                 </div>
+                                <div class="col-md-6">
+                                    <label class="form-label">Barangay</label>
+                                    <div class="input-icon"><i class="bi bi-geo"></i><input class="form-control addr-part" name="addr_barangay"
+                                            value="{{ $editFailed ? old('addr_barangay') : $addrParts[1] }}" placeholder="Barangay" /></div>
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label">City / Municipality</label>
+                                    <div class="input-icon"><i class="bi bi-buildings"></i><input class="form-control addr-part" name="addr_city"
+                                            value="{{ $editFailed ? old('addr_city') : $addrParts[2] }}" placeholder="City / Municipality" required /></div>
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label">Province</label>
+                                    <div class="input-icon"><i class="bi bi-map"></i><input class="form-control addr-part" name="addr_province"
+                                            value="{{ $editFailed ? old('addr_province') : $addrParts[3] }}" placeholder="Province" required /></div>
+                                </div>
+                                <input type="hidden" name="address" class="{{ $eErr('address') }}" value="{{ $ev('address', $pi->Address ?? '') }}">
+                                @if ($eMsg('address')) <div class="col-12"><div class="field-error"><i class="bi bi-exclamation-circle-fill"></i> {{ $eMsg('address') }}</div></div> @endif
                             </div>
 
                             <div class="section-label mt-2">Contact Details</div>
                             <div class="row g-3 mb-3">
                                 <div class="col-md-6">
                                     <label class="form-label">Email address</label>
-                                    <div class="input-icon"><i class="bi bi-envelope"></i><input type="email" name="email"
+                                    <div class="input-icon {{ $eErr('email') }}"><i class="bi bi-envelope"></i><input type="email" name="email"
                                             class="form-control" value="{{ $ev('email', $acc->Email) }}" required /></div>
+                                    @if ($eMsg('email')) <div class="field-error"><i class="bi bi-exclamation-circle-fill"></i> {{ $eMsg('email') }}</div> @endif
                                 </div>
                                 <div class="col-md-6">
                                     <label class="form-label">Cell/Mobile number</label>
-                                    <div class="input-icon"><i class="bi bi-telephone"></i><input class="form-control" name="phone"
+                                    <div class="input-icon {{ $eErr('phone') }}"><i class="bi bi-telephone"></i><input class="form-control" name="phone"
                                             value="{{ $ev('phone', $pi->PhoneNumber ?? '') }}" required /></div>
+                                    @if ($eMsg('phone')) <div class="field-error"><i class="bi bi-exclamation-circle-fill"></i> {{ $eMsg('phone') }}</div> @endif
                                 </div>
                             </div>
 
-                            <div class="section-label mt-2">Parent / Guardian (for minors)</div>
-                            <div class="row g-3 mb-3">
-                                <div class="col-md-6">
-                                    <label class="form-label">Guardian's name</label>
-                                    <div class="input-icon"><i class="bi bi-person-heart"></i><input class="form-control" name="guardian_name"
-                                            value="{{ $ev('guardian_name', $pi->ParentsName ?? '') }}" />
+                            <div id="userMinorSection{{ $acc->UserID }}">
+                                <div class="section-label mt-2">Parent / Guardian (for minors)</div>
+                                <div class="row g-3 mb-3">
+                                    <div class="col-md-6">
+                                        <label class="form-label">Guardian's name</label>
+                                        <div class="input-icon {{ $eErr('guardian_name') }}"><i class="bi bi-person-heart"></i><input class="form-control" name="guardian_name"
+                                                value="{{ $ev('guardian_name', $pi->ParentsName ?? '') }}" />
+                                        </div>
+                                        @if ($eMsg('guardian_name')) <div class="field-error"><i class="bi bi-exclamation-circle-fill"></i> {{ $eMsg('guardian_name') }}</div> @endif
                                     </div>
-                                </div>
-                                <div class="col-md-6">
-                                    <label class="form-label">Guardian's occupation</label>
-                                    <div class="input-icon"><i class="bi bi-briefcase"></i><input class="form-control" name="guardian_occupation"
-                                            value="{{ $ev('guardian_occupation', $pi->ParentsOccupation ?? '') }}" />
+                                    <div class="col-md-6">
+                                        <label class="form-label">Guardian's occupation</label>
+                                        <div class="input-icon {{ $eErr('guardian_occupation') }}"><i class="bi bi-briefcase"></i><input class="form-control" name="guardian_occupation"
+                                                value="{{ $ev('guardian_occupation', $pi->ParentsOccupation ?? '') }}" />
+                                        </div>
+                                        @if ($eMsg('guardian_occupation')) <div class="field-error"><i class="bi bi-exclamation-circle-fill"></i> {{ $eMsg('guardian_occupation') }}</div> @endif
                                     </div>
                                 </div>
                             </div>
 
                             <div class="section-label mt-2">Account Details</div>
                             <div class="row g-3 mb-3">
-                                <div class="col-md-6">
+                                <div class="col-12">
                                     <label class="form-label">Date created</label>
                                     <div class="input-icon"><i class="bi bi-clock-history"></i><input type="text"
                                             class="form-control" value="{{ \Carbon\Carbon::parse($acc->DateCreated)->format('M j, Y g:i A') }}" disabled></div>
@@ -375,6 +409,9 @@
     @include('partials.confirm-action-modal')
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="{{ asset('js/field-restrictions.js') }}"></script>
+    <script src="{{ asset('js/address-sync.js') }}"></script>
+    <script src="{{ asset('js/birthdate-age.js') }}"></script>
     <script>
         document.querySelectorAll('input[type="file"][name="photo"]').forEach(function (input) {
             input.addEventListener('change', function () {

@@ -400,7 +400,9 @@
                                     <div class="slot {{ $isAvailable ? 'js-slot-pane' : 'slot-taken' }}">
 
                                         @if ($isAvailable)
-                                            @if ($readOnly)
+                                            @if ($readOnly && session('user_email'))
+                                                <span class="slot-btn is-available text-center" style="cursor:default;pointer-events:none;">Available</span>
+                                            @elseif ($readOnly)
                                                 <a href="{{ route('login') }}" class="slot-btn is-available text-center">Available</a>
                                             @elseif ($calendarMode === 'select')
                                                 <div class="d-flex gap-2 w-100 align-items-center flex-wrap px-3 py-2" style="background:#eaf8ec;border:1px solid #198754;border-radius:8px;">

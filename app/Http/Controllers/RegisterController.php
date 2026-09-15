@@ -39,26 +39,37 @@ class RegisterController extends Controller
      */
     public function store(Request $request)
     {
+        $nameRule = "regex:/^[\pL\s'.-]+$/u";
+
         $data = $request->validate([
-            'last_name' => 'required|string|max:100',
-            'first_name' => 'required|string|max:100',
-            'middle_name' => 'nullable|string|max:100',
+            'last_name' => ['required', 'string', 'max:100', $nameRule],
+            'first_name' => ['required', 'string', 'max:100', $nameRule],
+            'middle_name' => ['nullable', 'string', 'max:100', $nameRule],
             'birthdate' => 'required|date|before_or_equal:2023-12-31',
             'gender' => 'required|string',
-            'religion' => 'nullable|string|max:100',
-            'nationality' => 'required|string|max:100',
-            'occupation' => 'nullable|string|max:150',
+            'religion' => ['nullable', 'string', 'max:100', $nameRule],
+            'nationality' => ['required', 'string', 'max:100', $nameRule],
+            'occupation' => ['nullable', 'string', 'max:150', $nameRule],
             'address' => 'required|string|max:255',
             'email' => 'required|email|unique:tbl_useraccount,Email',
-            'phone' => 'required|string|max:20',
-            'guardian_name' => 'nullable|string|max:150',
-            'guardian_occupation' => 'nullable|string|max:150',
+            'phone' => 'required|digits:11',
+            'guardian_name' => ['nullable', 'string', 'max:150', $nameRule],
+            'guardian_occupation' => ['nullable', 'string', 'max:150', $nameRule],
             // 'confirmed' automatically checks password === password_confirmation
             'password' => ['required', 'confirmed', Password::defaults()],
             'agree_terms' => 'accepted',
         ], [
             'birthdate.before_or_equal' => 'Patients must be born on or before December 31, 2023 to sign up for their own account.',
+            'phone.digits' => 'Mobile number must be exactly 11 digits.',
             'agree_terms.accepted' => 'You must agree to the Privacy Policy and Terms to create an account.',
+            'last_name.regex' => 'Last name may only contain letters.',
+            'first_name.regex' => 'First name may only contain letters.',
+            'middle_name.regex' => 'Middle name may only contain letters.',
+            'religion.regex' => 'Religion may only contain letters.',
+            'nationality.regex' => 'Nationality may only contain letters.',
+            'occupation.regex' => 'Occupation may only contain letters.',
+            'guardian_name.regex' => "Guardian's name may only contain letters.",
+            'guardian_occupation.regex' => "Guardian's occupation may only contain letters.",
         ]);
 
         $throttleKey = 'signup-otp:' . strtolower($data['email']);
@@ -135,6 +146,7 @@ class RegisterController extends Controller
             session(['otp_attempts' => $attempts]);
 
             return redirect()->route('signup')
+                ->withInput($request->only('code'))
                 ->with('show_otp', true)
                 ->with('otp_error', 'Incorrect code. Please try again.');
         }

@@ -17,6 +17,8 @@
     <link rel="stylesheet" href="{{ asset('css/styles.css') }}">
     <link rel="stylesheet" href="/css/settings.css">
     <style>
+        .btn-cancel-edit { background: white; color: #4b5563; border: 1.5px solid #d7e0d7; padding: 11px 26px; border-radius: 8px; font-size: 14px; font-weight: 600; cursor: pointer; }
+        .btn-cancel-edit:hover { background: #f3f4f6; border-color: #9ca3af; }
         .cfg-table { width: 100%; border-collapse: collapse; font-size: 14px; }
         .cfg-table th, .cfg-table td { padding: 12px 14px; text-align: left; border-bottom: 1px solid #eef2ee; vertical-align: top; }
         .cfg-table th { font-size: 12px; text-transform: uppercase; letter-spacing: .04em; color: #6b7280; background: #f8faf8; }
@@ -28,9 +30,11 @@
         .cfg-toolbar { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 16px; }
         .cfg-toolbar input, .cfg-toolbar select { height: 40px; border: 1px solid #d7e0d7; border-radius: 10px; padding: 0 12px; }
         .cfg-toolbar input { min-width: 220px; }
-        .cfg-pager { display: flex; gap: 6px; justify-content: flex-end; margin-top: 14px; flex-wrap: wrap; }
+        .cfg-pager { display: flex; align-items: center; gap: 6px; justify-content: flex-end; margin-top: 14px; flex-wrap: wrap; }
         .cfg-pager a { padding: 6px 11px; border: 1px solid #d7e0d7; border-radius: 8px; color: #0f7a23; text-decoration: none; font-size: 13px; }
         .cfg-pager a.active { background: #0f7a23; color: #fff; border-color: #0f7a23; }
+        .cfg-pager a.disabled { opacity: .35; pointer-events: none; }
+        .cfg-pager .pagination-ellipsis { padding: 6px 4px; color: #9ca3af; font-weight: 700; }
         .cfg-empty { text-align: center; color: #6b7280; padding: 40px 0; }
         .cfg-when { white-space: nowrap; color: #4b5563; }
     </style>
@@ -98,9 +102,15 @@
             <div class="settings-content">
 
                 {{-- ===================== USER INFORMATION ===================== --}}
+                @php
+                    $profileFailed = $errors->any() && old('form_source') === 'edit_profile';
+                @endphp
                 <div class="settings-pane" id="pane-profile" @if($activeTab !== 'profile') hidden @endif>
-                    <form method="POST" action="{{ route('userProfile.update') }}" enctype="multipart/form-data">
+                    <form method="POST" action="{{ route('userProfile.update') }}" enctype="multipart/form-data"
+                          data-edit-toggle data-confirm-title="Save changes?"
+                          data-confirm-message="Save these changes to your profile?">
                         @csrf
+                        <input type="hidden" name="form_source" value="edit_profile">
 
                         <!-- Photo + locked account info -->
                         <div class="section-card">
@@ -144,73 +154,112 @@
                                 <div class="card-hd-icon"><i class="fas fa-user-edit"></i></div>
                                 <div>
                                     <h4>Personal Information</h4>
-                                    <p>Everything here can be edited</p>
+                                    <p>Click Edit to make changes</p>
                                 </div>
                             </div>
                             <div class="card-bd">
+                                @php
+                                    $addrParts = array_pad(array_map('trim', explode(',', $patientInfo->Address ?? '', 4)), 4, '');
+                                @endphp
                                 <div class="row g-3 mb-2">
                                     <div class="col-md-4">
                                         <label class="fl">Last name</label>
-                                        <input class="fc fc-plain" name="last_name" value="{{ old('last_name', $patientInfo->LastName) }}" required>
+                                        <input class="fc fc-plain @error('last_name') has-error @enderror" name="last_name" value="{{ old('last_name', $patientInfo->LastName) }}" required {{ $profileFailed ? '' : 'disabled' }} data-editable>
+                                        @error('last_name') <div class="field-error"><i class="bi bi-exclamation-circle-fill"></i> {{ $message }}</div> @enderror
                                     </div>
                                     <div class="col-md-4">
                                         <label class="fl">First name</label>
-                                        <input class="fc fc-plain" name="first_name" value="{{ old('first_name', $patientInfo->FirstName) }}" required>
+                                        <input class="fc fc-plain @error('first_name') has-error @enderror" name="first_name" value="{{ old('first_name', $patientInfo->FirstName) }}" required {{ $profileFailed ? '' : 'disabled' }} data-editable>
+                                        @error('first_name') <div class="field-error"><i class="bi bi-exclamation-circle-fill"></i> {{ $message }}</div> @enderror
                                     </div>
                                     <div class="col-md-4">
                                         <label class="fl">Middle name</label>
-                                        <input class="fc fc-plain" name="middle_name" value="{{ old('middle_name', $patientInfo->MiddleName) }}">
+                                        <input class="fc fc-plain @error('middle_name') has-error @enderror" name="middle_name" value="{{ old('middle_name', $patientInfo->MiddleName) }}" {{ $profileFailed ? '' : 'disabled' }} data-editable>
+                                        @error('middle_name') <div class="field-error"><i class="bi bi-exclamation-circle-fill"></i> {{ $message }}</div> @enderror
                                     </div>
 
-                                    <div class="col-md-6">
+                                    <div class="col-md-4">
                                         <label class="fl">Birthdate</label>
-                                        <input type="date" class="fc fc-plain" name="birthdate"
-                                               value="{{ old('birthdate', optional($patientInfo->DateOfBirth)->format('Y-m-d')) }}" required>
+                                        <input type="date" class="fc fc-plain @error('birthdate') has-error @enderror" name="birthdate"
+                                               value="{{ old('birthdate', optional($patientInfo->DateOfBirth)->format('Y-m-d')) }}" max="2023-12-31" required
+                                               data-age-target="#settingsAge" data-minor-target="#settingsMinorSection" {{ $profileFailed ? '' : 'disabled' }} data-editable>
+                                        @error('birthdate') <div class="field-error"><i class="bi bi-exclamation-circle-fill"></i> {{ $message }}</div> @enderror
+                                    </div>
+                                    <div class="col-md-2">
+                                        <label class="fl">Age</label>
+                                        <input type="text" class="fc fc-plain" id="settingsAge" placeholder="—" disabled>
                                     </div>
                                     <div class="col-md-6">
                                         <label class="fl">Gender</label>
-                                        <select class="fc fc-plain" name="gender" required>
+                                        <select class="fc fc-plain @error('gender') has-error @enderror" name="gender" required {{ $profileFailed ? '' : 'disabled' }} data-editable>
                                             <option value="male" {{ old('gender', $patientInfo->Gender) === 'male' ? 'selected' : '' }}>Male</option>
                                             <option value="female" {{ old('gender', $patientInfo->Gender) === 'female' ? 'selected' : '' }}>Female</option>
                                             <option value="other" {{ old('gender', $patientInfo->Gender) === 'other' ? 'selected' : '' }}>Other</option>
                                         </select>
+                                        @error('gender') <div class="field-error"><i class="bi bi-exclamation-circle-fill"></i> {{ $message }}</div> @enderror
                                     </div>
 
                                     <div class="col-md-6">
                                         <label class="fl">Religion</label>
-                                        <input class="fc fc-plain" name="religion" value="{{ old('religion', $patientInfo->Religion) }}">
+                                        <input class="fc fc-plain @error('religion') has-error @enderror" name="religion" value="{{ old('religion', $patientInfo->Religion) }}" {{ $profileFailed ? '' : 'disabled' }} data-editable>
+                                        @error('religion') <div class="field-error"><i class="bi bi-exclamation-circle-fill"></i> {{ $message }}</div> @enderror
                                     </div>
                                     <div class="col-md-6">
                                         <label class="fl">Nationality</label>
-                                        <input class="fc fc-plain" name="nationality" value="{{ old('nationality', $patientInfo->Nationality) }}" required>
+                                        <input class="fc fc-plain @error('nationality') has-error @enderror" name="nationality" value="{{ old('nationality', $patientInfo->Nationality) }}" required {{ $profileFailed ? '' : 'disabled' }} data-editable>
+                                        @error('nationality') <div class="field-error"><i class="bi bi-exclamation-circle-fill"></i> {{ $message }}</div> @enderror
                                     </div>
 
                                     <div class="col-md-6">
                                         <label class="fl">Occupation</label>
-                                        <input class="fc fc-plain" name="occupation" value="{{ old('occupation', $patientInfo->Occupation) }}">
+                                        <input class="fc fc-plain @error('occupation') has-error @enderror" name="occupation" value="{{ old('occupation', $patientInfo->Occupation) }}" {{ $profileFailed ? '' : 'disabled' }} data-editable>
+                                        @error('occupation') <div class="field-error"><i class="bi bi-exclamation-circle-fill"></i> {{ $message }}</div> @enderror
                                     </div>
                                     <div class="col-md-6">
                                         <label class="fl">Cell/Mobile number</label>
-                                        <input class="fc fc-plain" name="phone" value="{{ old('phone', $patientInfo->PhoneNumber) }}" required>
-                                    </div>
-
-                                    <div class="col-12">
-                                        <label class="fl">Home address</label>
-                                        <input class="fc fc-plain" name="address" value="{{ old('address', $patientInfo->Address) }}" required>
+                                        <input class="fc fc-plain @error('phone') has-error @enderror" name="phone" value="{{ old('phone', $patientInfo->PhoneNumber) }}" required {{ $profileFailed ? '' : 'disabled' }} data-editable>
+                                        @error('phone') <div class="field-error"><i class="bi bi-exclamation-circle-fill"></i> {{ $message }}</div> @enderror
                                     </div>
 
                                     <div class="col-md-6">
-                                        <label class="fl">Parent/Guardian's name</label>
-                                        <input class="fc fc-plain" name="guardian_name" value="{{ old('guardian_name', $patientInfo->ParentsName) }}">
+                                        <label class="fl">Street / House No.</label>
+                                        <input class="fc fc-plain addr-part" name="addr_street" value="{{ old('addr_street', $addrParts[0]) }}" placeholder="123 Sample St." {{ $profileFailed ? '' : 'disabled' }} data-editable>
                                     </div>
                                     <div class="col-md-6">
-                                        <label class="fl">Parent/Guardian's occupation</label>
-                                        <input class="fc fc-plain" name="guardian_occupation" value="{{ old('guardian_occupation', $patientInfo->ParentsOccupation) }}">
+                                        <label class="fl">Barangay</label>
+                                        <input class="fc fc-plain addr-part" name="addr_barangay" value="{{ old('addr_barangay', $addrParts[1]) }}" placeholder="Barangay" {{ $profileFailed ? '' : 'disabled' }} data-editable>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label class="fl">City / Municipality</label>
+                                        <input class="fc fc-plain addr-part" name="addr_city" value="{{ old('addr_city', $addrParts[2]) }}" placeholder="City / Municipality" required {{ $profileFailed ? '' : 'disabled' }} data-editable>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label class="fl">Province</label>
+                                        <input class="fc fc-plain addr-part" name="addr_province" value="{{ old('addr_province', $addrParts[3]) }}" placeholder="Province" required {{ $profileFailed ? '' : 'disabled' }} data-editable>
+                                    </div>
+                                    <input type="hidden" name="address" class="@error('address') has-error @enderror" value="{{ old('address', $patientInfo->Address) }}">
+                                    @error('address') <div class="col-12"><div class="field-error"><i class="bi bi-exclamation-circle-fill"></i> {{ $message }}</div></div> @enderror
+
+                                    <div class="col-12" id="settingsMinorSection">
+                                        <div class="row g-3">
+                                            <div class="col-md-6">
+                                                <label class="fl">Parent/Guardian's name</label>
+                                                <input class="fc fc-plain @error('guardian_name') has-error @enderror" name="guardian_name" value="{{ old('guardian_name', $patientInfo->ParentsName) }}" {{ $profileFailed ? '' : 'disabled' }} data-editable>
+                                                @error('guardian_name') <div class="field-error"><i class="bi bi-exclamation-circle-fill"></i> {{ $message }}</div> @enderror
+                                            </div>
+                                            <div class="col-md-6">
+                                                <label class="fl">Parent/Guardian's occupation</label>
+                                                <input class="fc fc-plain @error('guardian_occupation') has-error @enderror" name="guardian_occupation" value="{{ old('guardian_occupation', $patientInfo->ParentsOccupation) }}" {{ $profileFailed ? '' : 'disabled' }} data-editable>
+                                                @error('guardian_occupation') <div class="field-error"><i class="bi bi-exclamation-circle-fill"></i> {{ $message }}</div> @enderror
+                                            </div>
+                                        </div>
                                     </div>
                                 </div>
 
-                                <div class="d-flex justify-content-end mt-3">
-                                    <button type="submit" class="btn-prim" style="width:auto;padding-left:26px;padding-right:26px;"><i class="fas fa-save"></i> Save Changes</button>
+                                <div class="d-flex justify-content-end gap-2 mt-3">
+                                    <button type="button" class="btn-outline" data-edit-btn="edit" @if ($profileFailed) hidden @endif><i class="fas fa-pen"></i> Edit</button>
+                                    <button type="button" class="btn-cancel-edit" data-edit-btn="cancel" @unless ($profileFailed) hidden @endunless>Cancel</button>
+                                    <button type="submit" class="btn-prim" style="width:auto;padding-left:26px;padding-right:26px;" data-edit-btn="save" @unless ($profileFailed) hidden @endunless><i class="fas fa-save"></i> Save Changes</button>
                                 </div>
                             </div>
                         </div>
@@ -249,16 +298,19 @@
                                     <div class="pw-field">
                                         <input type="checkbox" class="pw-toggle-checkbox" id="pwCheckCur">
                                         <div class="fw">
-                                            <input type="text" class="fc pw-mask" name="current_password"
-                                                placeholder="Enter your current password" required
-                                                value="{{ old('current_password') }}">
+                                            <input type="text" class="fc pw-mask {{ session('password_error') ? 'has-error' : '' }}" name="current_password"
+                                                placeholder="Enter your current password" required value="{{ old('current_password') }}">
                                             <label for="pwCheckCur" class="eye-btn">
                                                 <i class="fas fa-eye"></i><i class="fas fa-eye-slash"></i>
                                             </label>
                                         </div>
                                     </div>
-                                    <p class="field-hint"><i class="fas fa-info-circle"></i> This is the password you use to log
-                                        in.</p>
+                                    @if (session('password_error'))
+                                        <div class="field-error"><i class="bi bi-exclamation-circle-fill"></i> {{ session('password_error') }}</div>
+                                    @else
+                                        <p class="field-hint"><i class="fas fa-info-circle"></i> This is the password you use to log
+                                            in.</p>
+                                    @endif
                                 </div>
 
                                 <div class="divider"></div>
@@ -268,14 +320,14 @@
                                     <div class="pw-field">
                                         <input type="checkbox" class="pw-toggle-checkbox" id="pwCheckNew">
                                         <div class="fw">
-                                            <input type="text" class="fc pw-mask" name="password"
-                                                placeholder="Create a strong new password" required minlength="8"
-                                                value="{{ old('password') }}">
+                                            <input type="text" class="fc pw-mask @error('password') has-error @enderror" name="password"
+                                                placeholder="Create a strong new password" required minlength="8" value="{{ old('password') }}">
                                             <label for="pwCheckNew" class="eye-btn">
                                                 <i class="fas fa-eye"></i><i class="fas fa-eye-slash"></i>
                                             </label>
                                         </div>
                                     </div>
+                                    @error('password') <div class="field-error"><i class="bi bi-exclamation-circle-fill"></i> {{ $message }}</div> @enderror
                                 </div>
 
                                 <div class="mb-3">
@@ -283,9 +335,8 @@
                                     <div class="pw-field">
                                         <input type="checkbox" class="pw-toggle-checkbox" id="pwCheckConfirm">
                                         <div class="fw">
-                                            <input type="text" class="fc pw-mask" name="password_confirmation"
-                                                placeholder="Re-enter your new password" required
-                                                value="{{ old('password_confirmation') }}">
+                                            <input type="text" class="fc pw-mask @error('password') has-error @enderror" name="password_confirmation"
+                                                placeholder="Re-enter your new password" required value="{{ old('password_confirmation') }}">
                                             <label for="pwCheckConfirm" class="eye-btn">
                                                 <i class="fas fa-eye"></i><i class="fas fa-eye-slash"></i>
                                             </label>
@@ -404,16 +455,7 @@
 
                             @if ($logs->hasPages())
                                 <div class="cfg-pager">
-                                    @if ($logs->previousPageUrl())
-                                        <a href="{{ $logs->previousPageUrl() }}"><i class="fas fa-chevron-left"></i></a>
-                                    @endif
-                                    @for ($i = 1; $i <= $logs->lastPage(); $i++)
-                                        <a href="{{ $logs->url($i) }}"
-                                            class="{{ $logs->currentPage() === $i ? 'active' : '' }}">{{ $i }}</a>
-                                    @endfor
-                                    @if ($logs->nextPageUrl())
-                                        <a href="{{ $logs->nextPageUrl() }}"><i class="fas fa-chevron-right"></i></a>
-                                    @endif
+                                    @include('partials.pagination-pages', ['paginator' => $logs])
                                 </div>
                             @endif
 
@@ -474,33 +516,37 @@
                     @if (session('settings_reset_expired'))
                         <div class="alert alert-warning py-2 small">Your session expired. Please click "Send Reset Code" again.</div>
                     @endif
-                    @if (session('settings_reset_error'))
-                        <div class="alert alert-danger py-2 small">{{ session('settings_reset_error') }}</div>
-                    @endif
-
                     <form method="POST" action="{{ route('settings.reset.verify') }}" class="mb-2">
                         @csrf
                         <label class="fl">Verification code</label>
-                        <input type="text" name="code" class="fc text-center mb-3" maxlength="6"
+                        <input type="text" name="code" class="fc text-center mb-1 {{ session('settings_reset_error') || $errors->has('code') ? 'has-error' : '' }}" maxlength="6"
                                inputmode="numeric" pattern="[0-9]*" placeholder="••••••" required
                                value="{{ old('code') }}" style="letter-spacing: 6px; font-size: 1.25rem;">
+                        @if (session('settings_reset_error'))
+                            <div class="field-error mb-2"><i class="bi bi-exclamation-circle-fill"></i> {{ session('settings_reset_error') }}</div>
+                        @elseif ($errors->has('code'))
+                            <div class="field-error mb-2"><i class="bi bi-exclamation-circle-fill"></i> {{ $errors->first('code') }}</div>
+                        @else
+                            <div class="mb-2"></div>
+                        @endif
 
                         <label class="fl">New password</label>
-                        <div class="pw-field mb-3">
+                        <div class="pw-field mb-1">
                             <input type="checkbox" class="pw-toggle-checkbox" id="pwCheckModalNew">
                             <div class="fw">
-                                <input type="text" name="password" class="fc pw-mask" placeholder="••••••••" required minlength="8" value="{{ old('password') }}">
+                                <input type="text" name="password" class="fc pw-mask @error('password') has-error @enderror" placeholder="••••••••" required minlength="8" value="{{ old('password') }}">
                                 <label for="pwCheckModalNew" class="eye-btn">
                                     <i class="fas fa-eye"></i><i class="fas fa-eye-slash"></i>
                                 </label>
                             </div>
                         </div>
+                        @error('password') <div class="field-error mb-2"><i class="bi bi-exclamation-circle-fill"></i> {{ $message }}</div> @enderror
 
                         <label class="fl">Confirm new password</label>
                         <div class="pw-field mb-3">
                             <input type="checkbox" class="pw-toggle-checkbox" id="pwCheckModalConfirm">
                             <div class="fw">
-                                <input type="text" name="password_confirmation" class="fc pw-mask" placeholder="••••••••" required value="{{ old('password_confirmation') }}">
+                                <input type="text" name="password_confirmation" class="fc pw-mask @error('password') has-error @enderror" placeholder="••••••••" required value="{{ old('password_confirmation') }}">
                                 <label for="pwCheckModalConfirm" class="eye-btn">
                                     <i class="fas fa-eye"></i><i class="fas fa-eye-slash"></i>
                                 </label>
@@ -521,6 +567,11 @@
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js"></script>
+    @include('partials.confirm-action-modal')
+    <script src="{{ asset('js/field-restrictions.js') }}"></script>
+    <script src="{{ asset('js/address-sync.js') }}"></script>
+    <script src="{{ asset('js/birthdate-age.js') }}"></script>
+    <script src="{{ asset('js/profile-edit-toggle.js') }}"></script>
     <script>
         document.querySelectorAll('.settings-tab-btn').forEach(function (btn) {
             btn.addEventListener('click', function () {

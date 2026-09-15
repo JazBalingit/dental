@@ -147,11 +147,7 @@
               <div class="pagination-soft">
                 <div>Showing {{ $records->count() }} of {{ $records->total() }} entries</div>
                 <div class="pages">
-                  <a href="{{ $records->previousPageUrl() ?? '#' }}"><i class="bi bi-chevron-left"></i></a>
-                  @for ($i = 1; $i <= $records->lastPage(); $i++)
-                    <a href="{{ $records->url($i) }}" class="{{ $records->currentPage() === $i ? 'active' : '' }}">{{ $i }}</a>
-                  @endfor
-                  <a href="{{ $records->nextPageUrl() ?? '#' }}"><i class="bi bi-chevron-right"></i></a>
+                  @include('partials.pagination-pages', ['paginator' => $records])
                 </div>
               </div>
             </div>
@@ -214,11 +210,7 @@
               <div class="pagination-soft">
                 <div>Showing {{ $archivedRecords->count() }} of {{ $archivedRecords->total() }} entries</div>
                 <div class="pages">
-                  <a href="{{ $archivedRecords->previousPageUrl() ?? '#' }}"><i class="bi bi-chevron-left"></i></a>
-                  @for ($i = 1; $i <= $archivedRecords->lastPage(); $i++)
-                    <a href="{{ $archivedRecords->url($i) }}" class="{{ $archivedRecords->currentPage() === $i ? 'active' : '' }}">{{ $i }}</a>
-                  @endfor
-                  <a href="{{ $archivedRecords->nextPageUrl() ?? '#' }}"><i class="bi bi-chevron-right"></i></a>
+                  @include('partials.pagination-pages', ['paginator' => $archivedRecords])
                 </div>
               </div>
             </div>

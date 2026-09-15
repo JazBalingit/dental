@@ -6,7 +6,7 @@
         default => 'bi-bell-fill text-primary',
     };
 @endphp
-<div class="dropdown">
+<div class="dropdown" id="userNotifDropdown">
     <button class="icon-btn" type="button" data-bs-toggle="dropdown" data-bs-display="static" aria-expanded="false">
         <i class="bi bi-bell"></i>@if($userUnreadCount > 0)<span class="dot">{{ $userUnreadCount }}</span>@endif
     </button>
@@ -46,3 +46,26 @@
                 data-bs-target="#allNotificationsModal">View all notifications</a></li>
     </ul>
 </div>
+<script>
+    (function () {
+        var dd = document.getElementById('userNotifDropdown');
+        if (!dd) return;
+        var badge = dd.querySelector('.icon-btn .dot');
+        var marked = false;
+        dd.addEventListener('show.bs.dropdown', function () {
+            if (marked || !badge) return;
+            marked = true;
+            fetch('{{ route('notifications.readAll') }}', {
+                method: 'POST',
+                headers: { 'X-CSRF-TOKEN': '{{ csrf_token() }}', 'Accept': 'application/json' },
+            }).then(function (res) {
+                if (!res.ok) { marked = false; return; }
+                if (badge) badge.remove();
+                dd.querySelectorAll('.dropdown-item').forEach(function (el) {
+                    el.style.background = '';
+                    el.style.fontWeight = '';
+                });
+            }).catch(function () { marked = false; });
+        });
+    })();
+</script>

@@ -56,6 +56,8 @@ class AppointmentsController extends Controller
             'total' => Appointment::count(),
             'approved' => Appointment::where('Status', 'Approved')->count(),
             'completed' => Appointment::where('Status', 'Completed')->count(),
+            'pending' => Appointment::where('Status', 'Pending')->count(),
+            'declined' => Appointment::where('Status', 'Declined')->count(),
             'cancelled' => Appointment::where('Status', 'Cancelled')->count(),
         ];
 

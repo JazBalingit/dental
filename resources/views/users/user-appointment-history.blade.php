@@ -81,13 +81,21 @@
                             </thead>
                             <tbody>
                                 @forelse($history as $appointment)
+                                    @php
+                                        $historyBadgeClass = match ($appointment->Status) {
+                                            'Completed' => 'badge-completed',
+                                            'Approved' => 'badge-approved',
+                                            'Declined', 'Cancelled' => 'badge-cancelled',
+                                            default => 'badge-pending',
+                                        };
+                                    @endphp
                                     <tr>
                                         <td style="font-weight:600;color:#0f4c7a">{{ $appointment->AppointmentDate->format('M j, Y') }}</td>
                                         <td>{{ \Carbon\Carbon::createFromFormat('H:i', $appointment->AppointmentTime)->format('g:i A') }}</td>
                                         <td>{{ $appointment->duration_label }}</td>
                                         <td><span class="service-tag">{{ $appointment->TypeOfAppointment ?: ($appointment->service->ServiceName ?? '') }}</span></td>
                                         <td>{{ $appointment->dentist_name }}</td>
-                                        <td><span class="badge-pill {{ $appointment->Status === 'Completed' ? 'badge-completed' : ($appointment->Status === 'Declined' ? 'badge-cancelled' : 'badge-scheduled') }}">{{ $appointment->Status === 'Approved' ? 'Booked' : $appointment->Status }}</span></td>
+                                        <td><span class="badge-pill {{ $historyBadgeClass }}">{{ $appointment->Status === 'Approved' ? 'Booked' : $appointment->Status }}</span></td>
                                         <td class="text-end">
                                             <button type="button" class="btn-view-appt" data-bs-toggle="modal" data-bs-target="#apptModal{{ $appointment->AppointmentID }}">
                                                 <i class="fas fa-eye"></i> View
@@ -100,17 +108,11 @@
                             </tbody>
                         </table>
                     </div>
-                    <div class="history-footer">
-                        <small>Showing <strong>{{ $history->count() }}</strong> of <strong>{{ $history->total() }}</strong> appointments</small>
-                        @if ($history->lastPage() > 1)
-                            <div class="pages">
-                                <a href="{{ $history->previousPageUrl() ?? '#' }}"><i class="bi bi-chevron-left"></i></a>
-                                @for ($i = 1; $i <= $history->lastPage(); $i++)
-                                    <a href="{{ $history->url($i) }}" class="{{ $history->currentPage() === $i ? 'active' : '' }}">{{ $i }}</a>
-                                @endfor
-                                <a href="{{ $history->nextPageUrl() ?? '#' }}"><i class="bi bi-chevron-right"></i></a>
-                            </div>
-                        @endif
+                    <div class="pagination-soft">
+                        <div>Showing {{ $history->count() }} of {{ $history->total() }} appointments</div>
+                        <div class="pages">
+                            @include('partials.pagination-pages', ['paginator' => $history])
+                        </div>
                     </div>
                 </div>
             </div>

@@ -57,7 +57,7 @@
 
                 <!-- mini stats -->
                 <div class="row g-3 mb-3">
-                    <div class="col-6 col-md-3">
+                    <div class="col-6 col-lg-4">
                         <div class="stat-card">
                             <div class="d-flex align-items-center justify-content-between">
                                 <div>
@@ -68,7 +68,7 @@
                             </div>
                         </div>
                     </div>
-                    <div class="col-6 col-md-3">
+                    <div class="col-6 col-lg-4">
                         <div class="stat-card alt-1">
                             <div class="d-flex align-items-center justify-content-between">
                                 <div>
@@ -79,8 +79,8 @@
                             </div>
                         </div>
                     </div>
-                    <div class="col-6 col-md-3">
-                        <div class="stat-card alt-3">
+                    <div class="col-6 col-lg-4">
+                        <div class="stat-card alt-4">
                             <div class="d-flex align-items-center justify-content-between">
                                 <div>
                                     <div class="label">Approved</div>
@@ -92,7 +92,29 @@
                             </div>
                         </div>
                     </div>
-                    <div class="col-6 col-md-3">
+                    <div class="col-6 col-lg-4">
+                        <div class="stat-card alt-3">
+                            <div class="d-flex align-items-center justify-content-between">
+                                <div>
+                                    <div class="label">Pending</div>
+                                    <div class="value">{{ $stats['pending'] }}</div>
+                                </div>
+                                <div class="icon"><i class="bi bi-clock-history"></i></div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-6 col-lg-4">
+                        <div class="stat-card alt-2">
+                            <div class="d-flex align-items-center justify-content-between">
+                                <div>
+                                    <div class="label">Declined</div>
+                                    <div class="value">{{ $stats['declined'] }}</div>
+                                </div>
+                                <div class="icon"><i class="bi bi-slash-circle"></i></div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-6 col-lg-4">
                         <div class="stat-card alt-2">
                             <div class="d-flex align-items-center justify-content-between">
                                 <div>
@@ -198,11 +220,7 @@
                     <div class="pagination-soft">
                         <div>Showing {{ $appointments->count() }} of {{ $appointments->total() }} appointments</div>
                         <div class="pages">
-                            <a href="{{ $appointments->previousPageUrl() ?? '#' }}"><i class="bi bi-chevron-left"></i></a>
-                            @for ($i = 1; $i <= $appointments->lastPage(); $i++)
-                                <a href="{{ $appointments->url($i) }}" class="{{ $appointments->currentPage() === $i ? 'active' : '' }}">{{ $i }}</a>
-                            @endfor
-                            <a href="{{ $appointments->nextPageUrl() ?? '#' }}"><i class="bi bi-chevron-right"></i></a>
+                            @include('partials.pagination-pages', ['paginator' => $appointments])
                         </div>
                     </div>
                 </div>

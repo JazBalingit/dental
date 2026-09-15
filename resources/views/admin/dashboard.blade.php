@@ -157,19 +157,17 @@
           </div>
           <div class="col-xl-4">
             <div class="card-soft h-100">
-              <div class="card-header">Patients by Treatment</div>
-              <div class="card-body d-flex align-items-center justify-content-center">
-                <div class="chart-ph w-100" style="height: 240px; background: transparent; position: relative;">
-                  <canvas id="treatmentDonutChart"></canvas>
+              <div class="card-header">Appointments by Status</div>
+              <div class="card-body">
+                <div class="chart-ph" style="position: relative;">
+                  <canvas id="statusDonutChart"></canvas>
                   <div style="position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center; pointer-events:none;">
                     <div style="font-size:14px; color:#64748b; font-family:'Inter',sans-serif;">Total</div>
-                    <div style="font-size:22px; color:#0f172a; font-weight:700; font-family:'Poppins',sans-serif;">{{ number_format($treatmentDonut['total']) }}</div>
+                    <div style="font-size:22px; color:#0f172a; font-weight:700; font-family:'Poppins',sans-serif;">{{ number_format($statusDonut['total']) }}</div>
                   </div>
                 </div>
-              </div>
-              <div class="card-body pt-0">
                 <div class="chart-legend">
-                  @foreach ($treatmentDonut['segments'] as $segment)
+                  @foreach ($statusDonut['segments'] as $segment)
                     <div class="legend-item">
                       <span class="legend-dot" style="background:{{ $segment['color'] }};"></span>
                       {{ $segment['label'] }}
@@ -187,7 +185,7 @@
             <div class="card-soft h-100">
               <div class="card-header">Appointments by Service</div>
               <div class="card-body">
-                <div class="chart-ph">
+                <div class="chart-ph" style="height: 320px;">
                   <canvas id="serviceBarsChart"></canvas>
                 </div>
                 <div class="chart-legend">
@@ -416,7 +414,7 @@
   <script>
     (function () {
         var overviewData = @json($overviewChart);
-        var donutData = @json($treatmentDonut['segments']);
+        var donutData = @json($statusDonut['segments']);
         var barsData = @json($serviceBars['bars']);
 
         var brandGreen = '#167d1d';
@@ -458,7 +456,7 @@
             },
         });
 
-        new Chart(document.getElementById('treatmentDonutChart'), {
+        new Chart(document.getElementById('statusDonutChart'), {
             type: 'doughnut',
             data: {
                 labels: donutData.map(function (s) { return s.label; }),
@@ -478,7 +476,7 @@
                         callbacks: {
                             label: function (item) {
                                 var count = item.parsed;
-                                return item.label + ': ' + count + ' patient' + (count === 1 ? '' : 's');
+                                return item.label + ': ' + count + ' appointment' + (count === 1 ? '' : 's');
                             },
                         },
                     },

@@ -34,6 +34,12 @@
         ['key' => 'password_updated', 'type' => 'success', 'text' => 'Your password has been updated.'],
         ['key' => 'password_error', 'type' => 'danger'],
         ['key' => 'profile_updated', 'type' => 'success', 'text' => 'Your profile has been updated.'],
+        ['key' => 'reset_error', 'type' => 'danger'],
+        ['key' => 'otp_error', 'type' => 'danger'],
+        ['key' => 'settings_reset_error', 'type' => 'danger'],
+        ['key' => 'email_verify_error', 'type' => 'danger'],
+        ['key' => 'setup_code_error', 'type' => 'danger'],
+        ['key' => 'release_code_error', 'type' => 'danger'],
     ];
 
     $icons = [

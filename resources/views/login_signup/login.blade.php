@@ -140,20 +140,18 @@
           @if (session('reset_expired'))
             <div class="alert alert-warning py-2 small">Your session expired. Please enter your email again.</div>
           @endif
-          @if (session('reset_error'))
-            <div class="alert alert-danger py-2 small">{{ session('reset_error') }}</div>
-          @endif
 
           @unless ($showReset)
             {{-- STEP 1: email --}}
             <form method="POST" action="{{ route('password.email') }}">
               @csrf
               <label class="form-label">Email address</label>
-              <div class="input-icon">
+              <div class="input-icon @error('email') has-error @enderror">
                 <i class="bi bi-envelope"></i>
                 <input type="email" name="email" class="form-control" placeholder="you@clinic.com" required
                   value="{{ old('email', session('reset_email')) }}" />
               </div>
+              @error('email') <div class="field-error"><i class="bi bi-exclamation-circle-fill"></i> {{ $message }}</div> @enderror
               <button type="submit" class="btn btn-brand w-100 mt-3">Send Reset Code</button>
             </form>
           @else
@@ -161,13 +159,18 @@
             <form method="POST" action="{{ route('password.update') }}" class="mb-2">
               @csrf
               <label class="form-label">Verification code</label>
-              <input type="text" name="code" class="form-control text-center mb-3" maxlength="6" inputmode="numeric"
+              <input type="text" name="code" class="form-control text-center mb-1 {{ session('reset_error') || $errors->has('code') ? 'has-error' : '' }}" maxlength="6" inputmode="numeric"
                 pattern="[0-9]*" placeholder="••••••" required value="{{ old('code') }}" style="letter-spacing: 6px; font-size: 1.25rem;">
+              @if (session('reset_error'))
+                <div class="field-error mb-2"><i class="bi bi-exclamation-circle-fill"></i> {{ session('reset_error') }}</div>
+              @elseif ($errors->has('code'))
+                <div class="field-error mb-2"><i class="bi bi-exclamation-circle-fill"></i> {{ $errors->first('code') }}</div>
+              @endif
 
               <label class="form-label">New password</label>
-              <div class="pw-field mb-3">
+              <div class="pw-field mb-1">
                 <input type="checkbox" class="pw-toggle-checkbox" id="pwCheckNew">
-                <div class="input-icon">
+                <div class="input-icon @error('password') has-error @enderror">
                   <i class="bi bi-lock"></i>
                   <input type="text" name="password" class="form-control pw-mask" placeholder="••••••••" required
                     minlength="8" value="{{ old('password') }}" autocomplete="new-password" />
@@ -176,11 +179,12 @@
                   <i class="bi bi-eye"></i><i class="bi bi-eye-slash"></i>
                 </label>
               </div>
+              @error('password') <div class="field-error mb-2"><i class="bi bi-exclamation-circle-fill"></i> {{ $message }}</div> @enderror
 
               <label class="form-label">Confirm new password</label>
               <div class="pw-field mb-3">
                 <input type="checkbox" class="pw-toggle-checkbox" id="pwCheckNewConfirm">
-                <div class="input-icon">
+                <div class="input-icon @error('password') has-error @enderror">
                   <i class="bi bi-shield-lock"></i>
                   <input type="text" name="password_confirmation" class="form-control pw-mask" placeholder="••••••••"
                     required value="{{ old('password_confirmation') }}" autocomplete="new-password" />

@@ -136,17 +136,11 @@
                 </table>
             </div>
 
-            <div class="history-footer">
-                <small>Showing <strong>{{ $records->count() }}</strong> of <strong>{{ $records->total() }}</strong> visits</small>
-                @if ($records->lastPage() > 1)
-                    <div class="pages">
-                        <a href="{{ $records->previousPageUrl() ?? '#' }}"><i class="bi bi-chevron-left"></i></a>
-                        @for ($i = 1; $i <= $records->lastPage(); $i++)
-                            <a href="{{ $records->url($i) }}" class="{{ $records->currentPage() === $i ? 'active' : '' }}">{{ $i }}</a>
-                        @endfor
-                        <a href="{{ $records->nextPageUrl() ?? '#' }}"><i class="bi bi-chevron-right"></i></a>
-                    </div>
-                @endif
+            <div class="pagination-soft">
+                <div>Showing {{ $records->count() }} of {{ $records->total() }} visits</div>
+                <div class="pages">
+                    @include('partials.pagination-pages', ['paginator' => $records])
+                </div>
             </div>
         </div>
             </div>

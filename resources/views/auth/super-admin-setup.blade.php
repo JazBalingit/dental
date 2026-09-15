@@ -27,7 +27,7 @@
             font-weight: 500;
             color: #fff;
             background: linear-gradient(135deg, var(--brand-700), var(--brand-600));
-            box-shadow: 0 8px 18px -8px rgba(42, 134, 214, .7);
+            box-shadow: 0 8px 18px -8px rgba(46, 133, 50, .7);
         }
 
         .sidebar .nav .nav-locked i {
@@ -131,31 +131,33 @@
                                     <div class="row g-3">
                                         <div class="col-12">
                                             <label class="form-label">Email address</label>
-                                            <div class="input-icon"><i class="bi bi-envelope"></i><input type="email"
+                                            <div class="input-icon @error('new_email') has-error @enderror"><i class="bi bi-envelope"></i><input type="email"
                                                     name="new_email" class="form-control"
                                                     value="{{ old('new_email', $pendingEmail) }}"
                                                     placeholder="you@example.com" required></div>
+                                            @error('new_email') <div class="field-error"><i class="bi bi-exclamation-circle-fill"></i> {{ $message }}</div> @enderror
                                         </div>
                                         <div class="col-md-6">
                                             <label class="form-label">Password</label>
                                             <div class="pw-field">
                                                 <input type="checkbox" class="pw-toggle-checkbox" id="pwSaNew">
-                                                <div class="input-icon"><i class="bi bi-lock"></i><input type="text"
-                                                        name="password" class="form-control pw-mask" required
+                                                <div class="input-icon @error('password') has-error @enderror"><i class="bi bi-lock"></i><input type="text"
+                                                        name="password" class="form-control pw-mask" placeholder="••••••••" required
                                                         minlength="8" value="{{ old('password') }}"
                                                         autocomplete="new-password"></div>
                                                 <label for="pwSaNew" class="pw-eye-btn"
                                                     aria-label="Show or hide password"><i class="bi bi-eye"></i><i
                                                         class="bi bi-eye-slash"></i></label>
                                             </div>
+                                            @error('password') <div class="field-error"><i class="bi bi-exclamation-circle-fill"></i> {{ $message }}</div> @enderror
                                         </div>
                                         <div class="col-md-6">
                                             <label class="form-label">Confirm password</label>
                                             <div class="pw-field">
                                                 <input type="checkbox" class="pw-toggle-checkbox" id="pwSaConfirm">
-                                                <div class="input-icon"><i class="bi bi-shield-lock"></i><input
+                                                <div class="input-icon @error('password') has-error @enderror"><i class="bi bi-shield-lock"></i><input
                                                         type="text" name="password_confirmation"
-                                                        class="form-control pw-mask" required
+                                                        class="form-control pw-mask" placeholder="••••••••" required
                                                         value="{{ old('password_confirmation') }}"
                                                         autocomplete="new-password"></div>
                                                 <label for="pwSaConfirm" class="pw-eye-btn"
@@ -186,11 +188,14 @@
                                     <div class="row g-3">
                                         <div class="col-md-6">
                                             <label class="form-label">Verification code</label>
-                                            <div class="input-icon"><i class="bi bi-hash"></i><input type="text"
+                                            <div class="input-icon {{ session('setup_code_error') ? 'has-error' : '' }}"><i class="bi bi-hash"></i><input type="text"
                                                     name="code" class="form-control text-center" maxlength="6"
                                                     inputmode="numeric" pattern="[0-9]*" placeholder="••••••" required
-                                                    autocomplete="one-time-code"
+                                                    autocomplete="one-time-code" value="{{ old('code') }}"
                                                     style="letter-spacing:6px;font-size:1.15rem;"></div>
+                                            @if (session('setup_code_error'))
+                                                <div class="field-error"><i class="bi bi-exclamation-circle-fill"></i> {{ session('setup_code_error') }}</div>
+                                            @endif
                                         </div>
                                     </div>
                                     <div class="d-flex justify-content-end mt-3">

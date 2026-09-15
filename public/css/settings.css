@@ -447,6 +447,15 @@ p {
   box-shadow: 0 0 0 3px rgba(59, 159, 217, 0.1);
 }
 
+.fc.has-error {
+  border-color: #ef4444 !important;
+  background: rgba(239, 68, 68, 0.04);
+}
+
+.fc.has-error:focus {
+  box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.12);
+}
+
 .fc:disabled {
   background: #f8fafc;
   color: #7a90a8;
@@ -688,16 +697,6 @@ footer i {
   .page-hero h1 {
     font-size: 1.7rem;
   }
-}
-
-:root {
-  --brand-900: #0d3b66;
-  --brand-800: #14508a;
-  --brand-700: #1d6fb8;
-  --brand-600: #2a86d6;
-  --brand-500: #4aa3e8;
-  --brand-100: #e6f1fb;
-  --brand-50: #f4f9fe;
 }
 
 .brand .logo {
@@ -1217,7 +1216,7 @@ video {
   }
 
   .modal-dialog {
-    margin: .5rem;
+    margin: .5rem auto;
   }
 }
 

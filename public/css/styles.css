@@ -423,7 +423,7 @@ h6 {
   justify-content: center;
   font-size: 28px;
   margin: 0 auto 1rem;
-  box-shadow: 0 10px 24px -8px rgba(29, 111, 184, .55);
+  box-shadow: 0 10px 24px -8px rgba(46, 133, 50, .55);
 }
 
 .auth-title {
@@ -505,6 +505,21 @@ h6 {
   color: var(--danger, #ef4444);
 }
 
+/* Same red-border/message treatment for a plain (unwrapped) Bootstrap
+   .form-control/.form-select/.form-check-input — not every field on every
+   page is wrapped in .input-icon. */
+.form-control.has-error,
+.form-select.has-error {
+  border-color: var(--danger, #ef4444) !important;
+  background: #fff6f6;
+}
+
+.form-control.has-error:focus,
+.form-select.has-error:focus {
+  border-color: var(--danger, #ef4444) !important;
+  box-shadow: 0 0 0 4px rgba(239, 68, 68, .14);
+}
+
 .field-error {
   display: flex;
   align-items: flex-start;
@@ -534,7 +549,7 @@ h6 {
   align-items: center;
   justify-content: center;
   gap: .35rem;
-  box-shadow: 0 10px 22px -10px rgba(29, 111, 184, .7);
+  box-shadow: 0 10px 22px -10px rgba(46, 133, 50, .7);
   transition: transform .15s ease, box-shadow .15s ease;
   white-space: nowrap;
 }
@@ -547,7 +562,7 @@ h6 {
 .btn-brand:hover {
   color: #fff;
   transform: translateY(-1px);
-  box-shadow: 0 14px 28px -10px rgba(29, 111, 184, .8);
+  box-shadow: 0 14px 28px -10px rgba(46, 133, 50, .8);
 }
 
 .btn-ghost {
@@ -571,7 +586,7 @@ h6 {
 }
 
 .btn-ghost:hover {
-  background: #d8e9f8;
+  background: var(--brand-100);
   color: var(--brand-900);
 }
 
@@ -609,7 +624,27 @@ h6 {
   background: var(--brand-700);
   color: #fff;
   border-color: var(--brand-700);
-  box-shadow: 0 6px 14px -6px rgba(29, 111, 184, .6);
+  box-shadow: 0 6px 14px -6px rgba(46, 133, 50, .6);
+}
+
+/* Bootstrap's .modal-dialog-scrollable relies on .modal-content being a
+   flex column whose .modal-header/.modal-body/.modal-footer are DIRECT
+   children, so .modal-body's overflow-y:auto has a bounded height to
+   scroll within. Every long modal on this site wraps modal-body (and
+   often the footer) in a <form> to submit the whole thing, which breaks
+   that chain — the form just grows to fit its content instead of
+   shrinking, so the excess gets silently clipped by modal-content's
+   overflow:hidden instead of becoming scrollable. Making the form itself
+   a flex column (and letting modal-body do the actual scrolling) restores
+   the intended behavior everywhere, without touching each modal. */
+.modal-dialog-scrollable .modal-content > form {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.modal-dialog-scrollable .modal-content > form > .modal-body {
+  overflow-y: auto;
 }
 
 /* ---------- Admin shell: sidebar ---------- */
@@ -713,7 +748,7 @@ h6 {
 .sidebar .nav a.active {
   background: linear-gradient(135deg, var(--brand-700), var(--brand-600));
   color: #fff;
-  box-shadow: 0 8px 18px -8px rgba(42, 134, 214, .7);
+  box-shadow: 0 8px 18px -8px rgba(46, 133, 50, .7);
 }
 
 .sidebar .divider {
@@ -771,7 +806,7 @@ h6 {
 .sidebar .nav-toggle.active {
   background: linear-gradient(135deg, var(--brand-700), var(--brand-600));
   color: #fff;
-  box-shadow: 0 8px 18px -8px rgba(42, 134, 214, .7);
+  box-shadow: 0 8px 18px -8px rgba(46, 133, 50, .7);
 }
 
 .sidebar .nav-sub-link {
@@ -905,9 +940,12 @@ h6 {
   opacity: 1;
 }
 
-/* Account dropdown menu */
+/* Account dropdown menu — sized to fit flush inside the sidebar column
+   instead of Bootstrap's default 244px min-width, which spilled past the
+   sidebar's right edge into the content area. */
 .account-menu {
-  --bs-dropdown-min-width: 244px;
+  --bs-dropdown-min-width: calc(var(--sidebar-w) - 1.7rem);
+  width: calc(var(--sidebar-w) - 1.7rem);
   border: 0;
   border-radius: 14px;
   padding: 8px;
@@ -1236,6 +1274,15 @@ h6 {
   color: #827d31;
 }
 
+.stat-card.alt-4::before {
+  background: linear-gradient(180deg, #3b82f6, #60a5fa);
+}
+
+.stat-card.alt-4 .icon {
+  background: #dbeafe;
+  color: #1d4ed8;
+}
+
 /* Chart placeholder */
 .chart-ph {
   height: 240px;
@@ -1457,6 +1504,26 @@ h6 {
   background: var(--brand-700);
   color: #fff;
   border-color: var(--brand-700);
+}
+
+/* Windowed pagination (first/prev/1 ... 4 5 6 ... last/next/last) shared by
+   .pagination-soft (admin/super-admin tables) and .history-footer (patient
+   portal) — disabled edge buttons and the "..." gap marker. */
+.pagination-soft .pages a.disabled,
+.history-footer .pages a.disabled {
+  opacity: .35;
+  pointer-events: none;
+}
+
+.pagination-soft .pages .pagination-ellipsis,
+.history-footer .pages .pagination-ellipsis {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  color: var(--ink-400, #94a3b8);
+  font-weight: 700;
 }
 
 /* ---------- Nav pills (Active / Archived style tabs) ---------- */
@@ -3043,9 +3110,9 @@ h6 {
 }
 
 .slot-btn.is-booked {
-  background: #e8f9ec;
-  border-color: #1a7f37;
-  color: #1a7f37;
+  background: #e7f1ff;
+  border-color: #3b82f6;
+  color: #1d4ed8;
 }
 
 .slot-btn.is-pending {
@@ -3055,9 +3122,9 @@ h6 {
 }
 
 .slot-btn.is-completed {
-  background: #eef2ff;
-  border-color: #6366f1;
-  color: #3730a3;
+  background: #e8f9ec;
+  border-color: #1a7f37;
+  color: #1a7f37;
 }
 
 .slot-btn:disabled {
@@ -3097,15 +3164,15 @@ h6 {
 }
 
 .day-cell .ev.ev-completed {
-  background: #eef2ff;
-  color: #3730a3;
-  border: 1px solid #c7d2fe;
-}
-
-.day-cell .ev.ev-booked {
   background: #e8f9ec;
   color: #1a7f37;
   border: 1px solid #a7e8bb;
+}
+
+.day-cell .ev.ev-booked {
+  background: #e7f1ff;
+  color: #1d4ed8;
+  border: 1px solid #bfdbfe;
 }
 
 /* A day that's already over — muted, no action to take. */
@@ -3135,9 +3202,9 @@ h6 {
 }
 
 .booking-status-booked {
-  background: #e8f9ec;
-  color: #1a7f37;
-  border: 1px solid #a7e8bb;
+  background: #e7f1ff;
+  color: #1d4ed8;
+  border: 1px solid #bfdbfe;
 }
 
 .booking-status-pending {
@@ -3147,9 +3214,9 @@ h6 {
 }
 
 .booking-status-completed {
-  background: #eef2ff;
-  color: #3730a3;
-  border: 1px solid #c7d2fe;
+  background: #e8f9ec;
+  color: #1a7f37;
+  border: 1px solid #a7e8bb;
 }
 
 .booking-status-unavailable {
@@ -3349,9 +3416,14 @@ canvas {
     width: 100%;
   }
 
-  /* Modals take almost the full viewport */
+  /* Modals take almost the full viewport. `auto` on the sides keeps
+     Bootstrap's own horizontal centering — a bare `.5rem` here overrode
+     Bootstrap's `margin: 1.75rem auto` and left the dialog pinned to the
+     left edge on any screen between 576px and 767.98px, since its
+     max-width (500px/modal-lg/modal-xl) no longer had anywhere to push
+     itself into the middle of the remaining space. */
   .modal-dialog {
-    margin: .5rem;
+    margin: .5rem auto;
   }
 
   .modal-header {
@@ -3400,7 +3472,7 @@ canvas {
   }
 
   .modal-dialog {
-    margin: .35rem;
+    margin: .35rem auto;
   }
 
   /* Button groups / row-actions wrap */

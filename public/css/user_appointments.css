@@ -444,6 +444,24 @@
             background: #ef4444;
         }
 
+        .badge-approved {
+            background: rgba(59, 130, 246, 0.1);
+            color: #1d4ed8;
+        }
+
+        .badge-approved::before {
+            background: #3b82f6;
+        }
+
+        .badge-pending {
+            background: rgba(245, 158, 11, 0.12);
+            color: #b45309;
+        }
+
+        .badge-pending::before {
+            background: #f59e0b;
+        }
+
         /* TABLE */
         .appt-table {
             width: 100%;
@@ -1181,56 +1199,22 @@
             box-shadow: 0 7px 16px rgba(25, 169, 77, .22);
         }
 
-        .history-footer {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            gap: 16px;
+        /* Pagination — reuses the admin side's .pagination-soft (see
+           styles.css for the shared box/pages/disabled/ellipsis rules);
+           this just adds the padding + separator line this page's cards
+           don't otherwise provide around their own content. */
+        .section-card > .pagination-soft {
+            margin-top: 0;
             padding: 16px 22px;
-            color: #45627f;
-            font-size: 13px;
             border-top: 1px solid #edf2f7;
-        }
-
-        /* Pagination — matches the admin side's .pagination-soft design */
-        .history-footer .pages {
-            display: flex;
-            align-items: center;
-            gap: .25rem;
-        }
-
-        .history-footer .pages a {
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            width: 36px;
-            height: 36px;
-            border-radius: 10px;
-            border: 1px solid #f1f5f9;
-            background: #fff;
-            color: #334155;
-            font-weight: 600;
-            text-decoration: none;
-            transition: all .15s ease;
-        }
-
-        .history-footer .pages a:hover {
-            border-color: var(--brand-500);
-            color: var(--brand-700);
-            background: var(--brand-50);
-        }
-
-        .history-footer .pages a.active {
-            background: var(--brand-700);
-            color: #fff;
-            border-color: var(--brand-700);
+            font-size: 13px;
         }
 
         @media (max-width: 720px) {
             .card-hd { align-items: flex-start; gap: 16px; flex-direction: column; }
             .history-filters { width: 100%; }
             .history-search, .history-filters .form-select { width: 100%; }
-            .history-footer { align-items: flex-start; flex-direction: column; }
+            .section-card > .pagination-soft { align-items: flex-start; flex-direction: column; }
         }
 
         /* ---- Appointment history: View button + information modal ---- */
@@ -1357,7 +1341,7 @@
             }
 
             .modal-dialog {
-                margin: .5rem;
+                margin: .5rem auto;
             }
         }
 

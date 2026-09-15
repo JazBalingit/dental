@@ -41,7 +41,7 @@
             </div>
         </li>
         <li><hr class="dropdown-divider"></li>
-        <li><a class="dropdown-item" href="{{ route('staffProfile') }}"><i class="bi bi-person-circle"></i> Admin Profile</a></li>
+        <li><a class="dropdown-item" href="{{ route('staffProfile') }}"><i class="bi bi-person-circle"></i> {{ session('is_super_admin') ? 'Super Admin Profile' : 'My Profile' }}</a></li>
         <li><a class="dropdown-item" href="{{ route('staffProfile', ['tab' => 'security']) }}"><i class="bi bi-shield-lock"></i> Security</a></li>
         <li><hr class="dropdown-divider"></li>
         <li>

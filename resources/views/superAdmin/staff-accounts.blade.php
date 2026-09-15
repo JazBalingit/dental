@@ -146,11 +146,7 @@
                             <div class="pagination-soft">
                                 <div>Showing {{ $staff->count() }} of {{ $staff->total() }} entries</div>
                                 <div class="pages">
-                                    <a href="{{ $staff->previousPageUrl() ?? '#' }}"><i class="bi bi-chevron-left"></i></a>
-                                    @for ($i = 1; $i <= $staff->lastPage(); $i++)
-                                        <a href="{{ $staff->url($i) }}" class="{{ $staff->currentPage() === $i ? 'active' : '' }}">{{ $i }}</a>
-                                    @endfor
-                                    <a href="{{ $staff->nextPageUrl() ?? '#' }}"><i class="bi bi-chevron-right"></i></a>
+                                    @include('partials.pagination-pages', ['paginator' => $staff])
                                 </div>
                             </div>
                         </div>
@@ -213,11 +209,7 @@
                             <div class="pagination-soft">
                                 <div>Showing {{ $archivedStaff->count() }} of {{ $archivedStaff->total() }} entries</div>
                                 <div class="pages">
-                                    <a href="{{ $archivedStaff->previousPageUrl() ?? '#' }}"><i class="bi bi-chevron-left"></i></a>
-                                    @for ($i = 1; $i <= $archivedStaff->lastPage(); $i++)
-                                        <a href="{{ $archivedStaff->url($i) }}" class="{{ $archivedStaff->currentPage() === $i ? 'active' : '' }}">{{ $i }}</a>
-                                    @endfor
-                                    <a href="{{ $archivedStaff->nextPageUrl() ?? '#' }}"><i class="bi bi-chevron-right"></i></a>
+                                    @include('partials.pagination-pages', ['paginator' => $archivedStaff])
                                 </div>
                             </div>
                         </div>
@@ -237,9 +229,6 @@
 
     <!-- ===================== ADD USER MODAL ===================== -->
     @php $addFailed = $errors->any() && old('form_source') === 'add'; @endphp
-    @if ($addFailed)
-        <div class="modal-backdrop fade show"></div>
-    @endif
     <div class="modal fade {{ $addFailed ? 'show' : '' }}" id="addModal" tabindex="-1" aria-labelledby="addModalLabel"
         aria-hidden="{{ $addFailed ? 'false' : 'true' }}" style="{{ $addFailed ? 'display:block;' : '' }}">
         <div class="modal-dialog modal-dialog-centered modal-xl modal-dialog-scrollable">
@@ -281,31 +270,43 @@
                         <div class="row g-3 mb-3">
                             <div class="col-md-4">
                                 <label class="form-label">Last name</label>
-                                <div class="input-icon"><i class="bi bi-person"></i><input type="text" name="last_name" class="form-control"
+                                <div class="input-icon @error('last_name') has-error @enderror"><i class="bi bi-person"></i><input type="text" name="last_name" class="form-control"
                                         value="{{ old('last_name') }}" placeholder="Last name" required /></div>
+                                @error('last_name') <div class="field-error"><i class="bi bi-exclamation-circle-fill"></i> {{ $message }}</div> @enderror
                             </div>
                             <div class="col-md-4">
                                 <label class="form-label">First name</label>
-                                <div class="input-icon"><i class="bi bi-person"></i><input type="text" name="first_name" class="form-control"
+                                <div class="input-icon @error('first_name') has-error @enderror"><i class="bi bi-person"></i><input type="text" name="first_name" class="form-control"
                                         value="{{ old('first_name') }}" placeholder="First name" required /></div>
+                                @error('first_name') <div class="field-error"><i class="bi bi-exclamation-circle-fill"></i> {{ $message }}</div> @enderror
                             </div>
                             <div class="col-md-4">
                                 <label class="form-label">Middle name</label>
-                                <div class="input-icon"><i class="bi bi-person"></i><input type="text" name="middle_name" class="form-control"
+                                <div class="input-icon @error('middle_name') has-error @enderror"><i class="bi bi-person"></i><input type="text" name="middle_name" class="form-control"
                                         value="{{ old('middle_name') }}" placeholder="Middle name" /></div>
+                                @error('middle_name') <div class="field-error"><i class="bi bi-exclamation-circle-fill"></i> {{ $message }}</div> @enderror
                             </div>
 
-                            <div class="col-md-6">
+                            <div class="col-md-4">
                                 <label class="form-label">Birthdate</label>
-                                <div class="input-icon"><i class="bi bi-calendar-event"></i><input type="date" name="birthdate"
-                                        class="form-control" value="{{ old('birthdate') }}" required />
+                                <div class="input-icon @error('birthdate') has-error @enderror"><i class="bi bi-calendar-event"></i><input type="date" name="birthdate"
+                                        class="form-control" value="{{ old('birthdate') }}" max="{{ now()->subYears(18)->year }}-12-31" required
+                                        data-age-target="#staffAgeNew" />
                                 </div>
-                                <div class="small text-muted-2 mt-1">Age is calculated automatically from the birthdate.</div>
+                                @error('birthdate')
+                                    <div class="field-error"><i class="bi bi-exclamation-circle-fill"></i> {{ $message }}</div>
+                                @else
+                                    <div class="small text-muted-2 mt-1">Must be at least 18 years old.</div>
+                                @enderror
+                            </div>
+                            <div class="col-md-2">
+                                <label class="form-label">Age</label>
+                                <div class="input-icon"><i class="bi bi-person-vcard"></i><input type="text" class="form-control" id="staffAgeNew" placeholder="—" disabled></div>
                             </div>
 
                             <div class="col-md-6">
                                 <label class="form-label">Gender</label>
-                                <div class="input-icon">
+                                <div class="input-icon @error('gender') has-error @enderror">
                                     <select class="form-select" name="gender" required>
                                         <option value="" disabled {{ old('gender') ? '' : 'selected' }}>Select gender</option>
                                         <option value="male" {{ old('gender') === 'male' ? 'selected' : '' }}>Male</option>
@@ -313,48 +314,74 @@
                                         <option value="other" {{ old('gender') === 'other' ? 'selected' : '' }}>Other</option>
                                     </select>
                                 </div>
+                                @error('gender') <div class="field-error"><i class="bi bi-exclamation-circle-fill"></i> {{ $message }}</div> @enderror
                             </div>
                             <div class="col-md-6">
                                 <label class="form-label">Religion</label>
-                                <div class="input-icon"><i class="bi bi-book"></i><input class="form-control" name="religion"
+                                <div class="input-icon @error('religion') has-error @enderror"><i class="bi bi-book"></i><input class="form-control" name="religion"
                                         value="{{ old('religion') }}" placeholder="Catholic" />
                                 </div>
+                                @error('religion') <div class="field-error"><i class="bi bi-exclamation-circle-fill"></i> {{ $message }}</div> @enderror
                             </div>
 
                             <div class="col-md-6">
                                 <label class="form-label">Nationality</label>
-                                <div class="input-icon"><i class="bi bi-flag"></i><input class="form-control" name="nationality"
+                                <div class="input-icon @error('nationality') has-error @enderror"><i class="bi bi-flag"></i><input class="form-control" name="nationality"
                                         value="{{ old('nationality') }}" placeholder="Filipino" required />
                                 </div>
+                                @error('nationality') <div class="field-error"><i class="bi bi-exclamation-circle-fill"></i> {{ $message }}</div> @enderror
                             </div>
-                            <div class="col-md-6">
+                            <div class="col-12">
                                 <label class="form-label">Role</label>
-                                <div class="input-icon">
+                                <div class="input-icon @error('role') has-error @enderror">
                                     <select class="form-select" name="role" required>
                                         <option value="Dentist" {{ old('role') === 'Dentist' ? 'selected' : '' }}>Dentist</option>
                                         <option value="Staff" {{ old('role', 'Staff') === 'Staff' ? 'selected' : '' }}>Staff</option>
                                     </select>
                                 </div>
+                                @error('role') <div class="field-error"><i class="bi bi-exclamation-circle-fill"></i> {{ $message }}</div> @enderror
                             </div>
+                        </div>
 
-                            <div class="col-12">
-                                <label class="form-label">Home address</label>
-                                <div class="input-icon"><i class="bi bi-geo-alt"></i><input class="form-control" name="address"
-                                        value="{{ old('address') }}" placeholder="Street, City, Province" required /></div>
+                        <div class="section-label mt-2">Home Address</div>
+                        <div class="row g-3 mb-3">
+                            <div class="col-md-6">
+                                <label class="form-label">Street / House No.</label>
+                                <div class="input-icon"><i class="bi bi-signpost-2"></i><input class="form-control addr-part" name="addr_street"
+                                        value="{{ old('addr_street') }}" placeholder="123 Sample St." /></div>
                             </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Barangay</label>
+                                <div class="input-icon"><i class="bi bi-geo"></i><input class="form-control addr-part" name="addr_barangay"
+                                        value="{{ old('addr_barangay') }}" placeholder="Barangay" /></div>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">City / Municipality</label>
+                                <div class="input-icon"><i class="bi bi-buildings"></i><input class="form-control addr-part" name="addr_city"
+                                        value="{{ old('addr_city') }}" placeholder="City / Municipality" required /></div>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Province</label>
+                                <div class="input-icon"><i class="bi bi-map"></i><input class="form-control addr-part" name="addr_province"
+                                        value="{{ old('addr_province') }}" placeholder="Province" required /></div>
+                            </div>
+                            <input type="hidden" name="address" class="@error('address') has-error @enderror" value="{{ old('address') }}">
+                            @error('address') <div class="col-12"><div class="field-error"><i class="bi bi-exclamation-circle-fill"></i> {{ $message }}</div></div> @enderror
                         </div>
 
                         <div class="section-label mt-2">Contact Details</div>
                         <div class="row g-3 mb-3">
                             <div class="col-md-6">
                                 <label class="form-label">Email address</label>
-                                <div class="input-icon"><i class="bi bi-envelope"></i><input type="email" name="email"
+                                <div class="input-icon @error('email') has-error @enderror"><i class="bi bi-envelope"></i><input type="email" name="email"
                                         class="form-control" value="{{ old('email') }}" placeholder="you@clinic.com" required /></div>
+                                @error('email') <div class="field-error"><i class="bi bi-exclamation-circle-fill"></i> {{ $message }}</div> @enderror
                             </div>
                             <div class="col-md-6">
                                 <label class="form-label">Cell/Mobile number</label>
-                                <div class="input-icon"><i class="bi bi-telephone"></i><input class="form-control" name="phone"
+                                <div class="input-icon @error('phone') has-error @enderror"><i class="bi bi-telephone"></i><input class="form-control" name="phone"
                                         value="{{ old('phone') }}" placeholder="+63 9XX XXX XXXX" required /></div>
+                                @error('phone') <div class="field-error"><i class="bi bi-exclamation-circle-fill"></i> {{ $message }}</div> @enderror
                             </div>
                         </div>
 
@@ -364,17 +391,18 @@
                                 <label class="form-label">Password</label>
                                 <div class="pw-field">
                                     <input type="checkbox" class="pw-toggle-checkbox" id="pwAddNew">
-                                    <div class="input-icon"><i class="bi bi-lock"></i><input type="text" name="password"
+                                    <div class="input-icon @error('password') has-error @enderror"><i class="bi bi-lock"></i><input type="text" name="password"
                                             class="form-control pw-mask" placeholder="••••••••" required minlength="8"
                                             value="{{ $addFailed ? old('password') : '' }}" autocomplete="new-password" /></div>
                                     <label for="pwAddNew" class="pw-eye-btn" aria-label="Show or hide password"><i class="bi bi-eye"></i><i class="bi bi-eye-slash"></i></label>
                                 </div>
+                                @error('password') <div class="field-error"><i class="bi bi-exclamation-circle-fill"></i> {{ $message }}</div> @enderror
                             </div>
                             <div class="col-md-6">
                                 <label class="form-label">Confirm password</label>
                                 <div class="pw-field">
                                     <input type="checkbox" class="pw-toggle-checkbox" id="pwAddConfirm">
-                                    <div class="input-icon"><i class="bi bi-shield-lock"></i><input type="text"
+                                    <div class="input-icon @error('password') has-error @enderror"><i class="bi bi-shield-lock"></i><input type="text"
                                             name="password_confirmation" class="form-control pw-mask" placeholder="••••••••" required
                                             value="{{ $addFailed ? old('password_confirmation') : '' }}" autocomplete="new-password" /></div>
                                     <label for="pwAddConfirm" class="pw-eye-btn" aria-label="Show or hide password"><i class="bi bi-eye"></i><i class="bi bi-eye-slash"></i></label>
@@ -398,10 +426,10 @@
             $si = $acc->staffInfo;
             $editFailed = $errors->any() && old('form_source') === 'edit_' . $acc->UserID;
             $ev = fn ($field, $default = '') => $editFailed ? old($field) : $default;
+            $eErr = fn ($field) => $editFailed && $errors->has($field) ? 'has-error' : '';
+            $eMsg = fn ($field) => $editFailed && $errors->has($field) ? $errors->first($field) : null;
+            $addrParts = array_pad(array_map('trim', explode(',', $si->Address ?? '', 4)), 4, '');
         @endphp
-        @if ($editFailed)
-            <div class="modal-backdrop fade show"></div>
-        @endif
         <div class="modal fade {{ $editFailed ? 'show' : '' }}" id="editUserModal{{ $acc->UserID }}" tabindex="-1"
             aria-hidden="{{ $editFailed ? 'false' : 'true' }}" style="{{ $editFailed ? 'display:block;' : '' }}">
             <div class="modal-dialog modal-dialog-centered modal-xl modal-dialog-scrollable">
@@ -443,85 +471,123 @@
                             <div class="row g-3 mb-3">
                                 <div class="col-md-4">
                                     <label class="form-label">Last name</label>
-                                    <div class="input-icon"><i class="bi bi-person"></i><input type="text" name="last_name" class="form-control"
+                                    <div class="input-icon {{ $eErr('last_name') }}"><i class="bi bi-person"></i><input type="text" name="last_name" class="form-control"
                                             value="{{ $ev('last_name', $si->LastName ?? '') }}" required /></div>
+                                    @if ($eMsg('last_name')) <div class="field-error"><i class="bi bi-exclamation-circle-fill"></i> {{ $eMsg('last_name') }}</div> @endif
                                 </div>
                                 <div class="col-md-4">
                                     <label class="form-label">First name</label>
-                                    <div class="input-icon"><i class="bi bi-person"></i><input type="text" name="first_name" class="form-control"
+                                    <div class="input-icon {{ $eErr('first_name') }}"><i class="bi bi-person"></i><input type="text" name="first_name" class="form-control"
                                             value="{{ $ev('first_name', $si->FirstName ?? '') }}" required /></div>
+                                    @if ($eMsg('first_name')) <div class="field-error"><i class="bi bi-exclamation-circle-fill"></i> {{ $eMsg('first_name') }}</div> @endif
                                 </div>
                                 <div class="col-md-4">
                                     <label class="form-label">Middle name</label>
-                                    <div class="input-icon"><i class="bi bi-person"></i><input type="text" name="middle_name" class="form-control"
+                                    <div class="input-icon {{ $eErr('middle_name') }}"><i class="bi bi-person"></i><input type="text" name="middle_name" class="form-control"
                                             value="{{ $ev('middle_name', $si->MiddleName ?? '') }}" /></div>
+                                    @if ($eMsg('middle_name')) <div class="field-error"><i class="bi bi-exclamation-circle-fill"></i> {{ $eMsg('middle_name') }}</div> @endif
                                 </div>
 
-                                <div class="col-md-6">
+                                <div class="col-md-4">
                                     <label class="form-label">Birthdate</label>
-                                    <div class="input-icon"><i class="bi bi-calendar-event"></i><input type="date" name="birthdate"
-                                            class="form-control" value="{{ $ev('birthdate', optional($si->DateOfBirth ?? null)->format('Y-m-d')) }}" required />
+                                    <div class="input-icon {{ $eErr('birthdate') }}"><i class="bi bi-calendar-event"></i><input type="date" name="birthdate"
+                                            class="form-control" value="{{ $ev('birthdate', optional($si->DateOfBirth ?? null)->format('Y-m-d')) }}" max="{{ now()->subYears(18)->year }}-12-31" required
+                                            data-age-target="#staffAge{{ $acc->UserID }}" />
                                     </div>
-                                    <div class="small text-muted-2 mt-1">Age is calculated automatically from the birthdate.</div>
+                                    @if ($eMsg('birthdate'))
+                                        <div class="field-error"><i class="bi bi-exclamation-circle-fill"></i> {{ $eMsg('birthdate') }}</div>
+                                    @else
+                                        <div class="small text-muted-2 mt-1">Must be at least 18 years old.</div>
+                                    @endif
+                                </div>
+                                <div class="col-md-2">
+                                    <label class="form-label">Age</label>
+                                    <div class="input-icon"><i class="bi bi-person-vcard"></i><input type="text" class="form-control" id="staffAge{{ $acc->UserID }}" placeholder="—" disabled></div>
                                 </div>
 
                                 <div class="col-md-6">
                                     <label class="form-label">Gender</label>
-                                    <div class="input-icon">
+                                    <div class="input-icon {{ $eErr('gender') }}">
                                         <select class="form-select" name="gender" required>
                                             <option value="male" {{ $ev('gender', $si->Gender ?? '') === 'male' ? 'selected' : '' }}>Male</option>
                                             <option value="female" {{ $ev('gender', $si->Gender ?? '') === 'female' ? 'selected' : '' }}>Female</option>
                                             <option value="other" {{ $ev('gender', $si->Gender ?? '') === 'other' ? 'selected' : '' }}>Other</option>
                                         </select>
                                     </div>
+                                    @if ($eMsg('gender')) <div class="field-error"><i class="bi bi-exclamation-circle-fill"></i> {{ $eMsg('gender') }}</div> @endif
                                 </div>
                                 <div class="col-md-6">
                                     <label class="form-label">Religion</label>
-                                    <div class="input-icon"><i class="bi bi-book"></i><input class="form-control" name="religion"
+                                    <div class="input-icon {{ $eErr('religion') }}"><i class="bi bi-book"></i><input class="form-control" name="religion"
                                             value="{{ $ev('religion', $si->Religion ?? '') }}" />
                                     </div>
+                                    @if ($eMsg('religion')) <div class="field-error"><i class="bi bi-exclamation-circle-fill"></i> {{ $eMsg('religion') }}</div> @endif
                                 </div>
 
                                 <div class="col-md-6">
                                     <label class="form-label">Nationality</label>
-                                    <div class="input-icon"><i class="bi bi-flag"></i><input class="form-control" name="nationality"
+                                    <div class="input-icon {{ $eErr('nationality') }}"><i class="bi bi-flag"></i><input class="form-control" name="nationality"
                                             value="{{ $ev('nationality', $si->Nationality ?? '') }}" required />
                                     </div>
+                                    @if ($eMsg('nationality')) <div class="field-error"><i class="bi bi-exclamation-circle-fill"></i> {{ $eMsg('nationality') }}</div> @endif
                                 </div>
-                                <div class="col-md-6">
+                                <div class="col-12">
                                     <label class="form-label">Role</label>
-                                    <div class="input-icon">
+                                    <div class="input-icon {{ $eErr('role') }}">
                                         <select class="form-select" name="role" required>
                                             <option value="Dentist" {{ $ev('role', $acc->Position) === 'Dentist' ? 'selected' : '' }}>Dentist</option>
                                             <option value="Staff" {{ $ev('role', $acc->Position) === 'Staff' ? 'selected' : '' }}>Staff</option>
                                         </select>
                                     </div>
+                                    @if ($eMsg('role')) <div class="field-error"><i class="bi bi-exclamation-circle-fill"></i> {{ $eMsg('role') }}</div> @endif
                                 </div>
+                            </div>
 
-                                <div class="col-12">
-                                    <label class="form-label">Home address</label>
-                                    <div class="input-icon"><i class="bi bi-geo-alt"></i><input class="form-control" name="address"
-                                            value="{{ $ev('address', $si->Address ?? '') }}" required /></div>
+                            <div class="section-label mt-2">Home Address</div>
+                            <div class="row g-3 mb-3">
+                                <div class="col-md-6">
+                                    <label class="form-label">Street / House No.</label>
+                                    <div class="input-icon"><i class="bi bi-signpost-2"></i><input class="form-control addr-part" name="addr_street"
+                                            value="{{ $editFailed ? old('addr_street') : $addrParts[0] }}" placeholder="123 Sample St." /></div>
                                 </div>
+                                <div class="col-md-6">
+                                    <label class="form-label">Barangay</label>
+                                    <div class="input-icon"><i class="bi bi-geo"></i><input class="form-control addr-part" name="addr_barangay"
+                                            value="{{ $editFailed ? old('addr_barangay') : $addrParts[1] }}" placeholder="Barangay" /></div>
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label">City / Municipality</label>
+                                    <div class="input-icon"><i class="bi bi-buildings"></i><input class="form-control addr-part" name="addr_city"
+                                            value="{{ $editFailed ? old('addr_city') : $addrParts[2] }}" placeholder="City / Municipality" required /></div>
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label">Province</label>
+                                    <div class="input-icon"><i class="bi bi-map"></i><input class="form-control addr-part" name="addr_province"
+                                            value="{{ $editFailed ? old('addr_province') : $addrParts[3] }}" placeholder="Province" required /></div>
+                                </div>
+                                <input type="hidden" name="address" class="{{ $eErr('address') }}" value="{{ $ev('address', $si->Address ?? '') }}">
+                                @if ($eMsg('address')) <div class="col-12"><div class="field-error"><i class="bi bi-exclamation-circle-fill"></i> {{ $eMsg('address') }}</div></div> @endif
                             </div>
 
                             <div class="section-label mt-2">Contact Details</div>
                             <div class="row g-3 mb-3">
                                 <div class="col-md-6">
                                     <label class="form-label">Email address</label>
-                                    <div class="input-icon"><i class="bi bi-envelope"></i><input type="email" name="email"
+                                    <div class="input-icon {{ $eErr('email') }}"><i class="bi bi-envelope"></i><input type="email" name="email"
                                             class="form-control" value="{{ $ev('email', $acc->Email) }}" required /></div>
+                                    @if ($eMsg('email')) <div class="field-error"><i class="bi bi-exclamation-circle-fill"></i> {{ $eMsg('email') }}</div> @endif
                                 </div>
                                 <div class="col-md-6">
                                     <label class="form-label">Cell/Mobile number</label>
-                                    <div class="input-icon"><i class="bi bi-telephone"></i><input class="form-control" name="phone"
+                                    <div class="input-icon {{ $eErr('phone') }}"><i class="bi bi-telephone"></i><input class="form-control" name="phone"
                                             value="{{ $ev('phone', $si->PhoneNumber ?? '') }}" required /></div>
+                                    @if ($eMsg('phone')) <div class="field-error"><i class="bi bi-exclamation-circle-fill"></i> {{ $eMsg('phone') }}</div> @endif
                                 </div>
                             </div>
 
                             <div class="section-label mt-2">Account Details</div>
                             <div class="row g-3 mb-3">
-                                <div class="col-md-6">
+                                <div class="col-12">
                                     <label class="form-label">Date created</label>
                                     <div class="input-icon"><i class="bi bi-clock-history"></i><input type="text"
                                             class="form-control" value="{{ \Carbon\Carbon::parse($acc->DateCreated)->format('M j, Y g:i A') }}" disabled></div>
@@ -550,13 +616,17 @@
     @endforeach
 
     {{-- ===================== CHANGE PASSWORD MODAL PER STAFF MEMBER ===================== --}}
-    {{-- Purely client-side (opened only by the button above) so Bootstrap
-    fully owns the show/hide/backdrop lifecycle — unlike the other modals on
-    this page, this one is never server-rendered as already-open, so there's
-    no stale backdrop left behind for the close button to fight with. Any
-    validation or "current password is incorrect" error surfaces via the
-    page's usual flash-toast instead of an inline alert here. --}}
+    {{-- Never server-rendered as already-open (no modal-backdrop div here) —
+    the shared reopen script in partials/flash-toasts (tracked by modal id in
+    sessionStorage) re-opens the exact modal that was submitted when a
+    validation error or "current password is incorrect" comes back. The
+    form_source hidden field lets THIS specific staff row's fields (and only
+    this row's, across the whole @foreach) show the has-error/field-error
+    styling — see $pwdFailed above. --}}
     @foreach ($staff->merge($archivedStaff) as $acc)
+        @php
+            $pwdFailed = ($errors->any() || session('password_error')) && old('form_source') === 'pwd_' . $acc->UserID;
+        @endphp
         <div class="modal fade" id="changePasswordModal{{ $acc->UserID }}" tabindex="-1" aria-hidden="true">
             <div class="modal-dialog modal-dialog-centered">
                 <div class="modal-content">
@@ -570,31 +640,38 @@
                     <form method="POST" action="{{ route('staffAcc.password.update', $acc->UserID) }}">
                         <div class="modal-body pt-2">
                             @csrf
+                            <input type="hidden" name="form_source" value="pwd_{{ $acc->UserID }}">
                             <div class="mb-3">
                                 <label class="form-label">Current password</label>
                                 <div class="pw-field">
                                     <input type="checkbox" class="pw-toggle-checkbox" id="pwChgCur{{ $acc->UserID }}">
-                                    <div class="input-icon"><i class="bi bi-lock"></i><input type="text"
-                                            name="current_password" class="form-control pw-mask" required autocomplete="current-password"></div>
+                                    <div class="input-icon {{ $pwdFailed && session('password_error') ? 'has-error' : '' }}"><i class="bi bi-lock"></i><input type="text"
+                                            name="current_password" class="form-control pw-mask" placeholder="••••••••" required value="{{ $pwdFailed ? old('current_password') : '' }}" autocomplete="current-password"></div>
                                     <label for="pwChgCur{{ $acc->UserID }}" class="pw-eye-btn" aria-label="Show or hide password"><i class="bi bi-eye"></i><i class="bi bi-eye-slash"></i></label>
                                 </div>
+                                @if ($pwdFailed && session('password_error'))
+                                    <div class="field-error"><i class="bi bi-exclamation-circle-fill"></i> {{ session('password_error') }}</div>
+                                @endif
                             </div>
                             <div class="row g-3">
                                 <div class="col-md-6">
                                     <label class="form-label">New password</label>
                                     <div class="pw-field">
                                         <input type="checkbox" class="pw-toggle-checkbox" id="pwChgNew{{ $acc->UserID }}">
-                                        <div class="input-icon"><i class="bi bi-key"></i><input type="text" name="password"
-                                                class="form-control pw-mask" minlength="8" required autocomplete="new-password"></div>
+                                        <div class="input-icon {{ $pwdFailed && $errors->has('password') ? 'has-error' : '' }}"><i class="bi bi-key"></i><input type="text" name="password"
+                                                class="form-control pw-mask" placeholder="••••••••" minlength="8" required value="{{ $pwdFailed ? old('password') : '' }}" autocomplete="new-password"></div>
                                         <label for="pwChgNew{{ $acc->UserID }}" class="pw-eye-btn" aria-label="Show or hide password"><i class="bi bi-eye"></i><i class="bi bi-eye-slash"></i></label>
                                     </div>
+                                    @if ($pwdFailed && $errors->has('password'))
+                                        <div class="field-error"><i class="bi bi-exclamation-circle-fill"></i> {{ $errors->first('password') }}</div>
+                                    @endif
                                 </div>
                                 <div class="col-md-6">
                                     <label class="form-label">Confirm new password</label>
                                     <div class="pw-field">
                                         <input type="checkbox" class="pw-toggle-checkbox" id="pwChgConfirm{{ $acc->UserID }}">
-                                        <div class="input-icon"><i class="bi bi-shield-lock"></i><input type="text"
-                                                name="password_confirmation" class="form-control pw-mask" required autocomplete="new-password"></div>
+                                        <div class="input-icon {{ $pwdFailed && $errors->has('password') ? 'has-error' : '' }}"><i class="bi bi-shield-lock"></i><input type="text"
+                                                name="password_confirmation" class="form-control pw-mask" placeholder="••••••••" required value="{{ $pwdFailed ? old('password_confirmation') : '' }}" autocomplete="new-password"></div>
                                         <label for="pwChgConfirm{{ $acc->UserID }}" class="pw-eye-btn" aria-label="Show or hide password"><i class="bi bi-eye"></i><i class="bi bi-eye-slash"></i></label>
                                     </div>
                                 </div>
@@ -614,6 +691,9 @@
     @include('partials.confirm-action-modal')
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="{{ asset('js/field-restrictions.js') }}"></script>
+    <script src="{{ asset('js/address-sync.js') }}"></script>
+    <script src="{{ asset('js/birthdate-age.js') }}"></script>
     <script>
         document.querySelectorAll('input[type="file"][name="photo"]').forEach(function (input) {
             input.addEventListener('change', function () {

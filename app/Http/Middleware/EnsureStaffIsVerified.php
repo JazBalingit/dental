@@ -21,6 +21,7 @@ class EnsureStaffIsVerified
 {
     protected array $allowedRouteNames = [
         'staffProfile',
+        'staffProfile.updateProfile',
         'staffProfile.sendVerification',
         'staffProfile.verifyEmail',
         'logout',

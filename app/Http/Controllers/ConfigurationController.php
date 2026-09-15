@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\ActivityLog;
+use App\Models\AppointmentStep;
 use App\Models\DentistSchedule;
 use App\Models\Service;
 use App\Models\ServiceCategory;
@@ -81,6 +82,12 @@ class ConfigurationController extends Controller
         $activeActivity = $buildActivity(false);
         $archivedActivity = $buildActivity(true);
 
+        $activeSteps = AppointmentStep::where('IsArchived', false)->orderBy('DisplayOrder');
+        $archivedSteps = AppointmentStep::where('IsArchived', true)->orderBy('DisplayOrder');
+
+        $activeCategories = ServiceCategory::withCount('services')->where('IsArchived', false)->orderBy('DisplayOrder')->orderBy('Name');
+        $archivedCategories = ServiceCategory::withCount('services')->where('IsArchived', true)->orderBy('DisplayOrder')->orderBy('Name');
+
         $logoPath = public_path('images/puspus_logo.png');
 
         $settingsTab = in_array($request->query('settingsTab'), ['about', 'services', 'privacy', 'appointment', 'activity'], true)
@@ -94,14 +101,32 @@ class ConfigurationController extends Controller
                 'privacyPolicy' => SystemSetting::get('privacy_policy_content', ''),
                 'legalTerms' => SystemSetting::get('legal_terms_content', ''),
             ],
-            'appointmentSteps' => SystemSetting::appointmentSteps(),
-            'categories' => ServiceCategory::withCount('services')->orderBy('DisplayOrder')->orderBy('Name')->get(),
-            'services' => $activeServices->orderBy('ServiceName')->paginate(10, ['*'], 'services_page')->withQueryString(),
-            'archivedServices' => $archivedServices->orderBy('ServiceName')->paginate(10, ['*'], 'services_archived_page')->withQueryString(),
-            'activityLogs' => $activeActivity->paginate(15, ['*'], 'activity_page')->withQueryString(),
-            'archivedActivityLogs' => $archivedActivity->paginate(15, ['*'], 'activity_archived_page')->withQueryString(),
+            // Page links need the owning settings tab (and, for split
+            // active/archived tables, the sub-tab too) baked in explicitly —
+            // switching tabs is client-side only (Bootstrap pills), so it
+            // never lands in the request's own query string for
+            // withQueryString() to pick up on its own.
+            'appointmentSteps' => $activeSteps->paginate(10, ['*'], 'appointmentSteps_page')->withQueryString()
+                ->appends(['settingsTab' => 'appointment', 'appointmentStepsTab' => 'active']),
+            'archivedAppointmentSteps' => $archivedSteps->paginate(10, ['*'], 'appointmentSteps_archived_page')->withQueryString()
+                ->appends(['settingsTab' => 'appointment', 'appointmentStepsTab' => 'archived']),
+            // Active only — used both for the Manage Categories "Active" tab
+            // and as the choices offered when assigning a category to a
+            // service (an archived category shouldn't be newly assignable).
+            'categories' => $activeCategories->get(),
+            'archivedCategories' => $archivedCategories->get(),
+            'categoriesTab' => $request->query('categoriesTab') === 'archived' ? 'archived' : 'active',
+            'services' => $activeServices->orderBy('ServiceName')->paginate(10, ['*'], 'services_page')->withQueryString()
+                ->appends(['settingsTab' => 'services', 'servicesTab' => 'active']),
+            'archivedServices' => $archivedServices->orderBy('ServiceName')->paginate(10, ['*'], 'services_archived_page')->withQueryString()
+                ->appends(['settingsTab' => 'services', 'servicesTab' => 'archived']),
+            'activityLogs' => $activeActivity->paginate(15, ['*'], 'activity_page')->withQueryString()
+                ->appends(['settingsTab' => 'activity', 'activityTab' => 'active']),
+            'archivedActivityLogs' => $archivedActivity->paginate(15, ['*'], 'activity_archived_page')->withQueryString()
+                ->appends(['settingsTab' => 'activity', 'activityTab' => 'archived']),
             'servicesTab' => $request->query('servicesTab') === 'archived' ? 'archived' : 'active',
             'activityTab' => $request->query('activityTab') === 'archived' ? 'archived' : 'active',
+            'appointmentStepsTab' => $request->query('appointmentStepsTab') === 'archived' ? 'archived' : 'active',
             'serviceSearch' => $serviceSearch,
             'activitySearch' => $activitySearch,
             'activityType' => $activityType,
@@ -184,7 +209,7 @@ class ConfigurationController extends Controller
 
         $this->activityLog->log('Edit', 'Updated the clinic branding and system information.');
 
-        return redirect()->route('configuration', ['settingsTab' => 'about'])->with('success', 'System information updated.');
+        return back()->with('success', 'System information updated.');
     }
 
     public function updatePrivacyLegal(Request $request)
@@ -199,36 +224,64 @@ class ConfigurationController extends Controller
 
         $this->activityLog->log('Edit', 'Updated the Privacy Policy and Legal Terms.');
 
-        return redirect()->route('configuration', ['settingsTab' => 'privacy'])->with('success', 'Privacy and legal terms updated.');
+        return back()->with('success', 'Privacy and legal terms updated.');
     }
 
-    public function updateAppointmentSteps(Request $request)
+    public function storeAppointmentStep(Request $request)
     {
         $data = $request->validate([
-            'steps' => 'required|array|min:1|max:20',
-            'steps.*.title' => 'required|string|max:150',
-            'steps.*.desc' => 'required|string|max:500',
+            'title' => 'required|string|max:150',
+            'description' => 'required|string|max:500',
         ]);
 
-        $steps = array_values($data['steps']);
-        $oldCount = SystemSetting::appointmentStepCount();
+        AppointmentStep::create([
+            'Title' => $data['title'],
+            'Description' => $data['description'],
+            'DisplayOrder' => (int) AppointmentStep::max('DisplayOrder') + 1,
+            'IsArchived' => false,
+        ]);
 
-        foreach ($steps as $i => $step) {
-            $n = $i + 1;
-            SystemSetting::set("appt_step_{$n}_title", $step['title']);
-            SystemSetting::set("appt_step_{$n}_desc", $step['desc']);
-        }
+        $this->activityLog->log('Create', "Added a new appointment-process step: {$data['title']}.");
 
-        for ($n = count($steps) + 1; $n <= $oldCount; $n++) {
-            SystemSetting::forget("appt_step_{$n}_title");
-            SystemSetting::forget("appt_step_{$n}_desc");
-        }
+        return back()->with('success', 'Step added.');
+    }
 
-        SystemSetting::set('appt_step_count', count($steps));
+    public function updateAppointmentStep(Request $request, $id)
+    {
+        $data = $request->validate([
+            'title' => 'required|string|max:150',
+            'description' => 'required|string|max:500',
+        ]);
 
-        $this->activityLog->log('Edit', 'Updated the Appointment Process steps.');
+        $step = AppointmentStep::findOrFail($id);
+        $step->update([
+            'Title' => $data['title'],
+            'Description' => $data['description'],
+        ]);
 
-        return redirect()->route('configuration', ['settingsTab' => 'appointment'])->with('success', 'Appointment process updated.');
+        $this->activityLog->log('Edit', "Edited appointment-process step: {$data['title']}.");
+
+        return back()->with('success', 'Step updated.');
+    }
+
+    public function archiveAppointmentStep($id)
+    {
+        $step = AppointmentStep::findOrFail($id);
+        $step->update(['IsArchived' => true]);
+
+        $this->activityLog->log('Archive', "Archived appointment-process step: {$step->Title}.");
+
+        return back()->with('success', 'Step archived.');
+    }
+
+    public function unarchiveAppointmentStep($id)
+    {
+        $step = AppointmentStep::findOrFail($id);
+        $step->update(['IsArchived' => false]);
+
+        $this->activityLog->log('Unarchive', "Unarchived appointment-process step: {$step->Title}.");
+
+        return back()->with('success', 'Step restored.');
     }
 
     public function storeService(Request $request)
@@ -250,7 +303,7 @@ class ConfigurationController extends Controller
 
         $this->activityLog->log('Create', "Added a new service: {$data['service_name']}.");
 
-        return redirect()->route('configuration', ['settingsTab' => 'services'])->with('success', 'Service added.');
+        return back()->with('success', 'Service added.');
     }
 
     public function updateService(Request $request, $id)
@@ -272,7 +325,7 @@ class ConfigurationController extends Controller
 
         $this->activityLog->log('Edit', "Edited service: {$data['service_name']}.");
 
-        return redirect()->route('configuration', ['settingsTab' => 'services'])->with('success', 'Service updated.');
+        return back()->with('success', 'Service updated.');
     }
 
     public function archiveService($id)
@@ -282,7 +335,7 @@ class ConfigurationController extends Controller
 
         $this->activityLog->log('Archive', "Archived service: {$service->ServiceName}.");
 
-        return redirect()->route('configuration', ['settingsTab' => 'services'])->with('success', 'Service archived.');
+        return back()->with('success', 'Service archived.');
     }
 
     public function unarchiveService($id)
@@ -292,7 +345,7 @@ class ConfigurationController extends Controller
 
         $this->activityLog->log('Unarchive', "Unarchived service: {$service->ServiceName}.");
 
-        return redirect()->route('configuration', ['settingsTab' => 'services'])->with('success', 'Service restored.');
+        return back()->with('success', 'Service restored.');
     }
 
     public function storeCategory(Request $request)
@@ -310,7 +363,7 @@ class ConfigurationController extends Controller
 
         $this->activityLog->log('Create', "Added a new service category: {$data['name']}.");
 
-        return redirect()->route('configuration', ['settingsTab' => 'services'])->with('success', 'Category added.');
+        return back()->with('success', 'Category added.');
     }
 
     public function updateCategory(Request $request, $id)
@@ -328,22 +381,27 @@ class ConfigurationController extends Controller
 
         $this->activityLog->log('Edit', "Edited service category: {$data['name']}.");
 
-        return redirect()->route('configuration', ['settingsTab' => 'services'])->with('success', 'Category updated.');
+        return back()->with('success', 'Category updated.');
     }
 
-    /**
-     * Deleting a category doesn't touch its services — the CategoryID
-     * foreign key is set to null (see the migration), so they just fall
-     * back to "Uncategorized" instead of disappearing.
-     */
-    public function destroyCategory($id)
+    public function archiveCategory($id)
     {
         $category = ServiceCategory::findOrFail($id);
-        $category->delete();
+        $category->update(['IsArchived' => true]);
 
-        $this->activityLog->log('Edit', "Deleted service category: {$category->Name}.");
+        $this->activityLog->log('Archive', "Archived service category: {$category->Name}.");
 
-        return redirect()->route('configuration', ['settingsTab' => 'services'])->with('success', 'Category deleted.');
+        return back()->with('success', 'Category archived.');
+    }
+
+    public function unarchiveCategory($id)
+    {
+        $category = ServiceCategory::findOrFail($id);
+        $category->update(['IsArchived' => false]);
+
+        $this->activityLog->log('Unarchive', "Unarchived service category: {$category->Name}.");
+
+        return back()->with('success', 'Category restored.');
     }
 
     public function archiveActivityLog($id)
@@ -352,7 +410,7 @@ class ConfigurationController extends Controller
 
         $this->activityLog->log('Archive', "Archived activity log entry #{$id}.");
 
-        return redirect()->route('configuration', ['settingsTab' => 'activity'])->with('success', 'Activity log archived.');
+        return back()->with('success', 'Activity log archived.');
     }
 
     public function unarchiveActivityLog($id)
@@ -361,6 +419,6 @@ class ConfigurationController extends Controller
 
         $this->activityLog->log('Unarchive', "Restored activity log entry #{$id}.");
 
-        return redirect()->route('configuration', ['settingsTab' => 'activity'])->with('success', 'Activity log restored.');
+        return back()->with('success', 'Activity log restored.');
     }
 }

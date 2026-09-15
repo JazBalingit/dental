@@ -117,7 +117,7 @@
                                 <span><i class="fas fa-hourglass-half"></i> {{ $current->duration_label }}</span>
                             </div>
                             <div style="margin-top:10px">
-                                <span class="badge-pill badge-scheduled">{{ $current->Status === 'Approved' ? 'Booked' : 'Pending' }}</span>
+                                <span class="badge-pill {{ $current->Status === 'Approved' ? 'badge-approved' : 'badge-pending' }}">{{ $current->Status === 'Approved' ? 'Booked' : 'Pending' }}</span>
                             </div>
                         </div>
                         <div class="appt-actions">

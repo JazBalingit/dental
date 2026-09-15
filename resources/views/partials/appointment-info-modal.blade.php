@@ -8,9 +8,12 @@
 @php
     $rec = $appointment->patientRecord;
     $statusLabel = $appointment->Status === 'Approved' ? 'Booked' : $appointment->Status;
-    $badgeClass = $appointment->Status === 'Completed'
-        ? 'badge-completed'
-        : ($appointment->Status === 'Declined' ? 'badge-cancelled' : 'badge-scheduled');
+    $badgeClass = match ($appointment->Status) {
+        'Completed' => 'badge-completed',
+        'Approved' => 'badge-approved',
+        'Declined', 'Cancelled' => 'badge-cancelled',
+        default => 'badge-pending',
+    };
 @endphp
 <div class="modal fade" id="apptModal{{ $appointment->AppointmentID }}" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered modal-lg modal-dialog-scrollable">

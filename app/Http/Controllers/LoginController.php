@@ -302,7 +302,7 @@ class LoginController extends Controller
             session(['reset_attempts' => $attempts]);
 
             return redirect()->route('login')
-                ->withInput($request->only('password', 'password_confirmation'))
+                ->withInput()
                 ->with('show_reset_form', true)
                 ->with('reset_error', 'Incorrect code. Please try again.');
         }

@@ -72,22 +72,29 @@ class WalkInController extends Controller
 
     public function store(Request $request)
     {
+        $nameRule = "regex:/^[\pL\s'.-]+$/u";
+
         $data = $request->validate([
             'patient_source' => 'required|in:existing,new',
             'patient_id' => 'required_if:patient_source,existing|nullable|integer|exists:tbl_patientInfo,PatientID',
-            'last_name' => 'required_if:patient_source,new|nullable|string|max:100',
-            'first_name' => 'required_if:patient_source,new|nullable|string|max:100',
-            'middle_name' => 'nullable|string|max:100',
-            'birthdate' => 'required_if:patient_source,new|nullable|date|before:today',
+            'last_name' => ['required_if:patient_source,new', 'nullable', 'string', 'max:100', $nameRule],
+            'first_name' => ['required_if:patient_source,new', 'nullable', 'string', 'max:100', $nameRule],
+            'middle_name' => ['nullable', 'string', 'max:100', $nameRule],
+            'birthdate' => 'required_if:patient_source,new|nullable|date|before_or_equal:2023-12-31',
             'gender' => 'required_if:patient_source,new|nullable|string',
             'address' => 'required_if:patient_source,new|nullable|string|max:255',
             'email' => 'nullable|email|max:255',
-            'phone' => 'required_if:patient_source,new|nullable|string|max:20',
+            'phone' => 'required_if:patient_source,new|nullable|digits:11',
             'service_ids' => 'required|array|min:1',
             'service_ids.*' => 'distinct|exists:tbl_services,ServiceID',
             'date' => 'required|date',
             'time' => 'required|string',
             'dentist_id' => 'required|integer',
+        ], [
+            'phone.digits' => 'Mobile number must be exactly 11 digits.',
+            'last_name.regex' => 'Last name may only contain letters.',
+            'first_name.regex' => 'First name may only contain letters.',
+            'middle_name.regex' => 'Middle name may only contain letters.',
         ]);
 
         $dentist = UserAccount::dentists()->where('UserID', $data['dentist_id'])->first();

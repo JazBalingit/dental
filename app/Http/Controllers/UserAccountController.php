@@ -44,8 +44,14 @@ class UserAccountController extends Controller
         }
 
         return $this->panelView('user-accounts', [
-            'users' => $activeQuery->orderByDesc('DateCreated')->paginate(10, ['*'], 'page')->withQueryString(),
-            'archivedUsers' => $archivedQuery->orderByDesc('DateCreated')->paginate(10, ['*'], 'archived_page')->withQueryString(),
+            // Switching the Active/Archived pill is client-side only, so it
+            // never lands in the request's query string on its own — force
+            // it onto every page link so paging the Archived table doesn't
+            // bounce you back to Active.
+            'users' => $activeQuery->orderByDesc('DateCreated')->paginate(10, ['*'], 'page')->withQueryString()
+                ->appends(['tab' => 'active']),
+            'archivedUsers' => $archivedQuery->orderByDesc('DateCreated')->paginate(10, ['*'], 'archived_page')->withQueryString()
+                ->appends(['tab' => 'archived']),
             'search' => $search,
             'tab' => $tab,
         ]);
@@ -56,21 +62,33 @@ class UserAccountController extends Controller
         $account = UserAccount::where('AccountType', 'User')->findOrFail($id);
         $info = PatientInfo::where('UserID', $account->UserID)->firstOrFail();
 
+        $nameRule = "regex:/^[\pL\s'.-]+$/u";
+
         $data = $request->validate([
-            'last_name' => 'required|string|max:100',
-            'first_name' => 'required|string|max:100',
-            'middle_name' => 'nullable|string|max:100',
-            'birthdate' => 'required|date|before:today',
+            'last_name' => ['required', 'string', 'max:100', $nameRule],
+            'first_name' => ['required', 'string', 'max:100', $nameRule],
+            'middle_name' => ['nullable', 'string', 'max:100', $nameRule],
+            'birthdate' => 'required|date|before_or_equal:2023-12-31',
             'gender' => 'required|string',
-            'religion' => 'nullable|string|max:100',
-            'nationality' => 'required|string|max:100',
-            'occupation' => 'nullable|string|max:150',
+            'religion' => ['nullable', 'string', 'max:100', $nameRule],
+            'nationality' => ['required', 'string', 'max:100', $nameRule],
+            'occupation' => ['nullable', 'string', 'max:150', $nameRule],
             'address' => 'required|string|max:255',
-            'guardian_name' => 'nullable|string|max:150',
-            'guardian_occupation' => 'nullable|string|max:150',
+            'guardian_name' => ['nullable', 'string', 'max:150', $nameRule],
+            'guardian_occupation' => ['nullable', 'string', 'max:150', $nameRule],
             'email' => 'required|email|unique:tbl_useraccount,Email,' . $account->UserID . ',UserID',
-            'phone' => 'required|string|max:20',
+            'phone' => 'required|digits:11',
             'photo' => 'nullable|image|mimes:jpg,jpeg,png|max:5120',
+        ], [
+            'phone.digits' => 'Mobile number must be exactly 11 digits.',
+            'last_name.regex' => 'Last name may only contain letters.',
+            'first_name.regex' => 'First name may only contain letters.',
+            'middle_name.regex' => 'Middle name may only contain letters.',
+            'religion.regex' => 'Religion may only contain letters.',
+            'nationality.regex' => 'Nationality may only contain letters.',
+            'occupation.regex' => 'Occupation may only contain letters.',
+            'guardian_name.regex' => "Guardian's name may only contain letters.",
+            'guardian_occupation.regex' => "Guardian's occupation may only contain letters.",
         ]);
 
         $account->Email = $data['email'];

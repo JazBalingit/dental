@@ -48,6 +48,53 @@ class StaffProfileController extends Controller
         ]);
     }
 
+    /**
+     * A staff/dentist/admin editing their own Personal Information. The
+     * super admin never reaches this — they have no StaffInfo row at all
+     * (see currentStaff()/edit(): $si is null and the edit form doesn't
+     * render), so there's nothing here for them to submit.
+     */
+    public function updateProfile(Request $request)
+    {
+        $staff = $this->currentStaff();
+        $si = $staff->staffInfo;
+
+        if (!$si) {
+            abort(404);
+        }
+
+        $nameRule = "regex:/^[\pL\s'.-]+$/u";
+
+        $data = $request->validate([
+            'last_name' => ['required', 'string', 'max:100', $nameRule],
+            'first_name' => ['required', 'string', 'max:100', $nameRule],
+            'middle_name' => ['nullable', 'string', 'max:100', $nameRule],
+            'birthdate' => 'required|date|before_or_equal:' . now()->subYears(18)->year . '-12-31',
+            'gender' => 'required|string',
+            'religion' => ['nullable', 'string', 'max:100', $nameRule],
+            'nationality' => ['required', 'string', 'max:100', $nameRule],
+            'phone' => 'required|digits:11',
+            'address' => 'required|string|max:255',
+        ]);
+
+        $si->update([
+            'LastName' => $data['last_name'],
+            'FirstName' => $data['first_name'],
+            'MiddleName' => $data['middle_name'] ?? null,
+            'DateOfBirth' => $data['birthdate'],
+            'Age' => \Carbon\Carbon::parse($data['birthdate'])->age,
+            'Gender' => $data['gender'],
+            'Religion' => $data['religion'] ?? null,
+            'Nationality' => $data['nationality'],
+            'PhoneNumber' => $data['phone'],
+            'Address' => $data['address'],
+        ]);
+
+        $this->activityLog->log('Profile Updated', 'Updated own profile information (My Profile).', $staff->UserID);
+
+        return redirect()->route('staffProfile')->with('success', 'Profile updated successfully.');
+    }
+
     public function sendVerification(Request $request)
     {
         $staff = $this->currentStaff();
@@ -109,8 +156,9 @@ class StaffProfileController extends Controller
             session(['staff_verify_attempts' => $attempts]);
 
             return redirect()->route('staffProfile')
+                ->withInput($request->only('code'))
                 ->with('show_staff_verify', true)
-                ->with('error', 'Incorrect code. Please try again.');
+                ->with('email_verify_error', 'Incorrect code. Please try again.');
         }
 
         $staff = $this->currentStaff();
@@ -139,8 +187,8 @@ class StaffProfileController extends Controller
         if (!Hash::check($data['current_password'], $staff->Password)) {
             $this->activityLog->log('Failed Password Change', 'Entered the wrong current password when trying to change it (My Profile → Security).', $staff->UserID);
             return redirect()->route('staffProfile', ['tab' => 'security'])
-                ->withInput($request->only('current_password', 'password', 'password_confirmation'))
-                ->with('error', 'Your current password is incorrect.');
+                ->withInput()
+                ->with('password_error', 'Your current password is incorrect.');
         }
 
         $staff->Password = Hash::make($data['password']);

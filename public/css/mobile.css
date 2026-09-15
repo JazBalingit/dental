@@ -611,9 +611,12 @@
     padding: .35rem .7rem;
   }
 
-  /* Modal dialogs get the full width on a phone */
+  /* Modal dialogs get the full width on a phone. `auto` keeps Bootstrap's
+     own horizontal centering intact at the top of this range (a bare
+     `.5rem` pins the dialog to the left edge once its max-width leaves
+     spare room on wider phones). */
   .modal-dialog {
-    margin: .5rem;
+    margin: .5rem auto;
   }
 
   .modal-lg,
@@ -661,5 +664,33 @@
 @media (max-width: 479.98px) {
   .stats-row {
     grid-template-columns: 1fr !important;
+  }
+}
+
+/* ---------------------------------------------------------------------
+   11. Admin/super-admin table "Actions" cells (Edit/Archive/Unarchive/
+       Delete pill buttons) — inside .table-responsive's horizontal
+       scroll, these buttons had no fixed layout of their own, so they
+       wrapped mid-row into a ragged two-line stack of different widths.
+       Stack them as a clean, evenly full-width column instead, and give
+       the cell breathing room so the row doesn't look cramped.
+   ------------------------------------------------------------------- */
+@media (max-width: 767.98px) {
+  .table-soft td.text-end:has(.btn-pill) {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    gap: .4rem;
+    min-width: 132px;
+    padding-top: .75rem;
+    padding-bottom: .75rem;
+  }
+
+  .table-soft td.text-end:has(.btn-pill) .btn-pill {
+    width: 100%;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 !important;
   }
 }

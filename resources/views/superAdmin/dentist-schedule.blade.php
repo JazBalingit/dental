@@ -263,7 +263,8 @@
                                 <form method="POST" action="{{ route('dentistSchedule.toggleDay') }}"
                                     class="d-flex align-items-center gap-2 m-0 ms-auto me-3"
                                     @if (!$dayFullyClosed && $openBookingsForDay > 0)
-                                        onsubmit="return confirm('Closing this day will cancel {{ $openBookingsForDay }} pending/booked appointment(s) and notify the patient(s). Continue?')"
+                                        data-confirm-title="Close this day?"
+                                        data-confirm-message="Closing this day will cancel {{ $openBookingsForDay }} pending/booked appointment(s) and notify the patient(s). Continue?"
                                     @endif>
                                     @csrf
                                     <input type="hidden" name="date" value="{{ $dateStr }}">
@@ -354,6 +355,7 @@
     @include('partials.admin-notif-modal')
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    @include('partials.confirm-action-modal')
 </body>
 
 </html>

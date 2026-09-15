@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Appointment;
+use App\Models\AppointmentStep;
 use App\Models\DentistSchedule;
 use App\Models\Service;
 use App\Models\ServiceCategory;
@@ -42,6 +43,7 @@ class UserController extends Controller
         // with no category land in a single "Other Services" catch-all so
         // nothing silently disappears from the public page.
         $serviceCategories = ServiceCategory::with(['services' => fn ($q) => $q->where('IsArchived', false)->orderBy('ServiceName')])
+            ->where('IsArchived', false)
             ->orderBy('DisplayOrder')->orderBy('Name')->get()
             ->filter(fn ($category) => $category->services->isNotEmpty())
             ->values();
@@ -50,7 +52,12 @@ class UserController extends Controller
 
         return view('users.landing-page', array_merge($bookingData, [
             'currentPatient' => $currentPatient,
-            'appointmentSteps' => SystemSetting::appointmentSteps(),
+            'appointmentSteps' => AppointmentStep::where('IsArchived', false)
+                ->orderBy('DisplayOrder')
+                ->get()
+                ->values()
+                ->mapWithKeys(fn ($step, $i) => [$i + 1 => ['title' => $step->Title, 'desc' => $step->Description]])
+                ->all(),
             'aboutInfo' => SystemSetting::aboutInfo(),
             'serviceCategories' => $serviceCategories,
             'uncategorizedServices' => $uncategorizedServices,
@@ -81,9 +88,10 @@ class UserController extends Controller
 
         $current = $this->currentAppointment($patientId);
 
-        // Only needed for booking a new slot — skip the query work when the
-        // patient already has one active (the view shows a notice instead).
-        $bookingData = $current ? [] : $booking->calendarData($request);
+        // Always load the calendar — even with an active appointment, the
+        // patient may want to check availability before deciding whether to
+        // reschedule. Booking a second slot is still blocked server-side.
+        $bookingData = $booking->calendarData($request);
 
         return view('users.user-appointment-book', array_merge($bookingData, compact('current')));
     }

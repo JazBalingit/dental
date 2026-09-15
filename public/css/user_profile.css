@@ -491,16 +491,6 @@
       }
     }
 
-    :root {
-      --brand-900: #0d3b66;
-      --brand-800: #14508a;
-      --brand-700: #1d6fb8;
-      --brand-600: #2a86d6;
-      --brand-500: #4aa3e8;
-      --brand-100: #e6f1fb;
-      --brand-50: #f4f9fe;
-    }
-
     .brand .logo {
       width: 50px;
       height: 50px;

@@ -77,8 +77,14 @@ class PatientRecordsController extends Controller
         $tab = $request->query('tab') === 'archived' ? 'archived' : 'active';
 
         return $this->panelView('patient-records', [
-            'records' => $activeQuery->orderByDesc('created_at')->paginate(10, ['*'], 'page')->withQueryString(),
-            'archivedRecords' => $archivedQuery->orderByDesc('created_at')->paginate(10, ['*'], 'archived_page')->withQueryString(),
+            // Switching the Active/Archived pill is client-side only, so it
+            // never lands in the request's query string on its own — force
+            // it onto every page link so paging the Archived table doesn't
+            // bounce you back to Active.
+            'records' => $activeQuery->orderByDesc('created_at')->paginate(10, ['*'], 'page')->withQueryString()
+                ->appends(['tab' => 'active']),
+            'archivedRecords' => $archivedQuery->orderByDesc('created_at')->paginate(10, ['*'], 'archived_page')->withQueryString()
+                ->appends(['tab' => 'archived']),
             'search' => $search,
             'tab' => $tab,
         ]);

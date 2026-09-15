@@ -162,10 +162,14 @@
                                                     class="form-control" id="existing_middle_name" disabled /></div>
                                         </div>
 
-                                        <div class="col-md-6">
+                                        <div class="col-md-4">
                                             <label class="form-label">Birthdate</label>
                                             <div class="input-icon"><i class="bi bi-calendar-event"></i><input type="date"
-                                                    class="form-control" id="existing_birthdate" disabled /></div>
+                                                    class="form-control" id="existing_birthdate" disabled data-age-target="#existing_age" /></div>
+                                        </div>
+                                        <div class="col-md-2">
+                                            <label class="form-label">Age</label>
+                                            <div class="input-icon"><i class="bi bi-person-vcard"></i><input type="text" class="form-control" id="existing_age" placeholder="—" disabled></div>
                                         </div>
                                         <div class="col-md-6">
                                             <label class="form-label">Gender</label>
@@ -176,7 +180,7 @@
                                             </div>
                                         </div>
 
-                                        <div class="col-md-6">
+                                        <div class="col-12">
                                             <label class="form-label">Status</label>
                                             <div class="input-icon">
                                                 <select class="form-select" disabled>
@@ -213,61 +217,106 @@
                                     <div class="row g-3 mb-3">
                                         <div class="col-md-4">
                                             <label class="form-label">Last name <span class="text-danger">*</span></label>
-                                            <div class="input-icon"><i class="bi bi-person"></i><input type="text" name="last_name"
-                                                    class="form-control" placeholder="Dela Cruz" data-wi-required /></div>
-                                            <div class="invalid-feedback">This field is required.</div>
+                                            <div class="input-icon @error('last_name') has-error @enderror"><i class="bi bi-person"></i><input type="text" name="last_name"
+                                                    class="form-control" value="{{ old('last_name') }}" placeholder="Dela Cruz" data-wi-required /></div>
+                                            @error('last_name')
+                                                <div class="field-error"><i class="bi bi-exclamation-circle-fill"></i> {{ $message }}</div>
+                                            @else
+                                                <div class="invalid-feedback">This field is required.</div>
+                                            @enderror
                                         </div>
                                         <div class="col-md-4">
                                             <label class="form-label">First name <span class="text-danger">*</span></label>
-                                            <div class="input-icon"><i class="bi bi-person"></i><input type="text" name="first_name"
-                                                    class="form-control" placeholder="Maria" data-wi-required /></div>
-                                            <div class="invalid-feedback">This field is required.</div>
+                                            <div class="input-icon @error('first_name') has-error @enderror"><i class="bi bi-person"></i><input type="text" name="first_name"
+                                                    class="form-control" value="{{ old('first_name') }}" placeholder="Maria" data-wi-required /></div>
+                                            @error('first_name')
+                                                <div class="field-error"><i class="bi bi-exclamation-circle-fill"></i> {{ $message }}</div>
+                                            @else
+                                                <div class="invalid-feedback">This field is required.</div>
+                                            @enderror
                                         </div>
                                         <div class="col-md-4">
                                             <label class="form-label">Middle name</label>
-                                            <div class="input-icon"><i class="bi bi-person"></i><input type="text" name="middle_name"
-                                                    class="form-control" placeholder="Reyes" /></div>
+                                            <div class="input-icon @error('middle_name') has-error @enderror"><i class="bi bi-person"></i><input type="text" name="middle_name"
+                                                    class="form-control" value="{{ old('middle_name') }}" placeholder="Reyes" /></div>
+                                            @error('middle_name') <div class="field-error"><i class="bi bi-exclamation-circle-fill"></i> {{ $message }}</div> @enderror
                                         </div>
 
-                                        <div class="col-md-6">
+                                        <div class="col-md-4">
                                             <label class="form-label">Birthdate <span class="text-danger">*</span></label>
-                                            <div class="input-icon"><i class="bi bi-calendar-event"></i><input type="date" name="birthdate"
-                                                    class="form-control" data-wi-required /></div>
-                                            <div class="invalid-feedback">This field is required.</div>
+                                            <div class="input-icon @error('birthdate') has-error @enderror"><i class="bi bi-calendar-event"></i><input type="date" name="birthdate"
+                                                    class="form-control" value="{{ old('birthdate') }}" max="2023-12-31" data-wi-required
+                                                    data-age-target="#newPatientAge" /></div>
+                                            @error('birthdate')
+                                                <div class="field-error"><i class="bi bi-exclamation-circle-fill"></i> {{ $message }}</div>
+                                            @else
+                                                <div class="invalid-feedback">This field is required.</div>
+                                            @enderror
                                             <div class="form-text">Age is computed automatically from the birthdate.</div>
+                                        </div>
+                                        <div class="col-md-2">
+                                            <label class="form-label">Age</label>
+                                            <div class="input-icon"><i class="bi bi-person-vcard"></i><input type="text" class="form-control" id="newPatientAge" placeholder="—" disabled></div>
                                         </div>
                                         <div class="col-md-6">
                                             <label class="form-label">Gender <span class="text-danger">*</span></label>
-                                            <div class="input-icon">
+                                            <div class="input-icon @error('gender') has-error @enderror">
                                                 <select class="form-select" name="gender" data-wi-required>
                                                     <option selected disabled value="">Select gender</option>
-                                                    <option>Male</option>
-                                                    <option>Female</option>
+                                                    <option {{ old('gender') === 'Male' ? 'selected' : '' }}>Male</option>
+                                                    <option {{ old('gender') === 'Female' ? 'selected' : '' }}>Female</option>
                                                 </select>
                                             </div>
-                                            <div class="invalid-feedback">This field is required.</div>
+                                            @error('gender')
+                                                <div class="field-error"><i class="bi bi-exclamation-circle-fill"></i> {{ $message }}</div>
+                                            @else
+                                                <div class="invalid-feedback">This field is required.</div>
+                                            @enderror
                                         </div>
 
-                                        <div class="col-12">
-                                            <label class="form-label">Home address <span class="text-danger">*</span></label>
-                                            <div class="input-icon"><i class="bi bi-geo-alt"></i><input class="form-control" name="address"
-                                                    placeholder="Street, Barangay, San Pedro, Laguna" data-wi-required /></div>
+                                        <div class="col-md-6">
+                                            <label class="form-label">Street / House No.</label>
+                                            <div class="input-icon"><i class="bi bi-signpost-2"></i><input class="form-control addr-part" name="addr_street"
+                                                    value="{{ old('addr_street') }}" placeholder="123 Sample St." /></div>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <label class="form-label">Barangay</label>
+                                            <div class="input-icon"><i class="bi bi-geo"></i><input class="form-control addr-part" name="addr_barangay"
+                                                    value="{{ old('addr_barangay') }}" placeholder="Barangay" /></div>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <label class="form-label">City / Municipality <span class="text-danger">*</span></label>
+                                            <div class="input-icon"><i class="bi bi-buildings"></i><input class="form-control addr-part" name="addr_city"
+                                                    value="{{ old('addr_city') }}" placeholder="City / Municipality" data-wi-required /></div>
                                             <div class="invalid-feedback">This field is required.</div>
                                         </div>
+                                        <div class="col-md-6">
+                                            <label class="form-label">Province <span class="text-danger">*</span></label>
+                                            <div class="input-icon"><i class="bi bi-map"></i><input class="form-control addr-part" name="addr_province"
+                                                    value="{{ old('addr_province') }}" placeholder="Province" data-wi-required /></div>
+                                            <div class="invalid-feedback">This field is required.</div>
+                                        </div>
+                                        <input type="hidden" name="address" class="@error('address') has-error @enderror" value="{{ old('address') }}">
+                                        @error('address') <div class="col-12"><div class="field-error"><i class="bi bi-exclamation-circle-fill"></i> {{ $message }}</div></div> @enderror
                                     </div>
 
                                     <div class="section-label mt-2">Contact Details</div>
                                     <div class="row g-3">
                                         <div class="col-md-6">
                                             <label class="form-label">Email address</label>
-                                            <div class="input-icon"><i class="bi bi-envelope"></i><input type="email" name="email"
-                                                    class="form-control" placeholder="name@email.com" /></div>
+                                            <div class="input-icon @error('email') has-error @enderror"><i class="bi bi-envelope"></i><input type="email" name="email"
+                                                    class="form-control" value="{{ old('email') }}" placeholder="name@email.com" /></div>
+                                            @error('email') <div class="field-error"><i class="bi bi-exclamation-circle-fill"></i> {{ $message }}</div> @enderror
                                         </div>
                                         <div class="col-md-6">
                                             <label class="form-label">Cell/Mobile number <span class="text-danger">*</span></label>
-                                            <div class="input-icon"><i class="bi bi-telephone"></i><input
-                                                    class="form-control" name="phone" placeholder="+63 9XX XXX XXXX" data-wi-required /></div>
-                                            <div class="invalid-feedback">This field is required.</div>
+                                            <div class="input-icon @error('phone') has-error @enderror"><i class="bi bi-telephone"></i><input
+                                                    class="form-control" name="phone" value="{{ old('phone') }}" placeholder="+63 9XX XXX XXXX" data-wi-required /></div>
+                                            @error('phone')
+                                                <div class="field-error"><i class="bi bi-exclamation-circle-fill"></i> {{ $message }}</div>
+                                            @else
+                                                <div class="invalid-feedback">This field is required.</div>
+                                            @enderror
                                         </div>
                                     </div>
                                 </div>
@@ -360,6 +409,9 @@
     @include('partials.admin-notif-modal')
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="{{ asset('js/field-restrictions.js') }}"></script>
+    <script src="{{ asset('js/address-sync.js') }}"></script>
+    <script src="{{ asset('js/birthdate-age.js') }}"></script>
     <script>
     (function () {
         const form = document.getElementById('walkinForm');
@@ -419,6 +471,7 @@
             displayFields.first_name.value = p.FirstName || '';
             displayFields.middle_name.value = p.MiddleName || '';
             displayFields.birthdate.value = p.DateOfBirth || '';
+            displayFields.birthdate.dispatchEvent(new Event('change'));
             displayFields.address.value = p.Address || '';
             displayFields.email.value = p.Email || '';
             displayFields.phone.value = p.PhoneNumber || '';

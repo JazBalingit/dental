@@ -56,7 +56,11 @@ class SettingsController extends Controller
                 ->orWhere('ActivityType', 'like', "%{$search}%")))
             ->orderByRaw('COALESCE(LoggedInTime, created_at) DESC')
             ->paginate(15, ['*'], 'activity_page')
-            ->withQueryString();
+            ->withQueryString()
+            // Switching to this tab is client-side only, so "tab" never
+            // lands in the request's own query string — force it onto every
+            // page link so paging the log doesn't bounce back to Profile.
+            ->appends(['tab' => 'configuration']);
 
         $activityTypes = ActivityLog::where('UserID', $user->UserID)
             ->distinct()->orderBy('ActivityType')->pluck('ActivityType');
@@ -200,7 +204,7 @@ class SettingsController extends Controller
             session(['settings_reset_attempts' => $attempts]);
 
             return redirect()->route('settings', ['tab' => 'security'])
-                ->withInput($request->only('password', 'password_confirmation'))
+                ->withInput()
                 ->with('show_settings_reset_modal', true)
                 ->with('settings_reset_error', 'Incorrect code. Please try again.');
         }

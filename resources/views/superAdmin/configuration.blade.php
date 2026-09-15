@@ -85,7 +85,8 @@
                 </div>
                 <div class="card-body">
                   <form method="POST" action="{{ route('configuration.about.update') }}" enctype="multipart/form-data"
-                    onsubmit="return confirm('Save these changes to the clinic information? This updates what visitors see on the landing page.');">
+                    data-confirm-title="Save clinic information?"
+                    data-confirm-message="Save these changes to the clinic information? This updates what visitors see on the landing page.">
                     @csrf
 
                     <div class="section-label"><i class="bi bi-images"></i> Images</div>
@@ -118,18 +119,21 @@
                     <div class="row g-3">
                       <div class="col-md-6">
                         <label class="form-label">Hero Title</label>
-                        <input type="text" name="hero_title" class="form-control"
+                        <input type="text" name="hero_title" class="form-control @error('hero_title') has-error @enderror"
                           value="{{ old('hero_title', $aboutInfo['heroTitle']) }}" maxlength="100">
+                        @error('hero_title') <div class="field-error"><i class="bi bi-exclamation-circle-fill"></i> {{ $message }}</div> @enderror
                       </div>
                       <div class="col-md-6">
                         <label class="form-label">Hero Subtitle</label>
-                        <input type="text" name="hero_subtitle" class="form-control"
+                        <input type="text" name="hero_subtitle" class="form-control @error('hero_subtitle') has-error @enderror"
                           value="{{ old('hero_subtitle', $aboutInfo['heroSubtitle']) }}" maxlength="200">
+                        @error('hero_subtitle') <div class="field-error"><i class="bi bi-exclamation-circle-fill"></i> {{ $message }}</div> @enderror
                       </div>
                       <div class="col-12">
                         <label class="form-label">Hero Description</label>
-                        <textarea name="hero_description" class="form-control" rows="2"
+                        <textarea name="hero_description" class="form-control @error('hero_description') has-error @enderror" rows="2"
                           maxlength="400">{{ old('hero_description', $aboutInfo['heroDescription']) }}</textarea>
+                        @error('hero_description') <div class="field-error"><i class="bi bi-exclamation-circle-fill"></i> {{ $message }}</div> @enderror
                       </div>
                     </div>
 
@@ -137,19 +141,22 @@
                     <div class="row g-3">
                       <div class="col-12">
                         <label class="form-label">Description</label>
-                        <textarea name="about_description" class="form-control" rows="3"
+                        <textarea name="about_description" class="form-control @error('about_description') has-error @enderror" rows="3"
                           placeholder="A short welcome paragraph shown beside the map on the landing page.">{{ old('about_description', $aboutInfo['description']) }}</textarea>
+                        @error('about_description') <div class="field-error"><i class="bi bi-exclamation-circle-fill"></i> {{ $message }}</div> @enderror
                       </div>
                       <div class="col-12">
                         <label class="form-label">Address</label>
-                        <div class="input-icon"><i class="bi bi-geo-alt"></i><input type="text" name="address"
+                        <div class="input-icon @error('address') has-error @enderror"><i class="bi bi-geo-alt"></i><input type="text" name="address"
                             class="form-control" value="{{ old('address', $aboutInfo['address']) }}" required></div>
+                        @error('address') <div class="field-error"><i class="bi bi-exclamation-circle-fill"></i> {{ $message }}</div> @enderror
                       </div>
                       <div class="col-md-6">
                         <label class="form-label">Operating Days</label>
-                        <div class="input-icon"><i class="bi bi-calendar-week"></i><input type="text"
+                        <div class="input-icon @error('operating_days') has-error @enderror"><i class="bi bi-calendar-week"></i><input type="text"
                             name="operating_days" class="form-control"
                             value="{{ old('operating_days', $aboutInfo['operatingDays']) }}" required></div>
+                        @error('operating_days') <div class="field-error"><i class="bi bi-exclamation-circle-fill"></i> {{ $message }}</div> @enderror
                       </div>
                     </div>
 
@@ -161,13 +168,15 @@
                     <div class="row g-3">
                       <div class="col-md-3 col-6">
                         <label class="form-label">Opening Time</label>
-                        <input type="time" name="booking_open_time" class="form-control" step="1800" required
+                        <input type="time" name="booking_open_time" class="form-control @error('booking_open_time') has-error @enderror" step="1800" required
                           value="{{ old('booking_open_time', $clinicHours['open']) }}">
+                        @error('booking_open_time') <div class="field-error"><i class="bi bi-exclamation-circle-fill"></i> {{ $message }}</div> @enderror
                       </div>
                       <div class="col-md-3 col-6">
                         <label class="form-label">Closing Time</label>
-                        <input type="time" name="booking_close_time" class="form-control" step="1800" required
+                        <input type="time" name="booking_close_time" class="form-control @error('booking_close_time') has-error @enderror" step="1800" required
                           value="{{ old('booking_close_time', $clinicHours['close']) }}">
+                        @error('booking_close_time') <div class="field-error"><i class="bi bi-exclamation-circle-fill"></i> {{ $message }}</div> @enderror
                       </div>
                       <div class="col-md-6 d-flex align-items-end">
                         <div class="form-check">
@@ -179,13 +188,15 @@
                       </div>
                       <div class="col-md-3 col-6">
                         <label class="form-label">Lunch Start</label>
-                        <input type="time" name="booking_lunch_start" class="form-control" step="1800"
+                        <input type="time" name="booking_lunch_start" class="form-control @error('booking_lunch_start') has-error @enderror" step="1800"
                           value="{{ old('booking_lunch_start', $clinicHours['lunchStart']) }}">
+                        @error('booking_lunch_start') <div class="field-error"><i class="bi bi-exclamation-circle-fill"></i> {{ $message }}</div> @enderror
                       </div>
                       <div class="col-md-3 col-6">
                         <label class="form-label">Lunch End</label>
-                        <input type="time" name="booking_lunch_end" class="form-control" step="1800"
+                        <input type="time" name="booking_lunch_end" class="form-control @error('booking_lunch_end') has-error @enderror" step="1800"
                           value="{{ old('booking_lunch_end', $clinicHours['lunchEnd']) }}">
+                        @error('booking_lunch_end') <div class="field-error"><i class="bi bi-exclamation-circle-fill"></i> {{ $message }}</div> @enderror
                       </div>
                     </div>
 
@@ -195,21 +206,24 @@
                     <div class="row g-3">
                       <div class="col-md-6">
                         <label class="form-label">Phone</label>
-                        <div class="input-icon"><i class="bi bi-telephone"></i><input type="text" name="contact_phone"
+                        <div class="input-icon @error('contact_phone') has-error @enderror"><i class="bi bi-telephone"></i><input type="text" name="contact_phone"
                             class="form-control" value="{{ old('contact_phone', $aboutInfo['phone']) }}"
                             placeholder="(02) 8404-5642"></div>
+                        @error('contact_phone') <div class="field-error"><i class="bi bi-exclamation-circle-fill"></i> {{ $message }}</div> @enderror
                       </div>
                       <div class="col-md-6">
                         <label class="form-label">Mobile</label>
-                        <div class="input-icon"><i class="bi bi-phone"></i><input type="text" name="contact_mobile"
+                        <div class="input-icon @error('contact_mobile') has-error @enderror"><i class="bi bi-phone"></i><input type="text" name="contact_mobile"
                             class="form-control" value="{{ old('contact_mobile', $aboutInfo['mobile']) }}"
                             placeholder="+63 9XX XXX XXXX"></div>
+                        @error('contact_mobile') <div class="field-error"><i class="bi bi-exclamation-circle-fill"></i> {{ $message }}</div> @enderror
                       </div>
                       <div class="col-12">
                         <label class="form-label">Clinic Email <span class="text-muted-2">(receives Contact Us messages)</span></label>
-                        <div class="input-icon"><i class="bi bi-envelope"></i><input type="email" name="contact_email"
+                        <div class="input-icon @error('contact_email') has-error @enderror"><i class="bi bi-envelope"></i><input type="email" name="contact_email"
                             class="form-control" value="{{ old('contact_email', $aboutInfo['email']) }}"
                             placeholder="clinic@example.com" required></div>
+                        @error('contact_email') <div class="field-error"><i class="bi bi-exclamation-circle-fill"></i> {{ $message }}</div> @enderror
                       </div>
                     </div>
 
@@ -220,14 +234,16 @@
                     <div class="row g-3">
                       <div class="col-12">
                         <label class="form-label">Footer Description</label>
-                        <textarea name="footer_description" class="form-control" rows="3"
+                        <textarea name="footer_description" class="form-control @error('footer_description') has-error @enderror" rows="3"
                           placeholder="A short blurb about the clinic shown in the footer.">{{ old('footer_description', $aboutInfo['footerDescription']) }}</textarea>
+                        @error('footer_description') <div class="field-error"><i class="bi bi-exclamation-circle-fill"></i> {{ $message }}</div> @enderror
                       </div>
                       <div class="col-12">
                         <label class="form-label">Copyright Line</label>
-                        <div class="input-icon"><i class="bi bi-c-circle"></i><input type="text" name="footer_copyright"
+                        <div class="input-icon @error('footer_copyright') has-error @enderror"><i class="bi bi-c-circle"></i><input type="text" name="footer_copyright"
                             class="form-control" value="{{ old('footer_copyright', $aboutInfo['footerCopyright']) }}"
                             placeholder="© {{ date('Y') }} Pus-Pus Britanico Dental Clinic. All rights reserved."></div>
+                        @error('footer_copyright') <div class="field-error"><i class="bi bi-exclamation-circle-fill"></i> {{ $message }}</div> @enderror
                       </div>
                     </div>
 
@@ -332,12 +348,7 @@
                       <div class="pagination-soft">
                         <div>Showing {{ $services->count() }} of {{ $services->total() }} entries</div>
                         <div class="pages">
-                          <a href="{{ $services->previousPageUrl() ?? '#' }}"><i class="bi bi-chevron-left"></i></a>
-                          @for ($i = 1; $i <= $services->lastPage(); $i++)
-                            <a href="{{ $services->url($i) }}"
-                              class="{{ $services->currentPage() === $i ? 'active' : '' }}">{{ $i }}</a>
-                          @endfor
-                          <a href="{{ $services->nextPageUrl() ?? '#' }}"><i class="bi bi-chevron-right"></i></a>
+                          @include('partials.pagination-pages', ['paginator' => $services])
                         </div>
                       </div>
                     </div>
@@ -394,14 +405,7 @@
                         <div>Showing {{ $archivedServices->count() }} of {{ $archivedServices->total() }} entries
                         </div>
                         <div class="pages">
-                          <a href="{{ $archivedServices->previousPageUrl() ?? '#' }}"><i
-                              class="bi bi-chevron-left"></i></a>
-                          @for ($i = 1; $i <= $archivedServices->lastPage(); $i++)
-                            <a href="{{ $archivedServices->url($i) }}"
-                              class="{{ $archivedServices->currentPage() === $i ? 'active' : '' }}">{{ $i }}</a>
-                          @endfor
-                          <a href="{{ $archivedServices->nextPageUrl() ?? '#' }}"><i
-                              class="bi bi-chevron-right"></i></a>
+                          @include('partials.pagination-pages', ['paginator' => $archivedServices])
                         </div>
                       </div>
                     </div>
@@ -417,18 +421,25 @@
                   <i class="bi bi-shield-lock me-2" style="color: var(--brand-700);"></i> Privacy and Legal Terms
                 </div>
                 <div class="card-body">
-                  <form method="POST" action="{{ route('configuration.privacyLegal.update') }}">
+                  <form method="POST" action="{{ route('configuration.privacyLegal.update') }}"
+                    data-confirm-title="Save Privacy &amp; Legal Terms?"
+                    data-confirm-message="Save these changes to the Privacy Policy and Legal Terms? This updates what patients see on the signup page.">
                     @csrf
                     <div class="mb-3">
                       <label class="form-label">Privacy Policy</label>
-                      <textarea name="privacy_policy" class="form-control" rows="10"
+                      <textarea name="privacy_policy" class="form-control @error('privacy_policy') has-error @enderror" rows="10"
                         placeholder="Describe how patient data is collected, used, and protected.">{{ old('privacy_policy', $privacyLegal['privacyPolicy']) }}</textarea>
-                      <div class="small text-muted-2 mt-1">Shown to patients on the sign-up page.</div>
+                      @error('privacy_policy')
+                        <div class="field-error"><i class="bi bi-exclamation-circle-fill"></i> {{ $message }}</div>
+                      @else
+                        <div class="small text-muted-2 mt-1">Shown to patients on the sign-up page.</div>
+                      @enderror
                     </div>
                     <div class="mb-3">
                       <label class="form-label">Legal Terms</label>
-                      <textarea name="legal_terms" class="form-control" rows="10"
+                      <textarea name="legal_terms" class="form-control @error('legal_terms') has-error @enderror" rows="10"
                         placeholder="Terms of use, liability, and other legal information.">{{ old('legal_terms', $privacyLegal['legalTerms']) }}</textarea>
+                      @error('legal_terms') <div class="field-error"><i class="bi bi-exclamation-circle-fill"></i> {{ $message }}</div> @enderror
                     </div>
                     <div class="d-flex justify-content-end">
                       <button type="submit" class="btn btn-brand px-3">Save Changes</button>
@@ -445,47 +456,136 @@
                 <div class="card-header d-flex align-items-center justify-content-between">
                   <span><i class="bi bi-list-check me-2" style="color: var(--brand-700);"></i> Appointment
                     Process</span>
-                  <span class="small text-muted-2">Shown on the landing page's "How to Book Your Appointment"
-                    section</span>
+                  <div class="d-flex align-items-center gap-2">
+                    <span class="small text-muted-2 d-none d-md-inline">Shown on the landing page's "How to Book Your Appointment" section</span>
+                    <button class="btn btn-brand px-3" data-bs-toggle="modal" data-bs-target="#addAppointmentStepModal">
+                      <i class="bi bi-plus-lg"></i> Add Step
+                    </button>
+                  </div>
                 </div>
-                <div class="card-body">
-                  <form method="POST" action="{{ route('configuration.appointmentSteps.update') }}"
-                    onsubmit="return confirm('Save these changes to the appointment steps? This updates the \'How to Book Your Appointment\' section on the landing page.');">
-                    @csrf
-                    <div id="appointmentStepsContainer">
-                      @foreach ($appointmentSteps as $n => $step)
-                        <div class="row g-3 align-items-start mb-3 pb-3 appointment-step-row"
-                          style="border-bottom:1px solid var(--ink-100);">
-                          <div class="col-md-1 text-center">
-                            <span class="step-badge-admin">{{ $n }}</span>
-                          </div>
-                          <div class="col-md-4">
-                            <label class="form-label step-title-label">Step {{ $n }} Title</label>
-                            <input type="text" name="steps[{{ $n }}][title]" class="form-control"
-                              value="{{ old("steps.$n.title", $step['title']) }}" required maxlength="150">
-                          </div>
-                          <div class="col-md-6">
-                            <label class="form-label step-desc-label">Step {{ $n }} Description</label>
-                            <textarea name="steps[{{ $n }}][desc]" class="form-control" rows="2" required
-                              maxlength="500">{{ old("steps.$n.desc", $step['desc']) }}</textarea>
-                          </div>
-                          <div class="col-md-1 text-end">
-                            <label class="form-label d-block">&nbsp;</label>
-                            <button type="button" class="btn btn-outline-danger btn-sm remove-appointment-step"
-                              title="Remove step">
-                              <i class="bi bi-trash"></i>
-                            </button>
-                          </div>
-                        </div>
-                      @endforeach
+                <div class="card-body p-3 p-md-4">
+                  <form method="GET" action="{{ route('configuration') }}" class="data-toolbar">
+                    <div class="left">
+                      <ul class="nav nav-pills" data-tabgroup="appointmentSteps" role="tablist">
+                        <li class="nav-item" role="presentation">
+                          <button class="nav-link {{ $appointmentStepsTab !== 'archived' ? 'active' : '' }}" type="button"
+                            data-bs-toggle="pill" data-bs-target="#appointmentStepsActivePane" data-tab-value="active"
+                            role="tab">Active</button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                          <button class="nav-link {{ $appointmentStepsTab === 'archived' ? 'active' : '' }}" type="button"
+                            data-bs-toggle="pill" data-bs-target="#appointmentStepsArchivedPane" data-tab-value="archived"
+                            role="tab">Archived</button>
+                        </li>
+                      </ul>
                     </div>
-                    <div class="d-flex justify-content-between align-items-center">
-                      <button type="button" id="addAppointmentStep" class="btn btn-outline-secondary px-3">
-                        <i class="bi bi-plus-lg me-1"></i> Add Step
-                      </button>
-                      <button type="submit" class="btn btn-brand px-3">Save Changes</button>
+                    <div class="right">
+                      <input type="hidden" name="settingsTab" value="appointment">
+                      <input type="hidden" name="appointmentStepsTab" id="appointmentStepsTabField" value="{{ $appointmentStepsTab }}">
                     </div>
                   </form>
+
+                  <div class="tab-content mt-3">
+                    <div class="tab-pane fade {{ $appointmentStepsTab !== 'archived' ? 'show active' : '' }}"
+                      id="appointmentStepsActivePane" role="tabpanel">
+                      <div class="table-responsive">
+                        <table class="table-soft" style="border-radius:0; box-shadow:none;">
+                          <thead>
+                            <tr>
+                              <th>#</th>
+                              <th>Title</th>
+                              <th>Description</th>
+                              <th class="text-end">Actions</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            @forelse ($appointmentSteps as $step)
+                              <tr>
+                                <td>{{ $step->DisplayOrder }}</td>
+                                <td class="fw-semibold">{{ $step->Title }}</td>
+                                <td>
+                                  <span class="d-inline-block text-truncate" style="max-width: 320px;"
+                                    data-bs-toggle="tooltip" title="{{ $step->Description }}">{{ $step->Description }}</span>
+                                </td>
+                                <td class="text-end">
+                                  <button type="button" class="btn btn-pill btn-pill-edit me-1" data-bs-toggle="modal"
+                                    data-bs-target="#editAppointmentStepModal{{ $step->StepID }}"><i
+                                      class="bi bi-pencil-square"></i> Edit</button>
+                                  <button type="button" class="btn btn-pill btn-pill-archive" data-bs-toggle="modal"
+                                    data-bs-target="#confirmActionModal"
+                                    data-action-url="{{ route('configuration.appointmentSteps.archive', $step->StepID) }}"
+                                    data-title="Archive Step"
+                                    data-message="Archive &ldquo;{{ $step->Title }}&rdquo;? It will no longer show on the landing page until you unarchive it."
+                                    data-confirm-label="Archive" data-confirm-class="btn-pill-archive">
+                                    <i class="bi bi-archive"></i> Archive</button>
+                                </td>
+                              </tr>
+                            @empty
+                              <tr>
+                                <td colspan="4" class="text-center text-muted-2 py-4">No steps yet — add one above.</td>
+                              </tr>
+                            @endforelse
+                          </tbody>
+                        </table>
+                      </div>
+                      <div class="pagination-soft">
+                        <div>Showing {{ $appointmentSteps->count() }} of {{ $appointmentSteps->total() }} entries</div>
+                        <div class="pages">
+                          @include('partials.pagination-pages', ['paginator' => $appointmentSteps])
+                        </div>
+                      </div>
+                    </div>
+
+                    <div class="tab-pane fade {{ $appointmentStepsTab === 'archived' ? 'show active' : '' }}"
+                      id="appointmentStepsArchivedPane" role="tabpanel">
+                      <div class="table-responsive">
+                        <table class="table-soft" style="border-radius:0; box-shadow:none;">
+                          <thead>
+                            <tr>
+                              <th>#</th>
+                              <th>Title</th>
+                              <th>Description</th>
+                              <th class="text-end">Actions</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            @forelse ($archivedAppointmentSteps as $step)
+                              <tr>
+                                <td>{{ $step->DisplayOrder }}</td>
+                                <td class="fw-semibold">{{ $step->Title }}</td>
+                                <td>
+                                  <span class="d-inline-block text-truncate" style="max-width: 320px;"
+                                    data-bs-toggle="tooltip" title="{{ $step->Description }}">{{ $step->Description }}</span>
+                                </td>
+                                <td class="text-end">
+                                  <button type="button" class="btn btn-pill btn-pill-edit me-1" data-bs-toggle="modal"
+                                    data-bs-target="#editAppointmentStepModal{{ $step->StepID }}"><i
+                                      class="bi bi-pencil-square"></i> Edit</button>
+                                  <button type="button" class="btn btn-pill btn-pill-archive" data-bs-toggle="modal"
+                                    data-bs-target="#confirmActionModal"
+                                    data-action-url="{{ route('configuration.appointmentSteps.unarchive', $step->StepID) }}"
+                                    data-title="Unarchive Step"
+                                    data-message="Restore &ldquo;{{ $step->Title }}&rdquo;? It will show on the landing page again."
+                                    data-confirm-label="Unarchive" data-confirm-class="btn-pill-archive">
+                                    <i class="bi bi-archive"></i> Unarchive</button>
+                                </td>
+                              </tr>
+                            @empty
+                              <tr>
+                                <td colspan="4" class="text-center text-muted-2 py-4">No archived steps.</td>
+                              </tr>
+                            @endforelse
+                          </tbody>
+                        </table>
+                      </div>
+                      <div class="pagination-soft">
+                        <div>Showing {{ $archivedAppointmentSteps->count() }} of {{ $archivedAppointmentSteps->total() }} entries</div>
+                        <div class="pages">
+                          @include('partials.pagination-pages', ['paginator' => $archivedAppointmentSteps])
+                        </div>
+                      </div>
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
@@ -607,12 +707,7 @@
                         <div class="pagination-soft">
                           <div>Showing {{ $rows->count() }} of {{ $rows->total() }} entries</div>
                           <div class="pages">
-                            <a href="{{ $rows->previousPageUrl() ?? '#' }}"><i class="bi bi-chevron-left"></i></a>
-                            @for ($i = 1; $i <= $rows->lastPage(); $i++)
-                              <a href="{{ $rows->url($i) }}"
-                                class="{{ $rows->currentPage() === $i ? 'active' : '' }}">{{ $i }}</a>
-                            @endfor
-                            <a href="{{ $rows->nextPageUrl() ?? '#' }}"><i class="bi bi-chevron-right"></i></a>
+                            @include('partials.pagination-pages', ['paginator' => $rows])
                           </div>
                         </div>
                       </div>
@@ -639,6 +734,94 @@
     }
   @endphp
 
+  <!-- ===================== ADD APPOINTMENT STEP MODAL ===================== -->
+  <div class="modal fade" id="addAppointmentStepModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content">
+        <div class="modal-header border-0 pb-0">
+          <div>
+            <h5 class="modal-title fw-semibold">Add Step</h5>
+            <div class="small text-muted">Add a step to "How to Book Your Appointment"</div>
+          </div>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        @php
+          $addStepFailed = $errors->any() && old('form_source') === 'add_appointment_step';
+          $adsErr = fn ($field) => $addStepFailed && $errors->has($field) ? 'has-error' : '';
+          $adsMsg = fn ($field) => $addStepFailed && $errors->has($field) ? $errors->first($field) : null;
+          $adsOld = fn ($field, $default = null) => $addStepFailed ? old($field) : $default;
+        @endphp
+        <form method="POST" action="{{ route('configuration.appointmentSteps.store') }}">
+          @csrf
+          <input type="hidden" name="form_source" value="add_appointment_step">
+          <div class="modal-body pt-2">
+            <div class="mb-3">
+              <label class="form-label">Step title</label>
+              <div class="input-icon {{ $adsErr('title') }}"><i class="bi bi-list-check"></i><input type="text" name="title"
+                  class="form-control" value="{{ $adsOld('title') }}" placeholder="e.g. Create an Account" required maxlength="150"></div>
+              @if ($adsMsg('title')) <div class="field-error"><i class="bi bi-exclamation-circle-fill"></i> {{ $adsMsg('title') }}</div> @endif
+            </div>
+            <div class="mb-3">
+              <label class="form-label">Description</label>
+              <textarea name="description" class="form-control {{ $adsErr('description') }}" rows="3" required
+                maxlength="500">{{ $adsOld('description') }}</textarea>
+              @if ($adsMsg('description')) <div class="field-error"><i class="bi bi-exclamation-circle-fill"></i> {{ $adsMsg('description') }}</div> @endif
+            </div>
+          </div>
+          <div class="modal-footer border-0 pt-0">
+            <button type="button" class="btn btn-ghost" data-bs-dismiss="modal">Cancel</button>
+            <button type="submit" class="btn btn-brand">Add Step</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===================== ONE EDIT MODAL PER APPOINTMENT STEP (active + archived) ===================== -->
+  @foreach ($appointmentSteps->merge($archivedAppointmentSteps) as $step)
+    @php
+      $editStepFailed = $errors->any() && old('form_source') === 'edit_appointment_step_' . $step->StepID;
+      $edsErr = fn ($field) => $editStepFailed && $errors->has($field) ? 'has-error' : '';
+      $edsMsg = fn ($field) => $editStepFailed && $errors->has($field) ? $errors->first($field) : null;
+      $edsOld = fn ($field, $default = null) => $editStepFailed ? old($field) : $default;
+    @endphp
+    <div class="modal fade" id="editAppointmentStepModal{{ $step->StepID }}" tabindex="-1" aria-hidden="true">
+      <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+          <div class="modal-header border-0 pb-0">
+            <div>
+              <h5 class="modal-title fw-semibold">Edit Step</h5>
+              <div class="small text-muted">Update this step's details</div>
+            </div>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+          </div>
+          <form method="POST" action="{{ route('configuration.appointmentSteps.update', $step->StepID) }}">
+            @csrf
+            <input type="hidden" name="form_source" value="edit_appointment_step_{{ $step->StepID }}">
+            <div class="modal-body pt-2">
+              <div class="mb-3">
+                <label class="form-label">Step title</label>
+                <div class="input-icon {{ $edsErr('title') }}"><i class="bi bi-list-check"></i><input type="text" name="title"
+                    class="form-control" value="{{ $edsOld('title', $step->Title) }}" required maxlength="150"></div>
+                @if ($edsMsg('title')) <div class="field-error"><i class="bi bi-exclamation-circle-fill"></i> {{ $edsMsg('title') }}</div> @endif
+              </div>
+              <div class="mb-3">
+                <label class="form-label">Description</label>
+                <textarea name="description" class="form-control {{ $edsErr('description') }}" rows="3" required
+                  maxlength="500">{{ $edsOld('description', $step->Description) }}</textarea>
+                @if ($edsMsg('description')) <div class="field-error"><i class="bi bi-exclamation-circle-fill"></i> {{ $edsMsg('description') }}</div> @endif
+              </div>
+            </div>
+            <div class="modal-footer border-0 pt-0">
+              <button type="button" class="btn btn-ghost" data-bs-dismiss="modal">Cancel</button>
+              <button type="submit" class="btn btn-brand">Save Changes</button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  @endforeach
+
   <!-- ===================== ADD SERVICE MODAL ===================== -->
   <div class="modal fade" id="addServiceModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
@@ -650,40 +833,51 @@
           </div>
           <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
         </div>
+        @php
+          $addServiceFailed = $errors->any() && old('form_source') === 'add_service';
+          $asErr = fn ($field) => $addServiceFailed && $errors->has($field) ? 'has-error' : '';
+          $asMsg = fn ($field) => $addServiceFailed && $errors->has($field) ? $errors->first($field) : null;
+          $asOld = fn ($field, $default = null) => $addServiceFailed ? old($field) : $default;
+        @endphp
         <form method="POST" action="{{ route('configuration.services.store') }}">
           @csrf
+          <input type="hidden" name="form_source" value="add_service">
           <div class="modal-body pt-2">
             <div class="mb-3">
               <label class="form-label">Service name</label>
-              <div class="input-icon"><i class="bi bi-heart-pulse"></i><input type="text" name="service_name"
-                  class="form-control" placeholder="e.g. Tooth Extraction" required></div>
+              <div class="input-icon {{ $asErr('service_name') }}"><i class="bi bi-heart-pulse"></i><input type="text" name="service_name"
+                  class="form-control" value="{{ $asOld('service_name') }}" placeholder="e.g. Tooth Extraction" required></div>
+              @if ($asMsg('service_name')) <div class="field-error"><i class="bi bi-exclamation-circle-fill"></i> {{ $asMsg('service_name') }}</div> @endif
             </div>
             <div class="mb-3">
               <label class="form-label">Category</label>
-              <div class="input-icon"><i class="bi bi-tags"></i>
+              <div class="input-icon {{ $asErr('category_id') }}"><i class="bi bi-tags"></i>
                 <select name="category_id" class="form-select">
                   <option value="">— Uncategorized —</option>
                   @foreach ($categories as $category)
-                    <option value="{{ $category->CategoryID }}">{{ $category->Name }}</option>
+                    <option value="{{ $category->CategoryID }}" {{ (string) $asOld('category_id') === (string) $category->CategoryID ? 'selected' : '' }}>{{ $category->Name }}</option>
                   @endforeach
                 </select>
               </div>
+              @if ($asMsg('category_id')) <div class="field-error"><i class="bi bi-exclamation-circle-fill"></i> {{ $asMsg('category_id') }}</div> @endif
               <div class="small text-muted-2 mt-1">Groups this service on the landing page's "Our Services" section. <a href="#" data-bs-toggle="modal" data-bs-target="#manageCategoriesModal" data-bs-dismiss="modal">Manage categories</a>.</div>
             </div>
             <div class="mb-3">
               <label class="form-label">Duration</label>
-              <div class="input-icon"><i class="bi bi-hourglass-split"></i>
+              <div class="input-icon {{ $asErr('duration_minutes') }}"><i class="bi bi-hourglass-split"></i>
                 <select name="duration_minutes" class="form-select" required>
                   @foreach ($serviceDurationOptions as $minutes => $optLabel)
-                    <option value="{{ $minutes }}" {{ $minutes === 60 ? 'selected' : '' }}>{{ $optLabel }}</option>
+                    <option value="{{ $minutes }}" {{ (int) $asOld('duration_minutes', 60) === $minutes ? 'selected' : '' }}>{{ $optLabel }}</option>
                   @endforeach
                 </select>
               </div>
+              @if ($asMsg('duration_minutes')) <div class="field-error"><i class="bi bi-exclamation-circle-fill"></i> {{ $asMsg('duration_minutes') }}</div> @endif
               <div class="small text-muted-2 mt-1">How long this service takes — used to block the right amount of time when a patient books it.</div>
             </div>
             <div class="mb-3">
               <label class="form-label">Description</label>
-              <textarea name="description" class="form-control" rows="3" placeholder="Optional description"></textarea>
+              <textarea name="description" class="form-control {{ $asErr('description') }}" rows="3" placeholder="Optional description">{{ $asOld('description') }}</textarea>
+              @if ($asMsg('description')) <div class="field-error"><i class="bi bi-exclamation-circle-fill"></i> {{ $asMsg('description') }}</div> @endif
             </div>
           </div>
           <div class="modal-footer border-0 pt-0">
@@ -707,56 +901,122 @@
           <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
         </div>
         <div class="modal-body pt-2">
-          <div class="table-responsive mb-4">
-            <table class="table-soft" style="border-radius:0; box-shadow:none;">
-              <thead>
-                <tr>
-                  <th>Icon</th>
-                  <th>Category</th>
-                  <th>Services</th>
-                  <th class="text-end">Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                @forelse ($categories as $category)
-                  <tr>
-                    <td><i class="{{ $category->Icon ?: 'fa-solid fa-tooth' }}" style="color: var(--brand-700);"></i></td>
-                    <td class="fw-semibold">{{ $category->Name }}</td>
-                    <td>{{ $category->services_count }}</td>
-                    <td class="text-end">
-                      <button type="button" class="btn btn-pill btn-pill-edit me-1" data-bs-toggle="modal"
-                        data-bs-target="#editCategoryModal{{ $category->CategoryID }}" data-bs-dismiss="modal"><i
-                          class="bi bi-pencil-square"></i> Edit</button>
-                      <form method="POST" action="{{ route('configuration.categories.destroy', $category->CategoryID) }}"
-                        class="d-inline" onsubmit="return confirm('Delete this category? Its services will become Uncategorized, not deleted.');">
-                        @csrf
-                        <button type="submit" class="btn btn-pill btn-pill-archive"><i class="bi bi-trash"></i> Delete</button>
-                      </form>
-                    </td>
-                  </tr>
-                @empty
-                  <tr>
-                    <td colspan="4" class="text-center text-muted-2 py-3">No categories yet — add one below.</td>
-                  </tr>
-                @endforelse
-              </tbody>
-            </table>
+          <ul class="nav nav-pills mb-3" role="tablist">
+            <li class="nav-item" role="presentation">
+              <button class="nav-link active" type="button" data-bs-toggle="pill"
+                data-bs-target="#categoriesActivePane" role="tab">Active</button>
+            </li>
+            <li class="nav-item" role="presentation">
+              <button class="nav-link" type="button" data-bs-toggle="pill"
+                data-bs-target="#categoriesArchivedPane" role="tab">Archived</button>
+            </li>
+          </ul>
+          <div class="tab-content mb-4">
+            <div class="tab-pane fade show active" id="categoriesActivePane" role="tabpanel">
+              <div class="table-responsive">
+                <table class="table-soft" style="border-radius:0; box-shadow:none;">
+                  <thead>
+                    <tr>
+                      <th>Icon</th>
+                      <th>Category</th>
+                      <th>Services</th>
+                      <th class="text-end">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    @forelse ($categories as $category)
+                      <tr>
+                        <td><i class="{{ $category->Icon ?: 'fa-solid fa-tooth' }}" style="color: var(--brand-700);"></i></td>
+                        <td class="fw-semibold">{{ $category->Name }}</td>
+                        <td>{{ $category->services_count }}</td>
+                        <td class="text-end">
+                          <button type="button" class="btn btn-pill btn-pill-edit me-1" data-bs-toggle="modal"
+                            data-bs-target="#editCategoryModal{{ $category->CategoryID }}" data-bs-dismiss="modal"><i
+                              class="bi bi-pencil-square"></i> Edit</button>
+                          <button type="button" class="btn btn-pill btn-pill-archive" data-bs-toggle="modal"
+                            data-bs-target="#confirmActionModal" data-bs-dismiss="modal"
+                            data-action-url="{{ route('configuration.categories.archive', $category->CategoryID) }}"
+                            data-title="Archive Category"
+                            data-message="Archive &ldquo;{{ $category->Name }}&rdquo;? Its services will show as Uncategorized until you unarchive it."
+                            data-confirm-label="Archive" data-confirm-class="btn-pill-archive">
+                            <i class="bi bi-archive"></i> Archive</button>
+                        </td>
+                      </tr>
+                    @empty
+                      <tr>
+                        <td colspan="4" class="text-center text-muted-2 py-3">No categories yet — add one below.</td>
+                      </tr>
+                    @endforelse
+                  </tbody>
+                </table>
+              </div>
+            </div>
+            <div class="tab-pane fade" id="categoriesArchivedPane" role="tabpanel">
+              <div class="table-responsive">
+                <table class="table-soft" style="border-radius:0; box-shadow:none;">
+                  <thead>
+                    <tr>
+                      <th>Icon</th>
+                      <th>Category</th>
+                      <th>Services</th>
+                      <th class="text-end">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    @forelse ($archivedCategories as $category)
+                      <tr>
+                        <td><i class="{{ $category->Icon ?: 'fa-solid fa-tooth' }}" style="color: var(--brand-700);"></i></td>
+                        <td class="fw-semibold">{{ $category->Name }}</td>
+                        <td>{{ $category->services_count }}</td>
+                        <td class="text-end">
+                          <button type="button" class="btn btn-pill btn-pill-edit me-1" data-bs-toggle="modal"
+                            data-bs-target="#editCategoryModal{{ $category->CategoryID }}" data-bs-dismiss="modal"><i
+                              class="bi bi-pencil-square"></i> Edit</button>
+                          <button type="button" class="btn btn-pill btn-pill-archive" data-bs-toggle="modal"
+                            data-bs-target="#confirmActionModal" data-bs-dismiss="modal"
+                            data-action-url="{{ route('configuration.categories.unarchive', $category->CategoryID) }}"
+                            data-title="Unarchive Category"
+                            data-message="Restore &ldquo;{{ $category->Name }}&rdquo;? It will be assignable to services again."
+                            data-confirm-label="Unarchive" data-confirm-class="btn-pill-archive">
+                            <i class="bi bi-archive"></i> Unarchive</button>
+                        </td>
+                      </tr>
+                    @empty
+                      <tr>
+                        <td colspan="4" class="text-center text-muted-2 py-3">No archived categories.</td>
+                      </tr>
+                    @endforelse
+                  </tbody>
+                </table>
+              </div>
+            </div>
           </div>
 
+          @php
+            $addCategoryFailed = $errors->any() && old('form_source') === 'add_category';
+          @endphp
           <div class="section-label mb-2">Add a New Category</div>
           <form method="POST" action="{{ route('configuration.categories.store') }}" class="row g-2 align-items-end">
             @csrf
+            <input type="hidden" name="form_source" value="add_category">
             <div class="col-md-6">
               <label class="form-label">Name</label>
-              <input type="text" name="name" class="form-control" placeholder="e.g. General Dentistry" required maxlength="100">
+              <input type="text" name="name" class="form-control {{ $addCategoryFailed && $errors->has('name') ? 'has-error' : '' }}"
+                value="{{ $addCategoryFailed ? old('name') : '' }}" placeholder="e.g. General Dentistry" required maxlength="100">
+              @if ($addCategoryFailed && $errors->has('name'))
+                <div class="field-error"><i class="bi bi-exclamation-circle-fill"></i> {{ $errors->first('name') }}</div>
+              @endif
             </div>
             <div class="col-md-4">
               <label class="form-label">Icon</label>
-              <select name="icon" class="form-select">
+              <select name="icon" class="form-select {{ $addCategoryFailed && $errors->has('icon') ? 'has-error' : '' }}">
                 @foreach (\App\Models\ServiceCategory::iconOptions() as $value => $label)
-                  <option value="{{ $value }}">{{ $label }}</option>
+                  <option value="{{ $value }}" {{ $addCategoryFailed && old('icon') === $value ? 'selected' : '' }}>{{ $label }}</option>
                 @endforeach
               </select>
+              @if ($addCategoryFailed && $errors->has('icon'))
+                <div class="field-error"><i class="bi bi-exclamation-circle-fill"></i> {{ $errors->first('icon') }}</div>
+              @endif
             </div>
             <div class="col-md-2">
               <button type="submit" class="btn btn-brand w-100">Add</button>
@@ -770,7 +1030,10 @@
     </div>
   </div>
 
-  @foreach ($categories as $category)
+  @foreach ($categories->merge($archivedCategories) as $category)
+    @php
+      $editCategoryFailed = $errors->any() && old('form_source') === 'edit_category_' . $category->CategoryID;
+    @endphp
     <div class="modal fade" id="editCategoryModal{{ $category->CategoryID }}" tabindex="-1" aria-hidden="true">
       <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content">
@@ -780,18 +1043,26 @@
           </div>
           <form method="POST" action="{{ route('configuration.categories.update', $category->CategoryID) }}">
             @csrf
+            <input type="hidden" name="form_source" value="edit_category_{{ $category->CategoryID }}">
             <div class="modal-body pt-2">
               <div class="mb-3">
                 <label class="form-label">Name</label>
-                <input type="text" name="name" class="form-control" value="{{ $category->Name }}" required maxlength="100">
+                <input type="text" name="name" class="form-control {{ $editCategoryFailed && $errors->has('name') ? 'has-error' : '' }}"
+                  value="{{ $editCategoryFailed ? old('name') : $category->Name }}" required maxlength="100">
+                @if ($editCategoryFailed && $errors->has('name'))
+                  <div class="field-error"><i class="bi bi-exclamation-circle-fill"></i> {{ $errors->first('name') }}</div>
+                @endif
               </div>
               <div class="mb-3">
                 <label class="form-label">Icon</label>
-                <select name="icon" class="form-select">
+                <select name="icon" class="form-select {{ $editCategoryFailed && $errors->has('icon') ? 'has-error' : '' }}">
                   @foreach (\App\Models\ServiceCategory::iconOptions() as $value => $label)
-                    <option value="{{ $value }}" {{ $category->Icon === $value ? 'selected' : '' }}>{{ $label }}</option>
+                    <option value="{{ $value }}" {{ ($editCategoryFailed ? old('icon') : $category->Icon) === $value ? 'selected' : '' }}>{{ $label }}</option>
                   @endforeach
                 </select>
+                @if ($editCategoryFailed && $errors->has('icon'))
+                  <div class="field-error"><i class="bi bi-exclamation-circle-fill"></i> {{ $errors->first('icon') }}</div>
+                @endif
               </div>
             </div>
             <div class="modal-footer border-0 pt-0">
@@ -806,6 +1077,12 @@
 
   <!-- ===================== ONE EDIT MODAL PER SERVICE (active + archived) ===================== -->
   @foreach ($services->merge($archivedServices) as $service)
+    @php
+      $editServiceFailed = $errors->any() && old('form_source') === 'edit_service_' . $service->ServiceID;
+      $esErr = fn ($field) => $editServiceFailed && $errors->has($field) ? 'has-error' : '';
+      $esMsg = fn ($field) => $editServiceFailed && $errors->has($field) ? $errors->first($field) : null;
+      $esOld = fn ($field, $default = null) => $editServiceFailed ? old($field) : $default;
+    @endphp
     <div class="modal fade" id="editServiceModal{{ $service->ServiceID }}" tabindex="-1" aria-hidden="true">
       <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content">
@@ -818,37 +1095,45 @@
           </div>
           <form method="POST" action="{{ route('configuration.services.update', $service->ServiceID) }}">
             @csrf
+            <input type="hidden" name="form_source" value="edit_service_{{ $service->ServiceID }}">
             <div class="modal-body pt-2">
               <div class="mb-3">
                 <label class="form-label">Service name</label>
-                <div class="input-icon"><i class="bi bi-heart-pulse"></i><input type="text" name="service_name"
-                    class="form-control" value="{{ $service->ServiceName }}" required></div>
+                <div class="input-icon {{ $esErr('service_name') }}"><i class="bi bi-heart-pulse"></i><input type="text" name="service_name"
+                    class="form-control" value="{{ $esOld('service_name', $service->ServiceName) }}" required></div>
+                @if ($esMsg('service_name')) <div class="field-error"><i class="bi bi-exclamation-circle-fill"></i> {{ $esMsg('service_name') }}</div> @endif
               </div>
               <div class="mb-3">
                 <label class="form-label">Category</label>
-                <div class="input-icon"><i class="bi bi-tags"></i>
+                <div class="input-icon {{ $esErr('category_id') }}"><i class="bi bi-tags"></i>
                   <select name="category_id" class="form-select">
                     <option value="">— Uncategorized —</option>
                     @foreach ($categories as $category)
-                      <option value="{{ $category->CategoryID }}" {{ $service->CategoryID === $category->CategoryID ? 'selected' : '' }}>{{ $category->Name }}</option>
+                      <option value="{{ $category->CategoryID }}" {{ (string) $esOld('category_id', $service->CategoryID) === (string) $category->CategoryID ? 'selected' : '' }}>{{ $category->Name }}</option>
                     @endforeach
+                    @if ($service->category && $service->category->IsArchived)
+                      <option value="{{ $service->category->CategoryID }}" selected>{{ $service->category->Name }} (archived)</option>
+                    @endif
                   </select>
                 </div>
+                @if ($esMsg('category_id')) <div class="field-error"><i class="bi bi-exclamation-circle-fill"></i> {{ $esMsg('category_id') }}</div> @endif
               </div>
               <div class="mb-3">
                 <label class="form-label">Duration</label>
-                <div class="input-icon"><i class="bi bi-hourglass-split"></i>
+                <div class="input-icon {{ $esErr('duration_minutes') }}"><i class="bi bi-hourglass-split"></i>
                   <select name="duration_minutes" class="form-select" required>
                     @foreach ($serviceDurationOptions as $minutes => $optLabel)
-                      <option value="{{ $minutes }}" {{ $service->DurationMinutes === $minutes ? 'selected' : '' }}>{{ $optLabel }}</option>
+                      <option value="{{ $minutes }}" {{ (int) $esOld('duration_minutes', $service->DurationMinutes) === $minutes ? 'selected' : '' }}>{{ $optLabel }}</option>
                     @endforeach
                   </select>
                 </div>
+                @if ($esMsg('duration_minutes')) <div class="field-error"><i class="bi bi-exclamation-circle-fill"></i> {{ $esMsg('duration_minutes') }}</div> @endif
                 <div class="small text-muted-2 mt-1">How long this service takes — used to block the right amount of time when a patient books it.</div>
               </div>
               <div class="mb-3">
                 <label class="form-label">Description</label>
-                <textarea name="description" class="form-control" rows="3">{{ $service->Description }}</textarea>
+                <textarea name="description" class="form-control {{ $esErr('description') }}" rows="3">{{ $esOld('description', $service->Description) }}</textarea>
+                @if ($esMsg('description')) <div class="field-error"><i class="bi bi-exclamation-circle-fill"></i> {{ $esMsg('description') }}</div> @endif
               </div>
             </div>
             <div class="modal-footer border-0 pt-0">
@@ -888,57 +1173,6 @@
         }
       });
     });
-
-    (function () {
-      var container = document.getElementById('appointmentStepsContainer');
-      var addBtn = document.getElementById('addAppointmentStep');
-      if (!container || !addBtn) return;
-
-      var nextIndex = container.querySelectorAll('.appointment-step-row').length;
-
-      function renumber() {
-        var rows = container.querySelectorAll('.appointment-step-row');
-        rows.forEach(function (row, i) {
-          row.querySelector('.step-badge-admin').textContent = i + 1;
-          row.querySelector('.step-title-label').textContent = 'Step ' + (i + 1) + ' Title';
-          row.querySelector('.step-desc-label').textContent = 'Step ' + (i + 1) + ' Description';
-        });
-        var removeBtns = container.querySelectorAll('.remove-appointment-step');
-        removeBtns.forEach(function (btn) {
-          btn.disabled = rows.length <= 1;
-        });
-      }
-
-      function bindRemove(btn) {
-        btn.addEventListener('click', function () {
-          var rows = container.querySelectorAll('.appointment-step-row');
-          if (rows.length <= 1) return;
-          if (!confirm('Remove this step? It will be gone once you Save Changes.')) return;
-          btn.closest('.appointment-step-row').remove();
-          renumber();
-        });
-      }
-
-      container.querySelectorAll('.remove-appointment-step').forEach(bindRemove);
-
-      addBtn.addEventListener('click', function () {
-        var rows = container.querySelectorAll('.appointment-step-row');
-        var clone = rows[rows.length - 1].cloneNode(true);
-        nextIndex++;
-
-        clone.querySelectorAll('input, textarea').forEach(function (field) {
-          field.name = field.name.replace(/steps\[\d+\]/, 'steps[' + nextIndex + ']');
-          field.value = '';
-        });
-
-        container.appendChild(clone);
-        bindRemove(clone.querySelector('.remove-appointment-step'));
-        renumber();
-        clone.querySelector('input')?.focus();
-      });
-
-      renumber();
-    })();
 
     document.querySelectorAll('[data-tabgroup]').forEach(function (group) {
       var field = document.getElementById(group.dataset.tabgroup + 'TabField');

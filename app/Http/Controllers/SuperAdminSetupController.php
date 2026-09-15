@@ -199,7 +199,8 @@ class SuperAdminSetupController extends Controller
             session(['super_admin_verify_attempts' => $attempts, 'show_super_admin_verify' => true]);
 
             return redirect()->route('superAdminSetup')
-                ->with('error', 'Incorrect code. Please try again.');
+                ->withInput($request->only('code'))
+                ->with('setup_code_error', 'Incorrect code. Please try again.');
         }
 
         $user = UserAccount::find(session('user_id'));
@@ -347,7 +348,8 @@ class SuperAdminSetupController extends Controller
             session(['super_admin_release_attempts' => $attempts, 'show_super_admin_release' => true]);
 
             return redirect()->route('staffProfile', ['tab' => 'security'])
-                ->with('error', 'Incorrect code. Please try again.');
+                ->withInput($request->only('code'))
+                ->with('release_code_error', 'Incorrect code. Please try again.');
         }
 
         // Revert the row to the pristine "unclaimed bootstrap" state — exactly

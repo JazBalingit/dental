@@ -144,8 +144,9 @@
                                     @php
                                         $p = $appt->patientInfo;
                                         $pillClass = match ($appt->Status) {
-                                            'Approved' => 'pill-success',
-                                            'Declined' => 'pill-danger',
+                                            'Approved' => 'pill-info',
+                                            'Completed' => 'pill-success',
+                                            'Declined', 'Cancelled' => 'pill-danger',
                                             default => 'pill-warning',
                                         };
                                     @endphp
@@ -185,16 +186,7 @@
                     <div class="pagination-soft">
                         <div>Showing {{ $appointments->count() }} of {{ $appointments->total() }} appointments</div>
                         <div class="pages">
-                            <a href="{{ $appointments->previousPageUrl() ?? '#' }}"
-                                class="{{ $appointments->onFirstPage() ? 'disabled' : '' }}"><i
-                                    class="bi bi-chevron-left"></i></a>
-                            @for ($i = 1; $i <= $appointments->lastPage(); $i++)
-                                <a href="{{ $appointments->url($i) }}"
-                                    class="{{ $appointments->currentPage() === $i ? 'active' : '' }}">{{ $i }}</a>
-                            @endfor
-                            <a href="{{ $appointments->nextPageUrl() ?? '#' }}"
-                                class="{{ !$appointments->hasMorePages() ? 'disabled' : '' }}"><i
-                                    class="bi bi-chevron-right"></i></a>
+                            @include('partials.pagination-pages', ['paginator' => $appointments])
                         </div>
                     </div>
                 </div>

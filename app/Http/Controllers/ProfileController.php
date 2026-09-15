@@ -27,20 +27,32 @@ class ProfileController extends Controller
         // Note: UserID, DateCreated, and Email are intentionally NOT in
         // this validation list — they belong to tbl_useraccount and are
         // never editable from this form.
+        $nameRule = "regex:/^[\pL\s'.-]+$/u";
+
         $data = $request->validate([
-            'last_name' => 'required|string|max:100',
-            'first_name' => 'required|string|max:100',
-            'middle_name' => 'nullable|string|max:100',
-            'birthdate' => 'required|date|before:today',
+            'last_name' => ['required', 'string', 'max:100', $nameRule],
+            'first_name' => ['required', 'string', 'max:100', $nameRule],
+            'middle_name' => ['nullable', 'string', 'max:100', $nameRule],
+            'birthdate' => 'required|date|before_or_equal:2023-12-31',
             'gender' => 'required|string',
-            'religion' => 'nullable|string|max:100',
-            'nationality' => 'required|string|max:100',
-            'occupation' => 'nullable|string|max:150',
+            'religion' => ['nullable', 'string', 'max:100', $nameRule],
+            'nationality' => ['required', 'string', 'max:100', $nameRule],
+            'occupation' => ['nullable', 'string', 'max:150', $nameRule],
             'address' => 'required|string|max:255',
-            'phone' => 'required|string|max:20',
-            'guardian_name' => 'nullable|string|max:150',
-            'guardian_occupation' => 'nullable|string|max:150',
+            'phone' => 'required|digits:11',
+            'guardian_name' => ['nullable', 'string', 'max:150', $nameRule],
+            'guardian_occupation' => ['nullable', 'string', 'max:150', $nameRule],
             'photo' => 'nullable|image|mimes:jpg,jpeg,png|max:5120',
+        ], [
+            'phone.digits' => 'Mobile number must be exactly 11 digits.',
+            'last_name.regex' => 'Last name may only contain letters.',
+            'first_name.regex' => 'First name may only contain letters.',
+            'middle_name.regex' => 'Middle name may only contain letters.',
+            'religion.regex' => 'Religion may only contain letters.',
+            'nationality.regex' => 'Nationality may only contain letters.',
+            'occupation.regex' => 'Occupation may only contain letters.',
+            'guardian_name.regex' => "Guardian's name may only contain letters.",
+            'guardian_occupation.regex' => "Guardian's occupation may only contain letters.",
         ]);
 
         // Age is recomputed from birthdate every time, same as at signup.

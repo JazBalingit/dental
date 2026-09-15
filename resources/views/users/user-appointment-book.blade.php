@@ -19,6 +19,8 @@
     <style>
         .booking-locked { display: flex; align-items: center; gap: .85rem; padding: 1rem 1.25rem; background: var(--warning-bg, #fdf3df); border: 1px solid #f3e0ad; border-radius: .85rem; color: #7a5b12; font-size: .9rem; }
         .booking-locked i { font-size: 1.25rem; color: #c98a13; }
+        .booking-locked a { color: #167d1d; font-weight: 600; }
+        .booking-locked a:hover { color: #0f5c14; }
     </style>
     <link rel="stylesheet" href="{{ asset('css/mobile.css') }}">
 </head>
@@ -75,28 +77,28 @@
                                 <div>
                                     You already have an active appointment — book another once it's completed or cancelled.
                                     <a href="{{ route('userAppointment') }}">View your current appointment</a>.
+                                    You can still browse the schedule below to plan a reschedule.
                                 </div>
                             </div>
                         </div>
-                    @else
-                        @include('partials.booking-calendar', [
-                            'calendarMode' => 'post',
-                            'readOnly' => false,
-                            'bookBaseUrl' => route('userAppointment.book'),
-                            'bookHash' => '',
-                            'bookWeeks' => $bookWeeks,
-                            'bookCurrent' => $bookCurrent,
-                            'bookSchedules' => $bookSchedules,
-                            'bookOccupiedSlots' => $bookOccupiedSlots,
-                            'bookSlots' => $bookSlots,
-                            'bookToday' => $bookToday,
-                            'services' => $services,
-                            'bookCurrentPatientId' => $bookCurrentPatientId,
-                            'bookDentists' => $bookDentists,
-                            'bookSelectedDentist' => $bookSelectedDentist,
-                            'bookSelectedDentistId' => $bookSelectedDentistId,
-                        ])
                     @endif
+                    @include('partials.booking-calendar', [
+                        'calendarMode' => 'post',
+                        'readOnly' => (bool) $current,
+                        'bookBaseUrl' => route('userAppointment.book'),
+                        'bookHash' => '',
+                        'bookWeeks' => $bookWeeks,
+                        'bookCurrent' => $bookCurrent,
+                        'bookSchedules' => $bookSchedules,
+                        'bookOccupiedSlots' => $bookOccupiedSlots,
+                        'bookSlots' => $bookSlots,
+                        'bookToday' => $bookToday,
+                        'services' => $services,
+                        'bookCurrentPatientId' => $bookCurrentPatientId,
+                        'bookDentists' => $bookDentists,
+                        'bookSelectedDentist' => $bookSelectedDentist,
+                        'bookSelectedDentistId' => $bookSelectedDentistId,
+                    ])
                 </div>
             </div>
         </main>

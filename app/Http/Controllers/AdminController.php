@@ -18,7 +18,7 @@ class AdminController extends Controller
         return $this->panelView('dashboard', [
             'stats' => $this->dashboardStats(),
             'overviewChart' => $this->appointmentsOverviewChart(),
-            'treatmentDonut' => $this->patientsByTreatmentDonut(),
+            'statusDonut' => $this->appointmentsByStatusDonut(),
             'serviceBars' => $this->appointmentsByServiceBars(),
             'adminName' => $this->currentAdminName(),
             'recentActivity' => ActivityLog::with(['userAccount.patientInfo', 'userAccount.staffInfo'])
@@ -133,43 +133,37 @@ class AdminController extends Controller
     }
 
     /**
-     * Distinct patients per service (top 3 + "Other") — plain labels/data/
-     * colors arrays for Chart.js to plot as a doughnut chart.
+     * Appointment counts by status — plain labels/data/colors arrays for
+     * Chart.js to plot as a doughnut chart. Colors match the status pills
+     * used everywhere else in the app (green/blue/yellow/red).
      */
-    protected function patientsByTreatmentDonut(): array
+    protected function appointmentsByStatusDonut(): array
     {
-        $colors = ['#167d1d', '#008f07', '#55d85e', '#10b981'];
+        $statuses = [
+            'Completed' => '#22c55e',
+            'Approved' => '#3b82f6',
+            'Pending' => '#f59e0b',
+            'Declined' => '#ef4444',
+            'Cancelled' => '#b91c1c',
+        ];
 
-        $byService = Appointment::selectRaw('ServiceID, COUNT(DISTINCT PatientID) as patient_count')
-            ->whereNotNull('ServiceID')
-            ->groupBy('ServiceID')
-            ->orderByDesc('patient_count')
-            ->with('service')
-            ->get();
-
-        $top = $byService->take(3);
-        $otherCount = $byService->slice(3)->sum('patient_count');
-        $total = $byService->sum('patient_count');
+        $counts = Appointment::selectRaw('Status, COUNT(*) as cnt')
+            ->whereIn('Status', array_keys($statuses))
+            ->groupBy('Status')
+            ->pluck('cnt', 'Status');
 
         $segments = collect();
-        foreach ($top as $i => $row) {
+        foreach ($statuses as $status => $color) {
             $segments->push([
-                'label' => $row->service->ServiceName ?? 'Service',
-                'count' => $row->patient_count,
-                'color' => $colors[$i] ?? '#94a3b8',
-            ]);
-        }
-        if ($otherCount > 0) {
-            $segments->push([
-                'label' => 'Other',
-                'count' => $otherCount,
-                'color' => $colors[3],
+                'label' => $status,
+                'count' => (int) ($counts[$status] ?? 0),
+                'color' => $color,
             ]);
         }
 
         return [
             'segments' => $segments,
-            'total' => $total,
+            'total' => $segments->sum('count'),
         ];
     }
 

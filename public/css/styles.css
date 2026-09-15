@@ -240,11 +240,21 @@ h6 {
   display: block;
 }
 
-/* Wide sign-up layout: fills a big card and packs the fields into a dense
-   grid with a tighter vertical rhythm so the whole form fits without scroll. */
+/* Portrait sign-up layout: narrow card like the login one, fields stack two
+   per row instead of the old 4-across dense grid. */
 .auth-card.signup-card {
-  max-width: 1120px;
+  max-width: 640px;
   padding: 1.25rem 2rem 1.5rem;
+}
+
+/* The markup still carries col-lg-3 (4-per-row) from the old wide layout —
+   with the card narrowed down, force those back to 2-per-row (same as their
+   col-md-6 fallback) instead of cramming 4 skinny fields across. */
+@media (min-width: 992px) {
+  .signup-card .row [class*="col-lg-3"] {
+    flex: 0 0 auto;
+    width: 50%;
+  }
 }
 
 .signup-card .section-label {

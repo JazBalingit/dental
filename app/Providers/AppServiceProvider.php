@@ -5,6 +5,7 @@ namespace App\Providers;
 use App\View\Composers\AdminNotificationComposer;
 use App\View\Composers\UserNotificationComposer;
 use Illuminate\Pagination\Paginator;
+use Illuminate\Support\Facades\URL;
 use Illuminate\Support\Facades\View;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Validation\Rules\Password;
@@ -29,6 +30,21 @@ class AppServiceProvider extends ServiceProvider
         // default Tailwind pagination view — without this, ->links() renders
         // unstyled and clashes with the custom prev/next controls around it.
         Paginator::useBootstrapFive();
+
+        // route()/url() normally build links from whatever Host header the
+        // current request arrived with, not from APP_URL. That's a problem
+        // here: the app sits behind Railway's own domain AND a Cloudflare
+        // Worker proxy for the custom domain, and the Worker rewrites the
+        // Host header to Railway's before forwarding — so without this,
+        // every generated link (nav, emails, redirects) would point at
+        // whichever hostname happened to receive the request instead of the
+        // real puspusdentalclinic.online domain. Forcing the root keeps
+        // every generated URL consistent no matter which front door it came
+        // through.
+        if (config('app.url')) {
+            URL::forceRootUrl(config('app.url'));
+            URL::forceScheme(str_starts_with(config('app.url'), 'https://') ? 'https' : 'http');
+        }
 
         // One password policy for every "create / change password" form in the
         // app (signup, staff accounts, all the reset flows): at least 8

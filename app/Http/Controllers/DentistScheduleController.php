@@ -36,12 +36,24 @@ class DentistScheduleController extends Controller
         return $dentists->firstWhere('UserID', $requested) ?? $dentists->first();
     }
 
-    protected function redirectToSchedule(Request $request, ?int $dentistId)
+    /**
+     * Redirects back to the calendar. When $reopenDate is given, that day's
+     * modal is flashed open again — toggling a slot or a whole day closed
+     * (or hitting an error while trying to) shouldn't dump the admin back
+     * on the bare calendar; they should land right back where they were.
+     */
+    protected function redirectToSchedule(Request $request, ?int $dentistId, ?string $reopenDate = null)
     {
-        return redirect()->route('dentistSchedule', array_filter([
+        $redirect = redirect()->route('dentistSchedule', array_filter([
             'month' => $request->input('month', now()->format('Y-m')),
             'dentist' => $dentistId,
         ]));
+
+        if ($reopenDate) {
+            $redirect->with('openDay', $reopenDate);
+        }
+
+        return $redirect;
     }
 
     public function index(Request $request)
@@ -154,17 +166,17 @@ class DentistScheduleController extends Controller
         $dentistId = $dentist?->UserID;
 
         if (!$dentistId) {
-            return $this->redirectToSchedule($request, null)->with('error', 'Add a dentist account first.');
+            return $this->redirectToSchedule($request, null, $request->date)->with('error', 'Add a dentist account first.');
         }
 
         $date = Carbon::parse($request->date);
 
         if ($date->isSunday()) {
-            return $this->redirectToSchedule($request, $dentistId)->with('error', 'Sundays are not available for scheduling.');
+            return $this->redirectToSchedule($request, $dentistId, $request->date)->with('error', 'Sundays are not available for scheduling.');
         }
 
         if ($this->isAppointmentSlot($request->date, $request->time, $dentistId)) {
-            return $this->redirectToSchedule($request, $dentistId)
+            return $this->redirectToSchedule($request, $dentistId, $request->date)
                 ->with('error', 'This slot is held by a pending or booked appointment and cannot be edited.');
         }
 
@@ -178,7 +190,7 @@ class DentistScheduleController extends Controller
 
         $this->activityLog->log('Edit', "Set {$dentist->display_name}'s {$request->date} {$request->time} slot to {$schedule->Status}.");
 
-        return $this->redirectToSchedule($request, $dentistId)->with('success', 'Schedule updated.');
+        return $this->redirectToSchedule($request, $dentistId, $request->date)->with('success', 'Schedule updated.');
     }
 
     protected function occupiedSlots($appointments): array
@@ -227,13 +239,13 @@ class DentistScheduleController extends Controller
         $dentistId = $dentist?->UserID;
 
         if (!$dentistId) {
-            return $this->redirectToSchedule($request, null)->with('error', 'Add a dentist account first.');
+            return $this->redirectToSchedule($request, null, $request->date)->with('error', 'Add a dentist account first.');
         }
 
         $date = Carbon::parse($request->date);
 
         if ($date->isSunday()) {
-            return $this->redirectToSchedule($request, $dentistId)->with('error', 'Sundays are not available for scheduling.');
+            return $this->redirectToSchedule($request, $dentistId, $request->date)->with('error', 'Sundays are not available for scheduling.');
         }
 
         $allTimes = array_keys($this->slots());
@@ -250,7 +262,7 @@ class DentistScheduleController extends Controller
         $editableTimes = array_values(array_diff($allTimes, $completedTimes));
 
         if (empty($editableTimes)) {
-            return $this->redirectToSchedule($request, $dentistId)
+            return $this->redirectToSchedule($request, $dentistId, $request->date)
                 ->with('error', 'Every slot that day is already held by a completed appointment.');
         }
 
@@ -324,6 +336,6 @@ class DentistScheduleController extends Controller
             ? ('Day closed.' . ($cancelledCount > 0 ? " {$cancelledCount} appointment(s) were cancelled and the patient(s) notified." : ''))
             : 'Day reopened — every slot is available again.';
 
-        return $this->redirectToSchedule($request, $dentistId)->with('success', $message);
+        return $this->redirectToSchedule($request, $dentistId, $request->date)->with('success', $message);
     }
 }

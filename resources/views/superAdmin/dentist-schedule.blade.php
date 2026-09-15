@@ -226,6 +226,13 @@
     </div>
 
     {{-- ===================== ONE MODAL PER DAY IN THE CURRENT MONTH (SUNDAYS SKIPPED) ===================== --}}
+    {{-- Closing (or trying to close) a date/time slot flashes `openDay` back
+    from the controller so the admin lands back inside that same day's modal
+    instead of on the bare calendar — server-rendered "open" state, same
+    pattern used for the OTP modals elsewhere in the app. --}}
+    @if (session('openDay'))
+        <div class="modal-backdrop fade show"></div>
+    @endif
     @foreach ($weeks as $week)
         @foreach ($week as $d)
             @continue($d->month !== $current->month)
@@ -235,6 +242,7 @@
                 $modalId = 'modalDay' . $d->format('Ymd');
                 $daySlots = $schedules[$dateStr] ?? collect();
                 $isPast = $d->lt(\Carbon\Carbon::parse($today));
+                $isReopened = session('openDay') === $dateStr;
             @endphp
 
             @php
@@ -252,7 +260,8 @@
                         isset($occupiedSlots[$dateStr . '_' . $t])
                         || (($daySlots[$t]->Status ?? 'Available') === 'Not Available'));
             @endphp
-            <div class="modal fade" id="{{ $modalId }}" tabindex="-1" aria-hidden="true">
+            <div class="modal fade {{ $isReopened ? 'show' : '' }}" id="{{ $modalId }}" tabindex="-1"
+                aria-hidden="{{ $isReopened ? 'false' : 'true' }}" style="{{ $isReopened ? 'display:block;' : '' }}">
                 <div class="modal-dialog modal-dialog-centered modal-xl">
                     <div class="modal-content">
                         <div class="modal-header border-0 pb-0">

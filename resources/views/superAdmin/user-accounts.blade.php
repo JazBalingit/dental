@@ -106,7 +106,13 @@
                                                 <td>{{ $acc->Email }}</td>
                                                 <td>{{ $pi->PhoneNumber ?? '—' }}</td>
                                                 <td>{{ \Carbon\Carbon::parse($acc->DateCreated)->format('M j, Y') }}</td>
-                                                <td><span class="pill pill-success">Active</span></td>
+                                                <td>
+                                                    @if ($pi?->is_inactive)
+                                                        <span class="pill pill-warning" title="No appointment in the last 6 months">Inactive</span>
+                                                    @else
+                                                        <span class="pill pill-success">Active</span>
+                                                    @endif
+                                                </td>
                                                 <td class="text-end">
                                                     <button class="btn btn-pill btn-pill-edit me-1" data-bs-toggle="modal"
                                                         data-bs-target="#editUserModal{{ $acc->UserID }}"><i class="bi bi-pencil-square"></i>

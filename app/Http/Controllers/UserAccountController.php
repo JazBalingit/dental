@@ -21,12 +21,17 @@ class UserAccountController extends Controller
         $search = $request->query('search');
         $tab = $request->query('tab') === 'archived' ? 'archived' : 'active';
 
-        $activeQuery = UserAccount::with('patientInfo')
+        // withMax preloads each patient's most recent appointment date in the
+        // same query (via a join), so PatientInfo::is_inactive can classify
+        // every row on the page without an extra query per patient.
+        $withInactivity = fn ($q) => $q->withMax('appointments', 'AppointmentDate');
+
+        $activeQuery = UserAccount::with(['patientInfo' => $withInactivity])
             ->where('AccountType', 'User')
             ->whereNotIn('AccountRole', UserAccount::ADMIN_ROLES)
             ->where('IsArchived', false);
 
-        $archivedQuery = UserAccount::with('patientInfo')
+        $archivedQuery = UserAccount::with(['patientInfo' => $withInactivity])
             ->where('AccountType', 'User')
             ->whereNotIn('AccountRole', UserAccount::ADMIN_ROLES)
             ->where('IsArchived', true);

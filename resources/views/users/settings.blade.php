@@ -568,6 +568,7 @@
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="{{ asset('js/reopen-modal.js') }}"></script>
     @include('partials.confirm-action-modal')
     <script src="{{ asset('js/field-restrictions.js') }}"></script>
     <script src="{{ asset('js/address-sync.js') }}"></script>

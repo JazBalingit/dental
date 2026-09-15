@@ -499,6 +499,7 @@
   </div>
 
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="{{ asset('js/reopen-modal.js') }}"></script>
   <script src="{{ asset('js/field-restrictions.js') }}"></script>
   <script src="{{ asset('js/birthdate-age.js') }}"></script>
   <script src="{{ asset('js/otp-resend-cooldown.js') }}"></script>

@@ -36,8 +36,10 @@ use App\Http\Controllers\SuperAdminSetupController;
 |--------------------------------------------------------------------------
 */
 
-// Route::view (not a closure) so `php artisan route:cache` can serialize it.
-Route::view('/', 'welcome');
+// Root shows the real landing page (controller action, not a closure, so
+// `php artisan route:cache` can still serialize it). /landing-page keeps
+// working too — route('landingPage') is used all over the views/nav.
+Route::get('/', [UserController::class, 'showLandingPage'])->name('home');
 
 // ---- Public pages ----
 Route::get('landing-page', [UserController::class, 'showLandingPage'])->name('landingPage');

@@ -76,6 +76,6 @@ class OdontogramController extends Controller
             "Updated the odontogram for {$name}'s visit on " . $record->VisitDate->format('M j, Y') . '.'
         );
 
-        return $this->redirectToRecord($request, $record->RecordID)->with('success', 'Odontogram saved.');
+        return $this->redirectToRecord($request, $record)->with('success', 'Odontogram saved.');
     }
 }

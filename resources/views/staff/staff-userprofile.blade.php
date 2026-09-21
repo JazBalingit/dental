@@ -16,6 +16,7 @@
         href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Poppins:wght@500;600;700&display=swap"
         rel="stylesheet">
     <link rel="stylesheet" href="{{ asset('css/styles.css') }}">
+    <link rel="stylesheet" href="{{ asset('css/modals.css') }}">
     <link rel="stylesheet" href="{{ asset('css/mobile.css') }}">
 </head>
 

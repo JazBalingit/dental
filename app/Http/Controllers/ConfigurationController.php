@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Controllers\Concerns\HandlesArchiveReason;
 use App\Models\ActivityLog;
 use App\Models\AppointmentStep;
 use App\Models\DentistSchedule;
@@ -14,6 +15,8 @@ use Illuminate\Validation\Rule;
 
 class ConfigurationController extends Controller
 {
+    use HandlesArchiveReason;
+
     public function __construct(protected ActivityLogService $activityLog)
     {
     }
@@ -40,6 +43,12 @@ class ConfigurationController extends Controller
 
         $activeServices = Service::with('category')->where('IsArchived', false);
         $archivedServices = Service::with('category')->where('IsArchived', true);
+        $serviceCategory = $request->query('serviceCategory');
+        if ($serviceCategory !== null && $serviceCategory !== '') {
+            foreach ([$activeServices, $archivedServices] as $sq) {
+                $serviceCategory === 'none' ? $sq->whereNull('CategoryID') : $sq->where('CategoryID', (int) $serviceCategory);
+            }
+        }
         if ($serviceSearch) {
             $filter = function ($q) use ($serviceSearch) {
                 $q->where('ServiceName', 'like', "%{$serviceSearch}%")
@@ -95,6 +104,7 @@ class ConfigurationController extends Controller
             : 'about';
 
         return view('superAdmin.configuration', [
+            'serviceCategory' => $serviceCategory,
             'settingsTab' => $settingsTab,
             'aboutInfo' => SystemSetting::aboutInfo(),
             'privacyLegal' => [
@@ -264,10 +274,11 @@ class ConfigurationController extends Controller
         return back()->with('success', 'Step updated.');
     }
 
-    public function archiveAppointmentStep($id)
+    public function archiveAppointmentStep(Request $request, $id)
     {
+        $reason = $this->archiveReason($request);
         $step = AppointmentStep::findOrFail($id);
-        $step->update(['IsArchived' => true]);
+        $step->update($this->archivedState($reason));
 
         $this->activityLog->log('Archive', "Archived appointment-process step: {$step->Title}.");
 
@@ -277,7 +288,7 @@ class ConfigurationController extends Controller
     public function unarchiveAppointmentStep($id)
     {
         $step = AppointmentStep::findOrFail($id);
-        $step->update(['IsArchived' => false]);
+        $step->update($this->restoredState());
 
         $this->activityLog->log('Unarchive', "Unarchived appointment-process step: {$step->Title}.");
 
@@ -328,10 +339,11 @@ class ConfigurationController extends Controller
         return back()->with('success', 'Service updated.');
     }
 
-    public function archiveService($id)
+    public function archiveService(Request $request, $id)
     {
+        $reason = $this->archiveReason($request);
         $service = Service::findOrFail($id);
-        $service->update(['IsArchived' => true]);
+        $service->update($this->archivedState($reason));
 
         $this->activityLog->log('Archive', "Archived service: {$service->ServiceName}.");
 
@@ -341,7 +353,7 @@ class ConfigurationController extends Controller
     public function unarchiveService($id)
     {
         $service = Service::findOrFail($id);
-        $service->update(['IsArchived' => false]);
+        $service->update($this->restoredState());
 
         $this->activityLog->log('Unarchive', "Unarchived service: {$service->ServiceName}.");
 
@@ -384,10 +396,11 @@ class ConfigurationController extends Controller
         return back()->with('success', 'Category updated.');
     }
 
-    public function archiveCategory($id)
+    public function archiveCategory(Request $request, $id)
     {
+        $reason = $this->archiveReason($request);
         $category = ServiceCategory::findOrFail($id);
-        $category->update(['IsArchived' => true]);
+        $category->update($this->archivedState($reason));
 
         $this->activityLog->log('Archive', "Archived service category: {$category->Name}.");
 
@@ -397,16 +410,17 @@ class ConfigurationController extends Controller
     public function unarchiveCategory($id)
     {
         $category = ServiceCategory::findOrFail($id);
-        $category->update(['IsArchived' => false]);
+        $category->update($this->restoredState());
 
         $this->activityLog->log('Unarchive', "Unarchived service category: {$category->Name}.");
 
         return back()->with('success', 'Category restored.');
     }
 
-    public function archiveActivityLog($id)
+    public function archiveActivityLog(Request $request, $id)
     {
-        ActivityLog::findOrFail($id)->update(['IsArchived' => true]);
+        $reason = $this->archiveReason($request);
+        ActivityLog::findOrFail($id)->update($this->archivedState($reason));
 
         $this->activityLog->log('Archive', "Archived activity log entry #{$id}.");
 
@@ -415,7 +429,7 @@ class ConfigurationController extends Controller
 
     public function unarchiveActivityLog($id)
     {
-        ActivityLog::findOrFail($id)->update(['IsArchived' => false]);
+        ActivityLog::findOrFail($id)->update($this->restoredState());
 
         $this->activityLog->log('Unarchive', "Restored activity log entry #{$id}.");
 

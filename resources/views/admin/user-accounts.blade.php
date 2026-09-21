@@ -15,6 +15,7 @@
         href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Poppins:wght@500;600;700&display=swap"
         rel="stylesheet">
     <link rel="stylesheet" href="/css/styles.css">
+    <link rel="stylesheet" href="{{ asset('css/modals.css') }}">
     <link rel="stylesheet" href="{{ asset('css/mobile.css') }}">
 </head>
 
@@ -75,6 +76,7 @@
                         </div>
                         <div class="right">
                             <input type="hidden" name="tab" id="activeTabField" value="{{ $tab }}">
+                            <select class="form-select" name="status" style="min-width:140px; height:40px;" onchange="this.form.submit()"><option value="">All Status</option><option value="active" {{ ($status ?? null) === 'active' ? 'selected' : '' }}>Active</option><option value="inactive" {{ ($status ?? null) === 'inactive' ? 'selected' : '' }}>Inactive</option></select>
                             <div class="input-icon search">
                                 <i class="bi bi-search"></i>
                                 <input class="form-control" name="search" value="{{ $search }}"
@@ -89,10 +91,13 @@
                                 <table class="table-soft">
                                     <thead>
                                         <tr>
-                                            <th>User</th>
-                                            <th>Email</th>
-                                            <th>Phone</th>
-                                            <th>Date Created</th>
+                                            <th>Patient ID</th>
+<th>User</th>
+<th>Age / Gender</th>
+<th>Contact</th>
+<th>Address</th>
+<th>Date Created</th>
+<th>Last Login</th>
                                             <th>Status</th>
                                             <th class="text-end">Actions</th>
                                         </tr>
@@ -101,11 +106,14 @@
                                         @forelse ($users as $acc)
                                             @php $pi = $acc->patientInfo; @endphp
                                             <tr>
-                                                <td><span><img class="avatar-initials" src="{{ $pi->photo_url ?? asset('images/default.png') }}" alt=""></span><span
-                                                        class="fw-semibold">{{ $pi->FirstName ?? '' }} {{ $pi->LastName ?? '' }}</span></td>
-                                                <td>{{ $acc->Email }}</td>
-                                                <td>{{ $pi->PhoneNumber ?? '—' }}</td>
-                                                <td>{{ \Carbon\Carbon::parse($acc->DateCreated)->format('M j, Y') }}</td>
+                                                <td><span style="font-size:12px; color:#9ca3af; font-weight:500;">{{ $pi ? 'PT-' . str_pad($pi->PatientID, 4, '0', STR_PAD_LEFT) : '—' }}</span></td>
+<td><span><img class="avatar-initials" src="{{ $pi->photo_url ?? asset('images/default.png') }}" alt=""></span><span
+                                                        class="fw-semibold text-nowrap">{{ $pi->FirstName ?? '' }} {{ $pi->LastName ?? '' }}</span></td>
+<td class="text-nowrap">{{ $pi?->age_years !== null ? $pi->age_years . ' yrs' : '—' }}<div class="small text-muted-2">{{ $pi?->Gender ? ucfirst($pi->Gender) : '—' }}</div></td>
+<td>{{ $pi->PhoneNumber ?? '—' }}<div class="small text-muted-2">{{ $acc->Email }}</div></td>
+<td style="max-width:220px;"><span class="d-inline-block text-truncate align-bottom" style="max-width:200px;" title="{{ $pi->Address ?? '' }}">{{ $pi->Address ?? '—' }}</span></td>
+<td>{{ \Carbon\Carbon::parse($acc->DateCreated)->format('M j, Y') }}</td>
+<td>{{ $acc->LastLoginAt ? \Carbon\Carbon::parse($acc->LastLoginAt)->format('M j, Y g:i A') : 'Never' }}</td>
                                                 <td>
                                                     @if ($pi?->is_inactive)
                                                         <span class="pill pill-warning" title="No appointment in the last 6 months">Inactive</span>
@@ -128,7 +136,7 @@
                                             </tr>
                                         @empty
                                             <tr>
-                                                <td colspan="6" class="text-center text-muted-2 py-4">No user accounts yet.</td>
+                                                <td colspan="9" class="text-center text-muted-2 py-4">No user accounts yet.</td>
                                             </tr>
                                         @endforelse
                                     </tbody>
@@ -148,11 +156,15 @@
                                 <table class="table-soft">
                                     <thead>
                                         <tr>
-                                            <th>User</th>
-                                            <th>Email</th>
-                                            <th>Phone</th>
-                                            <th>Date Created</th>
+                                            <th>Patient ID</th>
+<th>User</th>
+<th>Age / Gender</th>
+<th>Contact</th>
+<th>Address</th>
+<th>Date Created</th>
+<th>Last Login</th>
                                             <th>Status</th>
+                                            <th>Archive Reason</th>
                                             <th class="text-end">Actions</th>
                                         </tr>
                                     </thead>
@@ -160,12 +172,16 @@
                                         @forelse ($archivedUsers as $acc)
                                             @php $pi = $acc->patientInfo; @endphp
                                             <tr>
-                                                <td><span><img class="avatar-initials" src="{{ $pi->photo_url ?? asset('images/default.png') }}" alt=""></span><span
-                                                        class="fw-semibold">{{ $pi->FirstName ?? '' }} {{ $pi->LastName ?? '' }}</span></td>
-                                                <td>{{ $acc->Email }}</td>
-                                                <td>{{ $pi->PhoneNumber ?? '—' }}</td>
-                                                <td>{{ \Carbon\Carbon::parse($acc->DateCreated)->format('M j, Y') }}</td>
+                                                <td><span style="font-size:12px; color:#9ca3af; font-weight:500;">{{ $pi ? 'PT-' . str_pad($pi->PatientID, 4, '0', STR_PAD_LEFT) : '—' }}</span></td>
+<td><span><img class="avatar-initials" src="{{ $pi->photo_url ?? asset('images/default.png') }}" alt=""></span><span
+                                                        class="fw-semibold text-nowrap">{{ $pi->FirstName ?? '' }} {{ $pi->LastName ?? '' }}</span></td>
+<td class="text-nowrap">{{ $pi?->age_years !== null ? $pi->age_years . ' yrs' : '—' }}<div class="small text-muted-2">{{ $pi?->Gender ? ucfirst($pi->Gender) : '—' }}</div></td>
+<td>{{ $pi->PhoneNumber ?? '—' }}<div class="small text-muted-2">{{ $acc->Email }}</div></td>
+<td style="max-width:220px;"><span class="d-inline-block text-truncate align-bottom" style="max-width:200px;" title="{{ $pi->Address ?? '' }}">{{ $pi->Address ?? '—' }}</span></td>
+<td>{{ \Carbon\Carbon::parse($acc->DateCreated)->format('M j, Y') }}</td>
+<td>{{ $acc->LastLoginAt ? \Carbon\Carbon::parse($acc->LastLoginAt)->format('M j, Y g:i A') : 'Never' }}</td>
                                                 <td><span class="pill pill-muted">Frozen</span></td>
+                                                @include('partials.archive-reason-cell', ['row' => $acc])
                                                 <td class="text-end">
                                                     <button class="btn btn-pill btn-pill-edit me-1" data-bs-toggle="modal"
                                                         data-bs-target="#editUserModal{{ $acc->UserID }}"><i class="bi bi-pencil-square"></i>
@@ -181,7 +197,7 @@
                                             </tr>
                                         @empty
                                             <tr>
-                                                <td colspan="6" class="text-center text-muted-2 py-4">No archived accounts.</td>
+                                                <td colspan="10" class="text-center text-muted-2 py-4">No archived accounts.</td>
                                             </tr>
                                         @endforelse
                                     </tbody>
@@ -223,7 +239,7 @@
             aria-hidden="{{ $editFailed ? 'false' : 'true' }}" style="{{ $editFailed ? 'display:block;' : '' }}">
             <div class="modal-dialog modal-dialog-centered modal-xl modal-dialog-scrollable">
                 <div class="modal-content">
-                    <div class="modal-header border-0 pb-0">
+                    <div class="modal-header">
                         <div>
                             <h5 class="modal-title fw-semibold">Edit User</h5>
                             <div class="small text-muted">Update account details</div>
@@ -233,7 +249,7 @@
                     <form method="POST" action="{{ route('userAcc.update', $acc->UserID) }}" enctype="multipart/form-data">
                         @csrf
                         <input type="hidden" name="form_source" value="edit_{{ $acc->UserID }}">
-                        <div class="modal-body pt-2">
+                        <div class="modal-body">
 
                             @if ($editFailed)
                                 <div class="alert alert-danger">
@@ -401,7 +417,7 @@
                             </div>
 
                         </div>
-                        <div class="modal-footer border-0 pt-0">
+                        <div class="modal-footer">
                             <button type="button" class="btn btn-ghost" data-bs-dismiss="modal">Cancel</button>
                             <button type="submit" class="btn btn-brand">Save Changes</button>
                         </div>

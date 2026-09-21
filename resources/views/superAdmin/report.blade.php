@@ -13,6 +13,28 @@
         'summary' => 'Full Summary Report',
     ];
     $reportTitle = $typeTitles[$type] ?? 'Report';
+    // Phrase for the covered dates, e.g. "from Sep 14, 2026 to Sep 20, 2026".
+    $rangePhrase = match (true) {
+        !$start || !$end => 'across all dates',
+        $start->isSameDay($end) => 'on ' . $start->format('M j, Y'),
+        default => 'from ' . $start->format('M j, Y') . ' to ' . $end->format('M j, Y'),
+    };
+    $withCharts = $includeCharts ?? false;
+    $withDetails = $includePatientDetails ?? false;
+
+    $descriptions = [
+        'appointments' => "This report covers appointments {$rangePhrase}. It shows the total number of appointments and how many are completed, approved, pending, declined or cancelled"
+            . ($withCharts ? ', along with the number of appointments booked over time' : '')
+            . ($withDetails ? ', followed by the full list of appointments with each patient\'s name, contact, service and status.' : '.'),
+        'patients' => 'This report covers patients who had an appointment or registered ' . $rangePhrase . '. It shows the total number of patients and their gender breakdown'
+            . ($withCharts ? ', along with the number of patients per treatment' : '')
+            . ($withDetails ? ', followed by the full list of patients with each one\'s age, gender, phone and address.' : '.'),
+        'schedule' => "This report covers dentist schedule slots {$rangePhrase}. It shows the total number of slots and how many are still available versus already booked"
+            . ($withCharts ? ', along with a breakdown of slots by status and by dentist' : '')
+            . ($withDetails ? ', followed by the full list of slots with their date, time, dentist and status.' : '.'),
+        'services' => "This section shows how many appointments were booked for each service {$rangePhrase}.",
+    ];
+    $summaryIntro = "This summary combines the appointments, patients and dentist schedule reports {$rangePhrase} into a single document.";
     $statusPill = fn ($status) => match ($status) {
         'Completed' => 'good',
         'Approved' => 'info',
@@ -31,6 +53,13 @@
   <link rel="stylesheet" href="{{ asset('css/styles.css') }}">
   <style>
     body { background: var(--ink-100); font-family: 'Inter', sans-serif; }
+    /* The chart bars, stat cards and status pills are all CSS backgrounds,
+       which browsers strip when printing unless told to keep them (the
+       "Background graphics" checkbox) — force them on so the printout matches. */
+    html, body, .report-sheet, .report-sheet * {
+      -webkit-print-color-adjust: exact !important;
+      print-color-adjust: exact !important;
+    }
     .report-toolbar {
       position: sticky; top: 0; z-index: 10;
       background: #fff; border-bottom: 1px solid var(--ink-300);
@@ -47,6 +76,8 @@
     .report-head .meta strong { color: var(--ink-700); }
     .report-section { margin-bottom: 2rem; }
     .report-section h2 { font-family: 'Poppins', sans-serif; font-size: 1.05rem; color: var(--brand-900); margin-bottom: 1rem; display: flex; align-items: center; gap: .5rem; }
+    .report-desc { font-size: .85rem; color: var(--ink-500); line-height: 1.55; margin: -.5rem 0 1rem; }
+    .report-intro { font-size: .9rem; color: var(--ink-700); line-height: 1.6; margin-bottom: 1.75rem; }
     .report-stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: .75rem; margin-bottom: 1.25rem; }
     .report-stat { background: var(--brand-50); border: 1px solid var(--brand-100); border-radius: var(--radius-md); padding: .85rem 1rem; }
     .report-stat .label { font-size: .75rem; color: var(--ink-500); font-weight: 600; text-transform: uppercase; letter-spacing: .02em; }
@@ -72,6 +103,7 @@
     .report-empty { color: var(--ink-500); font-size: .85rem; font-style: italic; }
     .report-signature { display: flex; justify-content: flex-end; margin-top: 3rem; }
     .report-signature-block { width: 260px; text-align: center; }
+    .report-signature-label { font-size: .8rem; color: var(--ink-500); text-align: left; }
     .report-signature-space { height: 50px; }
     .report-signature-line { border-top: 1px solid var(--ink-700); padding-top: .4rem; }
     .report-signature-name { font-weight: 700; color: var(--ink-900); font-size: .9rem; }
@@ -86,17 +118,12 @@
       tr { page-break-inside: avoid; }
     }
   </style>
+    <link rel="stylesheet" href="{{ asset('css/modals.css') }}">
     <link rel="stylesheet" href="{{ asset('css/mobile.css') }}">
 </head>
 
 <body>
 
-  <div class="report-toolbar no-print">
-    <a href="{{ url('dashboard') }}" class="back-link"><i class="bi bi-arrow-left me-1"></i>Back to Dashboard</a>
-    <button type="button" class="btn btn-brand px-4" onclick="window.print()">
-      <i class="bi bi-printer me-1"></i> Print / Save as PDF
-    </button>
-  </div>
 
   <div class="report-wrap">
     <div class="report-sheet">
@@ -109,13 +136,17 @@
         <div class="meta">
           <div><strong>Range:</strong> {{ $rangeLabel }}</div>
           <div><strong>Generated:</strong> {{ $generatedAt->format('M j, Y g:i A') }}</div>
-          <div><strong>By:</strong> {{ $adminAccountName ?? 'Administrator' }}</div>
         </div>
       </div>
+
+      @if ($type === 'summary')
+        <p class="report-intro">{{ $summaryIntro }}</p>
+      @endif
 
       @if (in_array($type, ['appointments', 'summary']))
         <div class="report-section">
           <h2><i class="bi bi-calendar-check"></i> Appointments</h2>
+          <p class="report-desc">{{ $descriptions['appointments'] }}</p>
           <div class="report-stats">
             <div class="report-stat"><div class="label">Total</div><div class="value">{{ $appointmentStats['total'] }}</div></div>
             <div class="report-stat"><div class="label">Completed</div><div class="value">{{ $appointmentStats['completed'] }}</div></div>
@@ -166,6 +197,7 @@
       @if (in_array($type, ['patients', 'summary']))
         <div class="report-section">
           <h2><i class="bi bi-people"></i> Patients</h2>
+          <p class="report-desc">{{ $descriptions['patients'] }}</p>
           <div class="report-stats">
             <div class="report-stat"><div class="label">Total</div><div class="value">{{ $patientStats['total'] }}</div></div>
             <div class="report-stat"><div class="label">Male</div><div class="value">{{ $patientStats['male'] }}</div></div>
@@ -212,6 +244,7 @@
       @if (in_array($type, ['schedule', 'summary']))
         <div class="report-section">
           <h2><i class="bi bi-calendar3"></i> Dentist Schedule</h2>
+          <p class="report-desc">{{ $descriptions['schedule'] }}</p>
           <div class="report-stats">
             <div class="report-stat"><div class="label">Total Slots</div><div class="value">{{ $scheduleStats['total'] }}</div></div>
             <div class="report-stat"><div class="label">Available</div><div class="value">{{ $scheduleStats['available'] }}</div></div>
@@ -271,6 +304,7 @@
       @if ($type === 'summary' && !empty($serviceBreakdown))
         <div class="report-section">
           <h2><i class="bi bi-bar-chart"></i> Appointments by Service</h2>
+          <p class="report-desc">{{ $descriptions['services'] }}</p>
           <div class="report-chart">
             @foreach ($serviceBreakdown as $row)
               <div class="report-bar-row">
@@ -285,6 +319,7 @@
 
       <div class="report-signature">
         <div class="report-signature-block">
+          <div class="report-signature-label">Prepared by:</div>
           <div class="report-signature-space"></div>
           <div class="report-signature-line">
             <div class="report-signature-name">{{ $adminAccountName ?? 'Administrator' }}</div>
@@ -296,6 +331,17 @@
     </div>
   </div>
 
+  {{-- No preview: the report opens straight into the browser's print dialog.
+       It is loaded in a hidden frame by the dashboard, which is told when the
+       dialog closes so it can clean the frame up. --}}
+  <script>
+    window.addEventListener('load', function () {
+      setTimeout(function () { window.print(); }, 300);
+    });
+    window.addEventListener('afterprint', function () {
+      if (window.parent !== window) window.parent.postMessage('report-printed', window.location.origin);
+    });
+  </script>
 </body>
 
 </html>

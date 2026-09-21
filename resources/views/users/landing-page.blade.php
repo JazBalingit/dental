@@ -17,6 +17,7 @@
     href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Poppins:wght@500;600;700&display=swap"
     rel="stylesheet">
   <link rel="stylesheet" href="/css/landing.css">
+    <link rel="stylesheet" href="{{ asset('css/modals.css') }}">
     <link rel="stylesheet" href="{{ asset('css/mobile.css') }}">
 </head>
 
@@ -337,14 +338,14 @@
   <div class="modal fade" id="modalOpenDay" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered modal-xl">
       <div class="modal-content">
-        <div class="modal-header border-0 pb-0">
+        <div class="modal-header">
           <div>
             <h5 class="modal-title fw-semibold">Day Schedule</h5>
             <div class="small text-muted">Booked slots show who already has the appointment.</div>
           </div>
           <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
         </div>
-        <div class="modal-body pt-2">
+        <div class="modal-body">
           <div class="schedule-wrap mb-0">
             <div class="week-grid">
               <div class="wh">Time</div>
@@ -369,7 +370,7 @@
             </div>
           </div>
         </div>
-        <div class="modal-footer border-0 pt-0">
+        <div class="modal-footer">
           <button type="button" class="btn btn-ghost" data-bs-dismiss="modal">Close</button>
           <button type="button" class="btn btn-brand">Use an Open Slot</button>
         </div>

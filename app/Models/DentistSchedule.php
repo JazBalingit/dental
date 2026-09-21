@@ -133,6 +133,62 @@ class DentistSchedule extends Model
         return $times;
     }
 
+    /** Shown when a walk-in is attempted while the clinic is closed. */
+    public static function walkInClosedMessage(): string
+    {
+        $hours = static::clinicHours();
+        $lunch = $hours['lunchEnabled']
+            ? ', closed ' . Carbon::createFromFormat('H:i', $hours['lunchStart'])->format('g:i A') . ' – ' . Carbon::createFromFormat('H:i', $hours['lunchEnd'])->format('g:i A') . ' for lunch'
+            : '';
+
+        return "The clinic is closed right now, so a walk-in can't be booked. Clinic hours: " . static::clinicHoursLabel() . $lunch . ' (closed Sundays).';
+    }
+
+    /**
+     * The half-hour starts that fall inside the lunch break (empty when lunch
+     * is off). They are never bookable/toggleable — grids show them as a
+     * locked "Lunch Break" row.
+     */
+    public static function lunchSlotTimes(): array
+    {
+        $hours = static::clinicHours();
+        $lunchStart = Carbon::createFromFormat('H:i', $hours['lunchStart']);
+        $lunchEnd = Carbon::createFromFormat('H:i', $hours['lunchEnd']);
+
+        if (!$hours['lunchEnabled'] || !$lunchStart->lt($lunchEnd)) {
+            return [];
+        }
+
+        $open = Carbon::createFromFormat('H:i', $hours['open']);
+        $close = Carbon::createFromFormat('H:i', $hours['close']);
+
+        $times = [];
+        for ($cursor = $lunchStart->copy(); $cursor->lt($lunchEnd); $cursor->addMinutes(static::SLOT_MINUTES)) {
+            if ($cursor->gte($open) && $cursor->lt($close)) {
+                $times[] = $cursor->format('H:i');
+            }
+        }
+
+        return $times;
+    }
+
+    /**
+     * Same as slotLabels() but with the lunch-break starts merged back in,
+     * in clock order, so a grid can show them as locked rows.
+     */
+    public static function slotLabelsWithLunch(): array
+    {
+        $labels = static::slotLabels();
+
+        foreach (static::lunchSlotTimes() as $time) {
+            $labels[$time] = Carbon::createFromFormat('H:i', $time)->format('g:i A');
+        }
+
+        ksort($labels);
+
+        return $labels;
+    }
+
     /**
      * time => "9:00 AM" display label, for the booking calendar and admin
      * schedule grid. Kept to the start time only (not a "9:00 - 9:30"

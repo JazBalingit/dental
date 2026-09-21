@@ -62,6 +62,7 @@ class AppServiceProvider extends ServiceProvider
         View::composer([
             'superAdmin.*',
             'admin.*',
+            'patient-records.history',
             'staff.staff-userprofile',
         ], AdminNotificationComposer::class);
 

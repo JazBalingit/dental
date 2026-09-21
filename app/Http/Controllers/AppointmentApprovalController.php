@@ -27,13 +27,9 @@ class AppointmentApprovalController extends Controller
         $status = $request->query('status');
         $search = $request->query('search');
 
-        $query = Appointment::with(['patientInfo', 'service', 'schedule', 'dentist.staffInfo'])
-            // Completed > Approved > Pending > Declined > Cancelled, then
-            // newest-first within each status group.
-            ->orderByRaw("FIELD(Status, 'Completed', 'Approved', 'Pending', 'Declined', 'Cancelled')")
-            ->orderByDesc('created_at');
+        $query = Appointment::with(['patientInfo', 'service', 'schedule', 'dentist.staffInfo'])->workflowOrder();
 
-        if ($status && in_array($status, ['Pending', 'Approved', 'Declined', 'Completed'])) {
+        if ($status && in_array($status, ['Pending', 'Approved', 'Declined', 'Completed', 'Cancelled'])) {
             $query->where('Status', $status);
         }
 
@@ -84,7 +80,7 @@ class AppointmentApprovalController extends Controller
         $appointment->ApprovedAt = now();
         $appointment->save();
 
-        $this->notifyPatient($appointment, 'Appointment Approved', 'Your appointment has been approved.', 'success');
+        $this->notifyPatient($appointment, 'Appointment Approved', 'We are pleased to inform you that your appointment has been approved. We look forward to welcoming you at the clinic.', 'success');
         $this->notifyAdminsOfStatus($appointment, 'has been approved', 'Approved');
 
         $p = $appointment->patientInfo;
@@ -118,7 +114,7 @@ class AppointmentApprovalController extends Controller
         $this->notifyPatient(
             $appointment,
             'Appointment Declined',
-            'Your appointment has been declined.',
+            'We regret to inform you that your appointment request has been declined. You are welcome to book another schedule at your convenience.',
             'danger'
         );
         $this->notifyAdminsOfStatus($appointment, 'has been declined', 'Declined');

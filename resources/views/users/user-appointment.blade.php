@@ -17,6 +17,7 @@
     <link rel="stylesheet" href="{{ asset('css/styles.css') }}">
     <link rel="stylesheet" href="/css/user_appointments.css">
     <link rel="stylesheet" href="/css/odontogram.css">
+    <link rel="stylesheet" href="{{ asset('css/modals.css') }}">
     <link rel="stylesheet" href="{{ asset('css/mobile.css') }}">
 </head>
 
@@ -157,10 +158,10 @@
                         </h5>
                         <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                     </div>
-                    <div class="modal-body p-4">
+                    <div class="modal-body">
                         <p>Rescheduling removes this appointment and releases its time. You can then choose a new available time from the booking calendar.</p>
                     </div>
-                    <div class="modal-footer gap-2">
+                    <div class="modal-footer">
                         <button class="btn-sec" data-bs-dismiss="modal">Discard</button>
                         <form method="POST" action="{{ route('userAppointment.remove', $current) }}">@csrf<input type="hidden" name="action" value="reschedule"><button class="btn-prim"><i class="fas fa-calendar-alt me-1"></i> Reschedule</button></form>
                     </div>
@@ -177,12 +178,12 @@
                             Appointment</h5>
                         <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                     </div>
-                    <div class="modal-body p-4">
+                    <div class="modal-body">
                         <p style="font-size:14px;line-height:1.7">Are you sure you want to cancel your
                             <strong style="color:#0f4c7a">{{ $current->AppointmentDate->format('M j') }} – {{ $current->TypeOfAppointment ?: ($current->service->ServiceName ?? '') }}</strong>
                             appointment? This cannot be undone.</p>
                     </div>
-                    <div class="modal-footer gap-2">
+                    <div class="modal-footer">
                         <button class="btn-sec" data-bs-dismiss="modal">Keep It</button>
                         <form method="POST" action="{{ route('userAppointment.remove', $current) }}">@csrf<input type="hidden" name="action" value="cancel"><button class="btn-prim" style="background:linear-gradient(135deg,#b91c1c,#ef4444);box-shadow:0 4px 12px rgba(239,68,68,0.3)"><i class="fas fa-times me-1"></i> Yes, Cancel</button></form>
                     </div>

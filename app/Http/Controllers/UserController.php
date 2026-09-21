@@ -175,7 +175,7 @@ class UserController extends Controller
             $this->notifications->notifyUser(
                 $user,
                 'Appointment Rescheduled',
-                "Your appointment on {$dateLabel} at {$timeLabel} has been cancelled so you can pick a new time.",
+                "Your appointment on {$dateLabel} at {$timeLabel} has been cancelled at your request so that you may select a new schedule.",
                 'warning',
                 $appointment->AppointmentID,
                 'Cancelled'
@@ -191,7 +191,7 @@ class UserController extends Controller
             $this->notifications->notifyUser(
                 $user,
                 'Appointment Cancelled',
-                "Your appointment on {$dateLabel} at {$timeLabel} has been cancelled.",
+                "Your appointment on {$dateLabel} at {$timeLabel} has been cancelled as requested.",
                 'danger',
                 $appointment->AppointmentID,
                 'Cancelled'

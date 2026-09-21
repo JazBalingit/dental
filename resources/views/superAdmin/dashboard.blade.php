@@ -44,6 +44,7 @@
       color: var(--ink-500, #64748b);
     }
   </style>
+    <link rel="stylesheet" href="{{ asset('css/modals.css') }}">
     <link rel="stylesheet" href="{{ asset('css/mobile.css') }}">
 </head>
 
@@ -248,7 +249,7 @@
       <div class="modal-content">
 
         <!-- Header -->
-        <div class="report-modal-header d-flex align-items-start gap-3">
+        <div class="modal-header report-modal-header">
           <div class="icon-badge"><i class="bi bi-file-earmark-bar-graph"></i></div>
           <div class="flex-grow-1">
             <div class="modal-title" id="reportModalLabel">Generate Report</div>
@@ -396,7 +397,7 @@
         </div>
 
         <!-- Footer -->
-        <div class="modal-footer d-flex justify-content-between">
+        <div class="modal-footer">
           <button type="button" class="btn-ghost" data-bs-dismiss="modal">Cancel</button>
           <button type="button" class="btn btn-brand px-4" id="generateReportBtn">
             <i class="bi bi-download me-1"></i> Generate Report
@@ -579,8 +580,31 @@
                 params.set('charts', charts && charts.checked ? '1' : '0');
                 params.set('patients', patients && patients.checked ? '1' : '0');
 
-                window.open(reportUrl + '?' + params.toString(), '_blank');
-            });
+                // No preview page: load the report in a hidden frame that prints itself.
+                var label = generateBtn.innerHTML;
+                generateBtn.disabled = true;
+                generateBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Preparing…';
+
+                var old = document.getElementById('reportPrintFrame');
+                if (old) old.remove();
+                var frame = document.createElement('iframe');
+                frame.id = 'reportPrintFrame';
+                frame.style.cssText = 'position:fixed;right:0;bottom:0;width:0;height:0;border:0;visibility:hidden;';
+                frame.src = reportUrl + '?' + params.toString();
+
+                function done() {
+                    window.removeEventListener('message', onMessage);
+                    generateBtn.disabled = false;
+                    generateBtn.innerHTML = label;
+                    setTimeout(function () { frame.remove(); }, 500);
+                }
+                function onMessage(e) {
+                    if (e.origin === window.location.origin && e.data === 'report-printed') done();
+                }
+                window.addEventListener('message', onMessage);
+                // Safety net if the dialog never reports back (e.g. blocked).
+                setTimeout(function () { if (document.body.contains(frame)) done(); }, 120000);
+                document.body.appendChild(frame);            });
         }
     })();
   </script>

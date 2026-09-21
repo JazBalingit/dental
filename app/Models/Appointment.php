@@ -31,6 +31,22 @@ class Appointment extends Model
         'DurationHours' => 'float',
     ];
 
+    /**
+     * Admin-list ordering: Pending first (earliest scheduled visit on top,
+     * since those are the ones waiting on a decision), then Approved,
+     * Completed, Cancelled, Declined. Every non-pending group is newest-first
+     * by when it last changed — ApprovedAt for approved rows, updated_at
+     * (the moment it was completed/cancelled/declined) for the rest.
+     */
+    public function scopeWorkflowOrder($query)
+    {
+        return $query
+            ->orderByRaw("FIELD(Status, 'Pending', 'Approved', 'Completed', 'Cancelled', 'Declined')")
+            ->orderByRaw("CASE WHEN Status = 'Pending' THEN AppointmentDate END ASC")
+            ->orderByRaw("CASE WHEN Status = 'Pending' THEN AppointmentTime END ASC")
+            ->orderByRaw("CASE WHEN Status = 'Approved' THEN COALESCE(ApprovedAt, updated_at) ELSE updated_at END DESC");
+    }
+
     public function patientInfo()
     {
         return $this->belongsTo(PatientInfo::class, 'PatientID', 'PatientID');

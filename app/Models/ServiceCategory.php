@@ -14,6 +14,8 @@ class ServiceCategory extends Model
         'Icon',
         'DisplayOrder',
         'IsArchived',
+        'ArchiveReason',
+        'ArchivedAt',
     ];
 
     protected $casts = [

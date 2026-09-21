@@ -17,6 +17,8 @@ class Service extends Model
         'Price',
         'DurationMinutes',
         'IsArchived',
+        'ArchiveReason',
+        'ArchivedAt',
     ];
 
     protected $casts = [

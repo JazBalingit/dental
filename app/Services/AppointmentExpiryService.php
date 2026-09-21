@@ -13,12 +13,12 @@ class AppointmentExpiryService
     }
 
     /**
-     * Any appointment still Pending once its scheduled date/time has passed
-     * was never reviewed in time — decline it automatically, release its
-     * held slot, and let the patient know so they can book again instead of
-     * waiting on a request nobody will act on anymore. No activity log
-     * entry is written for this — it's a system action, not one taken by
-     * any signed-in user.
+     * Any appointment still Pending once its scheduled date/time has arrived
+     * was never approved in time — cancel it automatically, release its held
+     * slot, and let the patient know it wasn't approved so they can book
+     * again instead of waiting on a request nobody will act on anymore. No
+     * activity log entry is written for this — it's a system action, not one
+     * taken by any signed-in user.
      */
     public function expireStalePending(): int
     {
@@ -36,8 +36,8 @@ class AppointmentExpiryService
             });
 
         foreach ($stale as $appointment) {
-            $appointment->Status = 'Declined';
-            $appointment->DeclineReason = 'This appointment request expired before it could be reviewed.';
+            $appointment->Status = 'Cancelled';
+            $appointment->DeclineReason = 'This appointment was not approved before its scheduled time and was therefore automatically cancelled.';
             $appointment->save();
 
             $this->releaseSlotBlock($appointment);
@@ -47,11 +47,11 @@ class AppointmentExpiryService
             if ($user) {
                 $this->notifications->notifyUser(
                     $user,
-                    'Appointment Request Expired',
-                    "We're sorry — your appointment request wasn't reviewed in time and has expired. Please feel free to book another appointment at your convenience.",
+                    'Appointment Cancelled',
+                    'We regret to inform you that your appointment was not approved before its scheduled time and has therefore been automatically cancelled. You are welcome to book another appointment at your convenience.',
                     'danger',
                     $appointment->AppointmentID,
-                    'Declined'
+                    'Cancelled'
                 );
             }
         }

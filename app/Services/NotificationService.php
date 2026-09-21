@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Mail\AppointmentStatusMail;
+use App\Models\Appointment;
 use App\Models\Notification;
 use App\Models\UserAccount;
 use Illuminate\Support\Facades\Log;
@@ -40,7 +41,13 @@ class NotificationService
         // succeeds even if the patient's email bounces.
         if ($sendEmail && $user->Email) {
             try {
-                Mail::to($user->Email)->send(new AppointmentStatusMail($title, $message));
+                // Every appointment email carries the full appointment details
+                // (date, time, services, dentist…), not just the one-line message.
+                $appointment = $appointmentId
+                    ? Appointment::with(['patientInfo', 'service', 'services', 'dentist.staffInfo'])->find($appointmentId)
+                    : null;
+
+                Mail::to($user->Email)->send(new AppointmentStatusMail($title, $message, $appointment));
             } catch (\Throwable $e) {
                 Log::warning('Notification email failed to send', [
                     'user_id' => $user->UserID,

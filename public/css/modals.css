@@ -1,0 +1,584 @@
+/* =====================================================================
+   Unified modal design — the ONE look for every modal on the site.
+
+   Loaded on every page just before mobile.css. Any modal built from the
+   standard Bootstrap parts (.modal-content > .modal-header / .modal-body /
+   .modal-footer) picks this up automatically; the older variants
+   (.report-modal-header, .notif-modal-header, .confirm-modal) are folded
+   into the same design here. Do NOT restyle modals per page — change it
+   here so they all stay identical.
+
+   Anatomy
+     • 4px brand accent bar across the top of the card
+     • soft brand-tinted header: title + optional subtitle + round close
+     • roomy white body with consistent labels / inputs
+     • light grey footer, actions right-aligned (Cancel = neutral,
+       submit = brand green, destructive = red)
+   ===================================================================== */
+
+:root {
+  --md-radius: 22px;
+  --md-line: #e6ecef;
+  --md-ink: #0f172a;
+  --md-muted: #64748b;
+  --md-field: #d9e2e8;
+}
+
+/* ---------- backdrop + entrance ---------- */
+.modal-backdrop {
+  background-color: #0b1a12;
+}
+
+.modal-backdrop.show {
+  opacity: .55;
+  -webkit-backdrop-filter: blur(3px);
+  backdrop-filter: blur(3px);
+}
+
+.modal.fade .modal-dialog {
+  transform: translateY(22px) scale(.97);
+  transition: transform .3s cubic-bezier(.2, .8, .2, 1);
+}
+
+.modal.show .modal-dialog {
+  transform: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .modal.fade .modal-dialog {
+    transform: none;
+    transition: none;
+  }
+}
+
+/* ---------- card ---------- */
+.modal .modal-content {
+  position: relative;
+  border: 0;
+  border-radius: var(--md-radius);
+  background: #fff;
+  overflow: hidden;
+  box-shadow:
+    0 0 0 1px rgba(15, 23, 42, .04),
+    0 12px 24px -8px rgba(15, 23, 42, .18),
+    0 40px 80px -24px rgba(15, 23, 42, .38);
+}
+
+/* brand accent bar */
+.modal .modal-content::before {
+  content: "";
+  position: absolute;
+  inset: 0 0 auto 0;
+  height: 4px;
+  background: linear-gradient(90deg, var(--brand-900, #167d1d), var(--brand-500, #33bd3c));
+  z-index: 3;
+  pointer-events: none;
+}
+
+/* ---------- header ---------- */
+.modal .modal-header,
+.modal .report-modal-header,
+.modal .notif-modal-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 26px 28px 18px;
+  margin: 0;
+  color: var(--md-ink);
+  background: linear-gradient(180deg, var(--brand-50, #f1fcf0) 0%, #fff 100%);
+  border: 0;
+  border-bottom: 1px solid var(--md-line);
+  border-radius: 0;
+}
+
+.modal .modal-title {
+  margin: 0;
+  color: var(--md-ink);
+  font-size: 1.12rem;
+  font-weight: 700;
+  line-height: 1.3;
+  letter-spacing: -.01em;
+}
+
+.modal .modal-title > i {
+  color: var(--brand-900, #167d1d) !important;
+  margin-right: .5rem;
+}
+
+/* every flavour of subtitle */
+.modal .modal-header .small,
+.modal .modal-header .text-muted,
+.modal .modal-header .modal-subtitle,
+.modal .modal-header .subtitle,
+.modal .report-modal-header .subtitle {
+  display: block;
+  margin-top: 3px;
+  color: var(--md-muted) !important;
+  font-size: .85rem !important;
+  font-weight: 400;
+  line-height: 1.4;
+}
+
+/* optional icon chip in a header (report + notifications) */
+.modal .report-modal-header .icon-badge,
+.modal .notif-modal-icon {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 14px;
+  background: var(--brand-100, #e3fde5);
+  color: var(--brand-900, #167d1d);
+  font-size: 1.15rem;
+}
+
+.modal .report-modal-header .modal-title,
+.modal .notif-modal-header .modal-title {
+  color: var(--md-ink);
+  font-size: 1.12rem;
+}
+
+/* round close button */
+.modal .btn-close {
+  flex: 0 0 auto;
+  width: 34px;
+  height: 34px;
+  margin: -2px -4px 0 auto;
+  padding: 0;
+  border: 1px solid var(--md-line);
+  border-radius: 50%;
+  background-color: #fff;
+  background-size: 10px;
+  background-position: center;
+  opacity: 1;
+  filter: none;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, .06);
+  transition: background-color .15s ease, transform .15s ease, box-shadow .15s ease;
+}
+
+.modal .btn-close:hover {
+  background-color: #fee2e2;
+  transform: rotate(90deg);
+  box-shadow: none;
+}
+
+.modal .btn-close:focus {
+  box-shadow: 0 0 0 4px rgba(22, 125, 29, .15);
+}
+
+/* ---------- body ---------- */
+.modal .modal-body {
+  padding: 24px 28px;
+  background: #fff;
+  color: var(--ink-700, #334155);
+  scrollbar-width: thin;
+}
+
+.modal .modal-body.notif-modal-body {
+  background: #fff;
+}
+
+/* form fields */
+.modal .modal-body .form-label,
+.modal .modal-body label:not(.form-check-label):not(.btn) {
+  margin-bottom: 6px;
+  color: var(--ink-700, #334155);
+  font-size: .82rem;
+  font-weight: 600;
+}
+
+.modal .modal-body .form-control:not(.form-control-sm):not(.form-control-lg),
+.modal .modal-body .form-select:not(.form-select-sm):not(.form-select-lg) {
+  padding-top: .6rem;
+  padding-bottom: .6rem;
+  border: 1.5px solid var(--md-field);
+  border-radius: 12px;
+  background-color: #fff;
+  color: var(--md-ink);
+  font-size: .92rem;
+  box-shadow: none;
+  transition: border-color .15s ease, box-shadow .15s ease, background-color .15s ease;
+}
+
+.modal .modal-body .form-control::placeholder {
+  color: #9aa8b5;
+}
+
+.modal .modal-body .form-control:hover:not(:disabled):not([readonly]),
+.modal .modal-body .form-select:hover:not(:disabled) {
+  border-color: #b9c7d1;
+}
+
+.modal .modal-body .form-control:focus,
+.modal .modal-body .form-select:focus {
+  border-color: var(--brand, #167d1d);
+  box-shadow: 0 0 0 4px rgba(22, 125, 29, .13);
+  background-color: #fff;
+}
+
+.modal .modal-body .form-control:disabled,
+.modal .modal-body .form-control[readonly],
+.modal .modal-body .form-select:disabled {
+  background-color: #f1f5f8;
+  color: var(--md-muted);
+  border-color: var(--md-line);
+}
+
+.modal .modal-body .form-control.is-invalid,
+.modal .modal-body .form-select.is-invalid,
+.modal .modal-body .form-control.has-error,
+.modal .modal-body .form-select.has-error {
+  border-color: var(--danger, #ef4444);
+}
+
+.modal .modal-body .form-control.is-invalid:focus,
+.modal .modal-body .form-select.is-invalid:focus,
+.modal .modal-body .form-control.has-error:focus,
+.modal .modal-body .form-select.has-error:focus {
+  box-shadow: 0 0 0 4px rgba(239, 68, 68, .14);
+}
+
+.modal .modal-body .form-text,
+.modal .modal-body .form-hint {
+  color: var(--md-muted);
+  font-size: .78rem;
+}
+
+/* section headings inside a body ("Personal information", …) */
+.modal .modal-body .section-label,
+.modal .modal-body .form-section-title,
+.modal .modal-body .info-section-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 4px 0 14px;
+  color: var(--brand-900, #167d1d);
+  font-size: .72rem;
+  font-weight: 700;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+}
+
+.modal .modal-body .section-label::after,
+.modal .modal-body .form-section-title::after,
+.modal .modal-body .info-section-title::after {
+  content: "";
+  flex: 1;
+  height: 1px;
+  background: var(--md-line);
+}
+
+/* alerts inside modals */
+.modal .modal-body .alert {
+  border: 0;
+  border-radius: 12px;
+  font-size: .88rem;
+}
+
+/* ---------- footer ---------- */
+.modal .modal-footer {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+  padding: 16px 28px 20px;
+  background: #f8fafb;
+  border: 0;
+  border-top: 1px solid var(--md-line);
+}
+
+.modal .modal-footer > * {
+  margin: 0;
+}
+
+/* One geometry for every footer action… */
+.modal .modal-footer .btn,
+.modal .modal-footer .btn-ghost,
+.modal .modal-footer .btn-sec,
+.modal .modal-footer button[type="submit"],
+.modal .modal-footer button[data-bs-dismiss] {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: .4rem;
+  min-height: 42px;
+  padding: .55rem 1.25rem;
+  border-radius: 12px;
+  font-size: .9rem;
+  font-weight: 600;
+  letter-spacing: 0;
+  line-height: 1.2;
+  white-space: nowrap;
+  text-transform: none;
+  transition: background-color .15s ease, border-color .15s ease, box-shadow .15s ease, transform .15s ease;
+}
+
+/* …neutral: Cancel / Close / Back … */
+.modal .modal-footer .btn-ghost,
+.modal .modal-footer .btn-sec,
+.modal .modal-footer .btn-secondary,
+.modal .modal-footer .btn-light,
+.modal .modal-footer .btn-outline-secondary,
+.modal .modal-footer .btn-pill-cancel[data-bs-dismiss],
+.modal .modal-footer button[data-bs-dismiss]:not(.btn-brand):not(.btn-primary):not(.btn-danger) {
+  background: #fff;
+  border: 1.5px solid var(--md-field);
+  color: var(--ink-700, #334155);
+  box-shadow: none;
+}
+
+.modal .modal-footer .btn-ghost:hover,
+.modal .modal-footer .btn-sec:hover,
+.modal .modal-footer .btn-secondary:hover,
+.modal .modal-footer .btn-light:hover,
+.modal .modal-footer .btn-outline-secondary:hover,
+.modal .modal-footer .btn-pill-cancel[data-bs-dismiss]:hover,
+.modal .modal-footer button[data-bs-dismiss]:not(.btn-brand):not(.btn-primary):not(.btn-danger):hover {
+  background: #f1f5f8;
+  border-color: #b9c7d1;
+  color: var(--md-ink);
+}
+
+/* …primary: the brand-green submit … */
+.modal .modal-footer .btn-brand,
+.modal .modal-footer .btn-primary,
+.modal .modal-footer .btn-success,
+.modal .modal-footer .btn-pill-archive,
+.modal .modal-footer .btn-pill-done,
+.modal .modal-footer .btn-pill-edit {
+  background: linear-gradient(135deg, var(--brand-700, #37a03e), var(--brand-900, #167d1d));
+  border: 0;
+  color: #fff;
+  box-shadow: 0 8px 18px -8px rgba(22, 125, 29, .65);
+}
+
+.modal .modal-footer .btn-brand:hover,
+.modal .modal-footer .btn-primary:hover,
+.modal .modal-footer .btn-success:hover,
+.modal .modal-footer .btn-pill-archive:hover,
+.modal .modal-footer .btn-pill-done:hover,
+.modal .modal-footer .btn-pill-edit:hover {
+  background: linear-gradient(135deg, var(--brand-600, #2e8532), #126016);
+  color: #fff;
+  transform: translateY(-1px);
+  box-shadow: 0 12px 22px -8px rgba(22, 125, 29, .75);
+}
+
+/* …destructive: red (a "cancel/decline" that actually submits) */
+.modal .modal-footer .btn-danger,
+.modal .modal-footer .btn-pill-cancel:not([data-bs-dismiss]) {
+  background: linear-gradient(135deg, #f26a6a, #dc2626);
+  border: 0;
+  color: #fff;
+  box-shadow: 0 8px 18px -8px rgba(220, 38, 38, .6);
+}
+
+.modal .modal-footer .btn-danger:hover,
+.modal .modal-footer .btn-pill-cancel:not([data-bs-dismiss]):hover {
+  background: linear-gradient(135deg, #ef4444, #b91c1c);
+  color: #fff;
+  transform: translateY(-1px);
+  box-shadow: 0 12px 22px -8px rgba(220, 38, 38, .7);
+}
+
+.modal .modal-footer .btn:active {
+  transform: translateY(0);
+}
+
+.modal .modal-footer .btn:focus-visible {
+  outline: 0;
+  box-shadow: 0 0 0 4px rgba(22, 125, 29, .2);
+}
+
+.modal .modal-footer .btn:disabled,
+.modal .modal-footer .btn.disabled {
+  opacity: .55;
+  transform: none;
+  box-shadow: none;
+}
+
+/* the confirm dialogs wrap their submit button in a <form class="d-inline"> */
+.modal .modal-footer form {
+  margin: 0;
+  display: inline-flex;
+}
+
+/* ---------- phones ---------- */
+@media (max-width: 575.98px) {
+  .modal .modal-header,
+  .modal .report-modal-header,
+  .modal .notif-modal-header {
+    padding: 22px 18px 14px;
+  }
+
+  .modal .modal-body {
+    padding: 18px;
+  }
+
+  .modal .modal-footer {
+    padding: 14px 18px 18px;
+  }
+
+  .modal .modal-content {
+    border-radius: 18px;
+  }
+}
+
+/* =====================================================================
+   Notifications → appointment details
+   Clickable notification cards + the shared #notifDetailModal content
+   (partials/notification-card, notification-appointment-details).
+   ===================================================================== */
+.notif-card.notif-clickable {
+  cursor: pointer;
+  transition: box-shadow .15s ease, transform .15s ease, border-color .15s ease;
+}
+
+.notif-card.notif-clickable:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 8px 20px -10px rgba(15, 23, 42, .35);
+}
+
+.notif-card.notif-clickable:focus-visible {
+  outline: 0;
+  box-shadow: 0 0 0 3px rgba(22, 125, 29, .25);
+}
+
+.notif-card .notif-chevron {
+  flex: 0 0 auto;
+  align-self: center;
+  margin-left: 4px;
+  color: var(--md-muted);
+  font-size: .9rem;
+}
+
+/* date block + when/time + status */
+.nd-hero {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 14px 16px;
+  margin-bottom: 18px;
+  border: 1px solid var(--md-line);
+  border-radius: 16px;
+  background: linear-gradient(135deg, var(--brand-50, #f1fcf0), #fff);
+}
+
+.nd-hero-date {
+  flex: 0 0 auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 58px;
+  height: 62px;
+  border-radius: 14px;
+  background: linear-gradient(135deg, var(--brand-700, #37a03e), var(--brand-900, #167d1d));
+  color: #fff;
+  line-height: 1.1;
+  box-shadow: 0 8px 16px -8px rgba(22, 125, 29, .7);
+}
+
+.nd-hero-month {
+  font-size: .68rem;
+  font-weight: 700;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+  opacity: .9;
+}
+
+.nd-hero-day {
+  font-size: 1.5rem;
+  font-weight: 700;
+}
+
+.nd-hero-info {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.nd-hero-when {
+  font-weight: 700;
+  color: var(--md-ink);
+}
+
+.nd-hero-time {
+  margin-top: 2px;
+  color: var(--md-muted);
+  font-size: .9rem;
+}
+
+.nd-hero-time i {
+  margin-right: 4px;
+}
+
+.nd-status {
+  flex: 0 0 auto;
+  padding: 5px 12px;
+  border-radius: 999px;
+  font-size: .75rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.nd-status-warning { background: #fff4d6; color: #8a6100; }
+.nd-status-info    { background: #dbeafe; color: #1d4ed8; }
+.nd-status-success { background: #d1fae5; color: #047857; }
+.nd-status-muted   { background: #e2e8f0; color: #475569; }
+
+.nd-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin: 0;
+}
+
+.nd-cell {
+  padding: 10px 14px;
+  border: 1px solid var(--md-line);
+  border-radius: 12px;
+  background: #fafcfb;
+}
+
+.nd-cell.nd-wide {
+  grid-column: 1 / -1;
+}
+
+.nd-cell dt {
+  margin: 0 0 2px;
+  color: var(--md-muted);
+  font-size: .72rem;
+  font-weight: 700;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+}
+
+.nd-cell dd {
+  margin: 0;
+  color: var(--md-ink);
+  font-weight: 600;
+}
+
+.nd-note {
+  margin: 16px 0 0;
+  padding: 12px 14px;
+  border-radius: 12px;
+  background: var(--brand-50, #f1fcf0);
+  color: var(--ink-700, #334155);
+  font-size: .88rem;
+  line-height: 1.5;
+}
+
+@media (max-width: 575.98px) {
+  .nd-hero {
+    flex-wrap: wrap;
+  }
+
+  .nd-grid {
+    grid-template-columns: 1fr;
+  }
+}

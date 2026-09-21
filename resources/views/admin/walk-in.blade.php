@@ -5,7 +5,7 @@
     <meta charset="utf-8" />
   <link rel="icon" type="image/png" href="/images/puspus_logo.png">
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Walk-in Appointment • Dental Clinic</title>
+    <title>{{ $mode === 'followup' ? 'Follow-up Appointment' : 'Walk-in' }} • Dental Clinic</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/7.0.1/css/all.min.css"
@@ -38,6 +38,7 @@
         .booking-status-booked { background: #fff0f1; color: #c93645; border: 1px solid #f2aeb6; }
         .booking-status-pending { background: #fff8e6; color: #8a6100; border: 1px solid #f0d78c; }
     </style>
+    <link rel="stylesheet" href="{{ asset('css/modals.css') }}">
     <link rel="stylesheet" href="{{ asset('css/mobile.css') }}">
 </head>
 
@@ -51,7 +52,7 @@
                     <div class="sub">DENTAL CLINIC</div>
                 </div>
             </div>
-            @include('partials.admin-sidebar-nav', ['active' => 'walkIn'])
+            @include('partials.admin-sidebar-nav', ['active' => $mode === 'followup' ? 'followUp' : 'walkIn'])
             @include('partials.admin-profile-badge')
         </aside>
 
@@ -71,18 +72,29 @@
             <div class="content">
                 <div class="page-head">
                     <div>
-                        <h2>Walk-in Appointment</h2>
-                        <div class="crumbs">Register a walk-in patient and book them into an open slot.</div>
+                        @if ($mode === 'followup')
+                        <h2>Follow-up Appointment</h2>
+                        <div class="crumbs">Load an existing patient and book their follow-up into an open slot. They're notified by email and it shows in their account.</div>
+                        @else
+                        <h2>Walk-in Patient</h2>
+                        <div class="crumbs">Register a patient who walked in and book them into an open slot. No email or notification is sent to walk-in patients.</div>
+                        @endif
                     </div>
                 </div>
 
                 @include('partials.flash-toasts')
 
+                @if ($mode === 'walkin')
+                    <div class="alert alert-warning" id="wkClosedBanner" hidden>
+                        <div class="d-flex align-items-start gap-2"><i class="bi bi-clock-history mt-1"></i><div id="wkClosedText"></div></div>
+                    </div>
+                @endif
+
                 <!-- ===================== WIZARD STEP INDICATOR ===================== -->
                 <div class="wizard-steps">
                     <span class="wizard-step-badge" data-step-badge="1">1. Patient Information</span>
                     <span class="wizard-step-sep"><i class="bi bi-chevron-right"></i></span>
-                    <span class="wizard-step-badge is-inactive" data-step-badge="2">2. Appointment Details</span>
+                    <span class="wizard-step-badge is-inactive" data-step-badge="2">{{ $mode === 'followup' ? '2. Appointment Details' : '2. Services' }}</span>
                     <span class="wizard-step-sep"><i class="bi bi-chevron-right"></i></span>
                     <span class="wizard-step-badge is-inactive" data-step-badge="3">3. Review &amp; Confirm</span>
                 </div>
@@ -91,7 +103,8 @@
                 <div class="card-soft p-3 p-md-4">
                     <form id="walkinForm" method="POST" action="{{ route('walkIn.store') }}">
                         @csrf
-                        <input type="hidden" name="patient_source" id="patient_source" value="existing">
+                        <input type="hidden" name="booking_mode" value="{{ $mode }}">
+                        <input type="hidden" name="patient_source" id="patient_source" value="{{ $mode === 'followup' ? 'existing' : 'new' }}">
                         <input type="hidden" name="patient_id" id="patient_id" value="">
                         <input type="hidden" name="date" id="wi_date" value="">
                         <input type="hidden" name="time" id="wi_time" value="">
@@ -100,7 +113,7 @@
 
                         <!-- ===================== STEP 1: PATIENT INFORMATION ===================== -->
                         <div class="wizard-step" data-step="1">
-                            <ul class="nav nav-tabs patient-tabs" id="patientTab" role="tablist">
+                            <ul class="nav nav-tabs patient-tabs d-none" id="patientTab" role="tablist">
                                 <li class="nav-item" role="presentation">
                                     <button class="nav-link active" id="existing-tab" data-bs-toggle="tab"
                                         data-bs-target="#existing-pane" type="button" role="tab">Existing Patient</button>
@@ -114,7 +127,7 @@
                             <div class="tab-content patient-tab-pane-wrap mb-4">
 
                                 <!-- Existing patient lookup -->
-                                <div class="tab-pane fade show active" id="existing-pane" role="tabpanel">
+                                <div class="tab-pane fade {{ $mode === 'followup' ? 'show active' : '' }}" id="existing-pane" role="tabpanel">
                                     <div class="row g-3 mb-3" id="patientSearchRow">
                                         <div class="col-md-9">
                                             <label class="form-label">Search patient (name or Patient ID)</label>
@@ -212,7 +225,7 @@
                                 </div>
 
                                 <!-- New patient registration -->
-                                <div class="tab-pane fade" id="new-pane" role="tabpanel">
+                                <div class="tab-pane fade {{ $mode === 'followup' ? '' : 'show active' }}" id="new-pane" role="tabpanel">
                                     <div class="section-label">Personal Information</div>
                                     <div class="row g-3 mb-3">
                                         <div class="col-md-4">
@@ -244,7 +257,7 @@
 
                                         <div class="col-md-4">
                                             <label class="form-label">Birthdate <span class="text-danger">*</span></label>
-                                            <div class="input-icon @error('birthdate') has-error @enderror"><i class="bi bi-calendar-event"></i><input type="date" name="birthdate"
+                                            <div class="input-icon @error('birthdate') has-error @enderror"><i class="bi bi-calendar-event"></i><input type="date" name="birthdate" id="wiBirthdate"
                                                     class="form-control" value="{{ old('birthdate') }}" max="2023-12-31" data-wi-required
                                                     data-age-target="#newPatientAge" /></div>
                                             @error('birthdate')
@@ -300,10 +313,11 @@
                                         @error('address') <div class="col-12"><div class="field-error"><i class="bi bi-exclamation-circle-fill"></i> {{ $message }}</div></div> @enderror
                                     </div>
 
+                                    <div id="wiAdultContact">
                                     <div class="section-label mt-2">Contact Details</div>
                                     <div class="row g-3">
                                         <div class="col-md-6">
-                                            <label class="form-label">Email address</label>
+                                            <label class="form-label">Email address <span class="text-muted-2 fw-normal">(optional, for records only)</span></label>
                                             <div class="input-icon @error('email') has-error @enderror"><i class="bi bi-envelope"></i><input type="email" name="email"
                                                     class="form-control" value="{{ old('email') }}" placeholder="name@email.com" /></div>
                                             @error('email') <div class="field-error"><i class="bi bi-exclamation-circle-fill"></i> {{ $message }}</div> @enderror
@@ -319,18 +333,96 @@
                                             @enderror
                                         </div>
                                     </div>
+                                    </div>{{-- /wiAdultContact --}}
+
+                                    {{-- Minors (under 18): parent/guardian instead of the patient's own phone/email --}}
+                                    <div id="wiMinorSection" hidden>
+                                        <div class="section-label mt-2">Parent / Guardian</div>
+                                        <p class="text-muted small mb-3">The patient is under 18 based on the birthdate — a parent or guardian's details are recorded instead of the patient's own phone and email.</p>
+                                        <div class="row g-3">
+                                            <div class="col-md-6">
+                                                <label class="form-label">Parent/Guardian's name <span class="text-danger">*</span></label>
+                                                <div class="input-icon @error('guardian_name') has-error @enderror"><i class="bi bi-person-heart"></i><input type="text" name="guardian_name"
+                                                        class="form-control" value="{{ old('guardian_name') }}" placeholder="Guardian's name" data-wi-minor-required /></div>
+                                                @error('guardian_name')
+                                                    <div class="field-error"><i class="bi bi-exclamation-circle-fill"></i> {{ $message }}</div>
+                                                @else
+                                                    <div class="invalid-feedback">This field is required.</div>
+                                                @enderror
+                                            </div>
+                                            <div class="col-md-6">
+                                                <label class="form-label">Occupation <span class="text-muted-2 fw-normal">(optional)</span></label>
+                                                <div class="input-icon @error('guardian_occupation') has-error @enderror"><i class="bi bi-briefcase"></i><input type="text" name="guardian_occupation"
+                                                        class="form-control" value="{{ old('guardian_occupation') }}" placeholder="Occupation" /></div>
+                                                @error('guardian_occupation') <div class="field-error"><i class="bi bi-exclamation-circle-fill"></i> {{ $message }}</div> @enderror
+                                            </div>
+                                            <div class="col-md-6">
+                                                <label class="form-label">Contact number <span class="text-danger">*</span></label>
+                                                <div class="input-icon @error('guardian_phone') has-error @enderror"><i class="bi bi-telephone"></i><input type="text" name="guardian_phone"
+                                                        class="form-control" value="{{ old('guardian_phone') }}" placeholder="09XX XXX XXXX" data-wi-minor-required /></div>
+                                                @error('guardian_phone')
+                                                    <div class="field-error"><i class="bi bi-exclamation-circle-fill"></i> {{ $message }}</div>
+                                                @else
+                                                    <div class="invalid-feedback">This field is required.</div>
+                                                @enderror
+                                            </div>
+                                            <div class="col-md-6">
+                                                <label class="form-label">Email address <span class="text-muted-2 fw-normal">(optional, for records only)</span></label>
+                                                <div class="input-icon @error('guardian_email') has-error @enderror"><i class="bi bi-envelope"></i><input type="email" name="guardian_email"
+                                                        class="form-control" value="{{ old('guardian_email') }}" placeholder="name@email.com" /></div>
+                                                @error('guardian_email') <div class="field-error"><i class="bi bi-exclamation-circle-fill"></i> {{ $message }}</div> @enderror
+                                            </div>
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
 
                             <div class="text-end">
-                                <button type="button" class="btn btn-brand" id="toStep2Btn">Continue to Appointment</button>
+                                <button type="button" class="btn btn-brand" id="toStep2Btn">{{ $mode === 'followup' ? 'Continue to Appointment' : 'Continue to Services' }}</button>
                             </div>
                         </div>
 
                         <!-- ===================== STEP 2: APPOINTMENT DETAILS ===================== -->
                         <div class="wizard-step" data-step="2" hidden>
+                            @if ($mode === 'walkin')
+                                {{-- Walk-in: no calendar. The visit starts at the half-hour slot the
+                                     current time falls inside and runs for the services' duration. --}}
+                                <div class="appointment-card mb-4">
+                                    <div class="section-label mb-3">Dentist</div>
+                                    <div class="row mb-3">
+                                        <div class="col-md-6">
+                                            <select id="wiWalkinDentist" class="form-select">
+                                                @foreach ($bookDentists as $dn)
+                                                    <option value="{{ $dn->UserID }}" @selected((int) $bookSelectedDentistId === (int) $dn->UserID)>{{ $dn->display_name }}</option>
+                                                @endforeach
+                                            </select>
+                                        </div>
+                                    </div>
+
+                                    <div class="section-label mb-3">Services <span class="text-danger">*</span></div>
+                                    <div class="row g-2">
+                                        @foreach ($services as $svc)
+                                            <div class="col-md-6">
+                                                <label class="d-flex align-items-center gap-2 p-2 border rounded-3" style="cursor:pointer;">
+                                                    <input type="checkbox" class="form-check-input wk-service-option m-0" value="{{ $svc->ServiceID }}"
+                                                        data-name="{{ $svc->ServiceName }}" data-duration="{{ $svc->DurationMinutes }}">
+                                                    <span class="flex-grow-1">{{ $svc->ServiceName }}</span>
+                                                    <span class="small text-muted-2">{{ $svc->duration_label }}</span>
+                                                </label>
+                                            </div>
+                                        @endforeach
+                                    </div>
+                                    <div class="text-danger small mt-2" id="wkServiceError" hidden>Select at least one service.</div>
+
+                                    <div class="alert alert-success mt-3 mb-0 py-2 px-3" id="wkTimePreview">Pick the services to see the visit time.</div>
+                                    <div class="form-text mt-2">The visit is booked automatically when you continue: it starts in the current half-hour slot (e.g. 11:12 AM → 11:00 AM) and lasts the total service duration, skipping the lunch break. If the dentist is busy right now, the next open time today is used.</div>
+                                </div>
+                            @endif
+
+                            @if ($mode === 'followup')
                             @include('partials.booking-calendar', [
                                 'calendarMode' => 'select',
+                                'bookBaseUrl' => $mode === 'followup' ? route('followUp') : route('walkIn'),
                                 'bookWeeks' => $bookWeeks,
                                 'bookCurrent' => $bookCurrent,
                                 'bookSchedules' => $bookSchedules,
@@ -343,9 +435,10 @@
                                 'bookSelectedDentist' => $bookSelectedDentist,
                                 'bookSelectedDentistId' => $bookSelectedDentistId,
                             ])
+                            @endif
 
 
-                            <div class="appointment-card mb-4 mt-4">
+                            <div class="appointment-card mb-4 mt-4 {{ $mode === 'walkin' ? 'd-none' : '' }}">
                                 <div class="section-label mb-3">Appointment Details</div>
                                 <div class="form-text mb-3">Tip: click an open date above, then pick the service and time slot right there — just like online booking.</div>
                                 <div class="row">
@@ -390,13 +483,13 @@
                                 <div class="review-row"><span class="text-muted-2">Date</span><span class="fw-semibold" id="review_date">—</span></div>
                                 <div class="review-row"><span class="text-muted-2">Time</span><span class="fw-semibold" id="review_time">—</span></div>
                                 <div class="review-row"><span class="text-muted-2">Duration</span><span class="fw-semibold" id="review_duration">—</span></div>
-                                <div class="review-row"><span class="text-muted-2">Appointment Type</span><span class="fw-semibold">Walk-in</span></div>
+                                <div class="review-row"><span class="text-muted-2">Appointment Type</span><span class="fw-semibold">{{ $mode === 'followup' ? 'Follow-up appointment' : 'Walk-in' }}</span></div>
                             </div>
 
                             <div class="d-flex justify-content-between">
                                 <button type="button" class="btn btn-ghost" id="backToStep2Btn">Back</button>
                                 <button type="submit" class="btn btn-brand">
-                                    <i class="fa-regular fa-paper-plane me-2"></i>Confirm Walk-in Appointment
+                                    <i class="fa-regular fa-paper-plane me-2"></i>{{ $mode === 'followup' ? 'Confirm Follow-up Appointment' : 'Confirm Walk-in' }}
                                 </button>
                             </div>
                         </div>
@@ -680,9 +773,21 @@
             renderWiServiceInputs();
 
             const modalEl = btn.closest('.modal');
+            const goToReview = () => document.getElementById('toStep3Btn').click();
             if (modalEl && window.bootstrap) {
                 const instance = bootstrap.Modal.getInstance(modalEl);
-                if (instance) instance.hide();
+                if (instance) {
+                    // Picking a time is the last thing Step 2 needs, so carry
+                    // straight on to Review & Confirm — but only once the day
+                    // modal has finished closing, or its backdrop would linger
+                    // over the next step.
+                    modalEl.addEventListener('hidden.bs.modal', goToReview, { once: true });
+                    instance.hide();
+                } else {
+                    goToReview();
+                }
+            } else {
+                goToReview();
             }
             saveDraft();
         });
@@ -696,7 +801,7 @@
         }
         function wiReloadCalendar(month) {
             saveDraft();
-            window.location.href = '{{ route("walkIn") }}?bookMonth=' + month + '&dentist=' + wiCurrentDentist();
+            window.location.href = '{{ $mode === 'followup' ? route('followUp') : route('walkIn') }}?bookMonth=' + month + '&dentist=' + wiCurrentDentist();
         }
 
         const wiGoBtn = document.getElementById('wiBookMonthGo');
@@ -722,6 +827,122 @@
             });
         }
 
+        // ---------- Minor (under 18): parent/guardian replaces the patient's own phone/email ----------
+        const wiBirthdate = document.getElementById('wiBirthdate');
+        const wiMinorSection = document.getElementById('wiMinorSection');
+        const wiAdultContact = document.getElementById('wiAdultContact');
+        function wiIsMinor() {
+            if (!wiBirthdate || !wiBirthdate.value) return false;
+            const dob = new Date(wiBirthdate.value);
+            if (isNaN(dob.getTime())) return false;
+            const now = new Date();
+            let age = now.getFullYear() - dob.getFullYear();
+            const md = now.getMonth() - dob.getMonth();
+            if (md < 0 || (md === 0 && now.getDate() < dob.getDate())) age--;
+            return age < 18;
+        }
+        function syncMinor() {
+            const minor = wiIsMinor();
+            wiMinorSection.hidden = !minor;
+            wiAdultContact.hidden = minor;
+            // Hidden section's inputs are disabled so stale values never submit,
+            // and only the visible section's required fields are enforced.
+            wiMinorSection.querySelectorAll('input').forEach((el) => { el.disabled = !minor; });
+            wiAdultContact.querySelectorAll('input').forEach((el) => { el.disabled = minor; });
+            wiMinorSection.querySelectorAll('[data-wi-minor-required]').forEach((el) => {
+                if (minor) el.setAttribute('data-wi-required', ''); else el.removeAttribute('data-wi-required');
+            });
+            const phone = wiAdultContact.querySelector('[name=phone]');
+            if (phone) { if (minor) phone.removeAttribute('data-wi-required'); else phone.setAttribute('data-wi-required', ''); }
+        }
+        if (wiBirthdate) {
+            wiBirthdate.addEventListener('input', syncMinor);
+            wiBirthdate.addEventListener('change', syncMinor);
+        }
+        syncMinor();
+
+        // ---------- Walk-in: services picker (no calendar) ----------
+        const IS_WALKIN = {{ $mode === 'walkin' ? 'true' : 'false' }};
+        const CLOSED_MSG = @json(\App\Models\DentistSchedule::walkInClosedMessage());
+        // The half-hour slot the current time falls inside. null when the clinic
+        // is closed (before opening, lunch, after closing) — no walk-in then.
+        // Use the SERVER's clock (clinic time), not the browser's — a front-desk
+        // PC in another timezone would otherwise preview the wrong slot.
+        const SERVER_NOW = {
+            minutes: {{ now()->hour * 60 + now()->minute }},
+            date: '{{ today()->toDateString() }}',
+            dow: {{ now()->dayOfWeek }},
+            loadedAt: Date.now(),
+        };
+        function serverMinutesNow() {
+            return (SERVER_NOW.minutes + Math.floor((Date.now() - SERVER_NOW.loadedAt) / 60000)) % 1440;
+        }
+
+        function walkinStartTime() {
+            const mins = serverMinutesNow();
+            for (const t of SLOT_TIMES) {
+                const [h, m] = t.split(':').map(Number);
+                if (mins >= h * 60 + m && mins < h * 60 + m + SLOT_MINUTES) return t;
+            }
+            return null;
+        }
+
+        function refreshWalkinPreview() {
+            if (!IS_WALKIN) return;
+            const boxes = Array.from(document.querySelectorAll('.wk-service-option:checked'));
+            wiServiceIds = boxes.map((b) => b.value);
+            wiTotalMinutes = boxes.reduce((sum, b) => sum + (parseInt(b.dataset.duration, 10) || 60), 0);
+            wiServiceDisplay.value = boxes.map((b) => b.dataset.name).join(', ');
+            renderWiServiceInputs();
+
+            const preview = document.getElementById('wkTimePreview');
+            const setPreview = (cls, html) => { preview.className = 'alert alert-' + cls + ' mt-3 mb-0 py-2 px-3'; preview.innerHTML = html; };
+            const today = new Date(SERVER_NOW.date + 'T12:00:00');
+            wiDateInput.value = SERVER_NOW.date;
+            wiDateDisplay.value = today.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+            wiTimeInput.value = '';
+            wiTimeDisplay.value = '';
+
+            if (!boxes.length) { setPreview('success', 'Pick the services to see the visit time.'); return; }
+            if (SERVER_NOW.dow === 0 || !walkinStartTime()) { setPreview('danger', CLOSED_MSG); return; }
+            const start = walkinStartTime();
+            const end = computeEndTimeLabel(start, wiTotalMinutes);
+            const [sh, sm] = start.split(':').map(Number);
+            const startLabel = formatTime12h(sh, sm);
+            if (!end) { setPreview('danger', 'Starting at <strong>' + startLabel + '</strong>, these services (' + formatDurationLabel(wiTotalMinutes) + ') run past closing time. Remove a service or book a follow-up for another day.'); return; }
+            wiTimeInput.value = start;
+            wiTimeDisplay.value = startLabel + ' - ' + end;
+            setPreview('success', '<strong>' + startLabel + ' – ' + end + '</strong> today &middot; ' + formatDurationLabel(wiTotalMinutes));
+        }
+
+        function updateWalkinClosed() {
+            if (!IS_WALKIN) return;
+            const closed = SERVER_NOW.dow === 0 || !walkinStartTime();
+            document.getElementById('wkClosedBanner').hidden = !closed;
+            document.getElementById('wkClosedText').textContent = CLOSED_MSG;
+            document.getElementById('toStep2Btn').disabled = closed;
+            const toReview = document.getElementById('toStep3Btn');
+            if (toReview) toReview.disabled = closed;
+        }
+        if (IS_WALKIN) {
+            updateWalkinClosed();
+            setInterval(updateWalkinClosed, 15000);
+        }
+
+        if (IS_WALKIN) {
+            document.addEventListener('change', (e) => {
+                if (e.target.matches('.wk-service-option')) {
+                    document.getElementById('wkServiceError').hidden = true;
+                    refreshWalkinPreview();
+                }
+            });
+            const walkinDentist = document.getElementById('wiWalkinDentist');
+            if (walkinDentist) {
+                document.getElementById('wi_dentist_id').value = walkinDentist.value;
+                walkinDentist.addEventListener('change', () => { document.getElementById('wi_dentist_id').value = walkinDentist.value; });
+            }
+        }
+
         // ---------- Continue to Step 3 ----------
         // Extracted so restoreDraft() can rebuild the same summary after a page
         // refresh — previously the review text was only ever built inside the
@@ -735,10 +956,11 @@
                 : `${document.querySelector('[name=first_name]').value} ${document.querySelector('[name=last_name]').value}`.trim();
 
             document.getElementById('review_patient_name').textContent = patientName || '—';
-            document.getElementById('review_patient_type').textContent = isExisting ? 'Existing Patient' : 'New Patient';
+            document.getElementById('review_patient_type').textContent = isExisting ? 'Existing patient (Online)' : 'Walk-in patient';
             document.getElementById('review_patient_id_row').style.display = isExisting ? 'flex' : 'none';
             document.getElementById('review_patient_id').textContent = isExisting ? patientIdInput.value : '—';
-            const dentistSel = document.getElementById('wiBookDentist');
+            if (IS_WALKIN) refreshWalkinPreview();
+            const dentistSel = document.getElementById('wiBookDentist') || document.getElementById('wiWalkinDentist');
             document.getElementById('review_dentist').textContent =
                 dentistSel ? (dentistSel.options[dentistSel.selectedIndex]?.text || '—') : '—';
             document.getElementById('review_service').textContent = wiServiceDisplay.value;
@@ -748,7 +970,11 @@
         }
 
         document.getElementById('toStep3Btn').addEventListener('click', () => {
-            [wiServiceDisplay, wiDateDisplay, wiTimeDisplay].forEach(el => el.classList.remove('is-invalid'));
+            if (IS_WALKIN) {
+                refreshWalkinPreview();
+                if (!wiServiceIds.length) { document.getElementById('wkServiceError').hidden = false; return; }
+                if (!wiTimeInput.value) return; // the preview already explains why (closed / too long)
+            }            [wiServiceDisplay, wiDateDisplay, wiTimeDisplay].forEach(el => el.classList.remove('is-invalid'));
 
             let firstInvalid = null;
             if (!wiServiceIds.length) firstInvalid = firstInvalid || wiServiceDisplay;
@@ -771,7 +997,8 @@
         document.getElementById('backToStep2Btn').addEventListener('click', () => showStep(2));
 
         // ---------- Draft persistence so the calendar's month-nav reload doesn't lose progress ----------
-        const DRAFT_KEY = 'walkinDraft';
+        const DRAFT_KEY = 'walkinDraft_{{ $mode }}';
+        const PATIENT_SOURCE = '{{ $mode === 'followup' ? 'existing' : 'new' }}';
 
         function saveDraft() {
             const activeStep = steps.find(s => !s.hidden);
@@ -804,6 +1031,10 @@
                     address: document.querySelector('[name=address]').value,
                     email: document.querySelector('[name=email]').value,
                     phone: document.querySelector('[name=phone]').value,
+                    guardian_name: document.querySelector('[name=guardian_name]').value,
+                    guardian_occupation: document.querySelector('[name=guardian_occupation]').value,
+                    guardian_phone: document.querySelector('[name=guardian_phone]').value,
+                    guardian_email: document.querySelector('[name=guardian_email]').value,
                 },
                 serviceIds: wiServiceIds,
                 serviceLabel: wiServiceDisplay.value,
@@ -821,10 +1052,7 @@
             try { draft = JSON.parse(sessionStorage.getItem(DRAFT_KEY) || 'null'); } catch (e) { draft = null; }
             if (!draft) return;
 
-            patientSourceInput.value = draft.patientSource || 'existing';
-            if (draft.patientSource === 'new' && window.bootstrap) {
-                new bootstrap.Tab(newTab).show();
-            }
+            patientSourceInput.value = PATIENT_SOURCE;
 
             if (draft.existingPatient) {
                 applyLoadedPatient(draft.existingPatient);
@@ -835,6 +1063,7 @@
                     const el = document.querySelector(`[name=${key}]`);
                     if (el && value) el.value = value;
                 });
+                syncMinor();
             }
 
             if (draft.serviceIds && draft.serviceIds.length) {
@@ -847,7 +1076,10 @@
             if (draft.time) wiTimeInput.value = draft.time;
             if (draft.dateLabel) wiDateDisplay.value = draft.dateLabel;
             if (draft.timeLabel) wiTimeDisplay.value = draft.timeLabel;
-
+            if (IS_WALKIN) {
+                document.querySelectorAll('.wk-service-option').forEach((b) => { b.checked = (draft.serviceIds || []).includes(b.value); });
+                refreshWalkinPreview();
+            }
             if (draft.step === '3') {
                 buildReviewSummary();
             }

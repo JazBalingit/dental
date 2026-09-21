@@ -15,6 +15,7 @@
         href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Poppins:wght@500;600;700&display=swap"
         rel="stylesheet">
     <link rel="stylesheet" href="{{ asset('css/styles.css') }}">
+    <link rel="stylesheet" href="{{ asset('css/modals.css') }}">
     <link rel="stylesheet" href="{{ asset('css/mobile.css') }}">
 </head>
 
@@ -113,6 +114,7 @@
                                 <option value="Approved" {{ $status === 'Approved' ? 'selected' : '' }}>Booked</option>
                                 <option value="Declined" {{ $status === 'Declined' ? 'selected' : '' }}>Declined</option>
                                 <option value="Completed" {{ $status === 'Completed' ? 'selected' : '' }}>Completed</option>
+                                <option value="Cancelled" {{ $status === 'Cancelled' ? 'selected' : '' }}>Cancelled</option>
                             </select>
                         </div>
                         <div class="right d-flex gap-2">
@@ -200,118 +202,14 @@
             $p = $appt->patientInfo;
         @endphp
 
-        <!-- PATIENT INFO -->
-        <div class="modal fade" id="patientInfoModal{{ $appt->AppointmentID }}" tabindex="-1" aria-hidden="true">
-            <div class="modal-dialog modal-dialog-centered modal-lg">
-                <div class="modal-content">
-                    <div class="modal-header border-0 pb-0">
-                        <div>
-                            <h5 class="modal-title fw-semibold">Patient Information</h5>
-                            <div class="small text-muted">{{ $p->FirstName }} {{ $p->LastName }}'s account details</div>
-                        </div>
-                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                    </div>
-                    <div class="modal-body pt-2">
-                        <div class="d-flex align-items-center gap-3 mb-4">
-                            <img class="avatar-initials" src="{{ $p->photo_url ?? asset('images/default.png') }}" alt=""
-                                style="width:64px;height:64px;">
-                            <div>
-                                <div class="fw-semibold">{{ $p->FirstName }} {{ $p->LastName }}
-                                    @if ($appt->Source === 'Walk-in')
-                                        <span class="pill pill-muted">Walk-in</span>
-                                    @endif
-                                </div>
-                                <div class="small text-muted-2">Patient ID:
-                                    PT-{{ str_pad($p->PatientID, 4, '0', STR_PAD_LEFT) }}</div>
-                            </div>
-                        </div>
-
-                        <div class="section-label">Personal Information</div>
-                        <div class="row g-3 mb-3">
-                            <div class="col-md-4">
-                                <label class="form-label">Last name</label>
-                                <div class="input-icon"><i class="bi bi-person"></i><input type="text" class="form-control"
-                                        value="{{ $p->LastName }}" disabled /></div>
-                            </div>
-                            <div class="col-md-4">
-                                <label class="form-label">First name</label>
-                                <div class="input-icon"><i class="bi bi-person"></i><input type="text" class="form-control"
-                                        value="{{ $p->FirstName }}" disabled /></div>
-                            </div>
-                            <div class="col-md-4">
-                                <label class="form-label">Middle name</label>
-                                <div class="input-icon"><i class="bi bi-person"></i><input type="text" class="form-control"
-                                        value="{{ $p->MiddleName }}" disabled /></div>
-                            </div>
-
-                            <div class="col-md-6">
-                                <label class="form-label">Birthdate</label>
-                                <div class="input-icon"><i class="bi bi-calendar-event"></i><input type="date"
-                                        class="form-control" value="{{ optional($p->DateOfBirth)->format('Y-m-d') }}"
-                                        disabled /></div>
-                            </div>
-                            <div class="col-md-6">
-                                <label class="form-label">Age</label>
-                                <div class="input-icon"><i class="bi bi-calendar3"></i><input type="text"
-                                        class="form-control" value="{{ optional($p->DateOfBirth)->age }}" disabled /></div>
-                            </div>
-
-                            <div class="col-md-6">
-                                <label class="form-label">Gender</label>
-                                <div class="input-icon"><i class="bi bi-person-badge"></i><input type="text"
-                                        class="form-control" value="{{ ucfirst($p->Gender) }}" disabled /></div>
-                            </div>
-                            <div class="col-md-6">
-                                <label class="form-label">Religion</label>
-                                <div class="input-icon"><i class="bi bi-book"></i><input class="form-control"
-                                        value="{{ $p->Religion }}" disabled /></div>
-                            </div>
-
-                            <div class="col-md-6">
-                                <label class="form-label">Nationality</label>
-                                <div class="input-icon"><i class="bi bi-flag"></i><input class="form-control"
-                                        value="{{ $p->Nationality }}" disabled /></div>
-                            </div>
-                            <div class="col-md-6">
-                                <label class="form-label">Occupation</label>
-                                <div class="input-icon"><i class="bi bi-briefcase"></i><input class="form-control"
-                                        value="{{ $p->Occupation }}" disabled /></div>
-                            </div>
-
-                            <div class="col-12">
-                                <label class="form-label">Home address</label>
-                                <div class="input-icon"><i class="bi bi-geo-alt"></i><input class="form-control"
-                                        value="{{ $p->Address }}" disabled /></div>
-                            </div>
-                        </div>
-
-                        <div class="section-label mt-2">Contact Details</div>
-                        <div class="row g-3 mb-3">
-                            <div class="col-md-6">
-                                <label class="form-label">Email address</label>
-                                <div class="input-icon"><i class="bi bi-envelope"></i><input type="email"
-                                        class="form-control" value="{{ $p->userAccount?->Email ?? $p->Email ?? '' }}" disabled /></div>
-                            </div>
-                            <div class="col-md-6">
-                                <label class="form-label">Cell/Mobile number</label>
-                                <div class="input-icon"><i class="bi bi-telephone"></i><input class="form-control"
-                                        value="{{ $p->PhoneNumber }}" disabled /></div>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="modal-footer border-0 pt-0">
-                        <button type="button" class="btn btn-ghost" data-bs-dismiss="modal">Close</button>
-                    </div>
-                </div>
-            </div>
-        </div>
+        @include('partials.appointment-view-modal', ['appt' => $appt])
 
         @if ($appt->Status === 'Pending')
             <!-- REVIEW APPOINTMENT -->
             <div class="modal fade" id="reviewAppointmentModal{{ $appt->AppointmentID }}" tabindex="-1" aria-hidden="true">
                 <div class="modal-dialog modal-dialog-centered">
                     <div class="modal-content">
-                        <div class="modal-header border-0 pb-0">
+                        <div class="modal-header">
                             <div>
                                 <h5 class="modal-title fw-semibold">Review Appointment</h5>
                                 <div class="small text-muted">{{ $p->FirstName }} {{ $p->LastName }}'s appointment request</div>
@@ -320,7 +218,7 @@
                         </div>
                         <form method="POST" action="{{ route('appointmentApproval.approve', $appt->AppointmentID) }}">
                             @csrf
-                            <div class="modal-body pt-2">
+                            <div class="modal-body">
                                 <div class="section-label">Appointment Details</div>
                                 <div class="row g-3 mb-3">
                                     <div class="col-md-6">
@@ -347,7 +245,7 @@
                                     </div>
                                 </div>
                             </div>
-                            <div class="modal-footer border-0 pt-0">
+                            <div class="modal-footer">
                                 <button type="button" class="btn btn-ghost" data-bs-dismiss="modal">Close</button>
                                 <button type="button" class="btn btn-pill btn-pill-cancel" data-bs-toggle="modal"
                                     data-bs-target="#declineReasonModal{{ $appt->AppointmentID }}">
@@ -365,7 +263,7 @@
             <div class="modal fade" id="declineReasonModal{{ $appt->AppointmentID }}" tabindex="-1" aria-hidden="true">
                 <div class="modal-dialog modal-dialog-centered">
                     <div class="modal-content">
-                        <div class="modal-header border-0 pb-0">
+                        <div class="modal-header">
                             <div>
                                 <h5 class="modal-title fw-semibold">Decline Appointment</h5>
                                 <div class="small text-muted">Let the patient know why this was declined</div>
@@ -374,7 +272,7 @@
                         </div>
                         <form method="POST" action="{{ route('appointmentApproval.decline', $appt->AppointmentID) }}">
                             @csrf
-                            <div class="modal-body pt-2">
+                            <div class="modal-body">
                                 <div class="section-label">Reason for Decline</div>
                                 <div class="mb-3">
                                     <label class="form-label">Message to patient</label>
@@ -382,7 +280,7 @@
                                         placeholder="e.g. Requested time slot is no longer available. Please choose another schedule."></textarea>
                                 </div>
                             </div>
-                            <div class="modal-footer border-0 pt-0">
+                            <div class="modal-footer">
                                 <button type="button" class="btn btn-ghost" data-bs-dismiss="modal">Cancel</button>
                                 <button type="submit" class="btn btn-pill btn-pill-cancel"><i class="bi bi-send"></i> Send &
                                     Decline</button>

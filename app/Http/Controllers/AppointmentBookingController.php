@@ -132,7 +132,7 @@ class AppointmentBookingController extends Controller
         $this->notifications->notifyUser(
             $user,
             'Appointment Booked',
-            'Your appointment has been successfully booked.',
+            'Your appointment request has been received and is now pending approval. You will be notified once it has been reviewed.',
             'warning',
             $appointment->AppointmentID,
             'Pending'
@@ -142,7 +142,7 @@ class AppointmentBookingController extends Controller
         $dentistLabel = $dentist->display_name;
         $this->notifications->notifyAdmins(
             'New Appointment',
-            "{$patientName} has booked an appointment with {$dentistLabel}.",
+            "{$patientName} has requested an appointment with {$dentistLabel}.",
             'info',
             $appointment->AppointmentID,
             'Pending'

@@ -22,6 +22,7 @@
         .booking-locked a { color: #167d1d; font-weight: 600; }
         .booking-locked a:hover { color: #0f5c14; }
     </style>
+    <link rel="stylesheet" href="{{ asset('css/modals.css') }}">
     <link rel="stylesheet" href="{{ asset('css/mobile.css') }}">
 </head>
 

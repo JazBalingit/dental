@@ -5,7 +5,7 @@
 // digits. Works by scanning for known `name` attributes so it applies
 // uniformly without touching every form individually.
 (function () {
-    var PHONE_FIELD_NAMES = ['phone'];
+    var PHONE_FIELD_NAMES = ['phone', 'guardian_phone'];
     var LETTER_FIELD_NAMES = [
         'first_name', 'last_name', 'middle_name',
         'occupation', 'nationality', 'religion',

@@ -14,6 +14,8 @@ class AppointmentStep extends Model
         'Description',
         'DisplayOrder',
         'IsArchived',
+        'ArchiveReason',
+        'ArchivedAt',
     ];
 
     protected $casts = [

@@ -17,6 +17,7 @@
     <link rel="stylesheet" href="{{ asset('css/styles.css') }}">
     <link rel="stylesheet" href="/css/user_appointments.css">
     <link rel="stylesheet" href="/css/odontogram.css">
+    <link rel="stylesheet" href="{{ asset('css/modals.css') }}">
     <link rel="stylesheet" href="{{ asset('css/mobile.css') }}">
 </head>
 
@@ -95,6 +96,7 @@
                         <p>Every completed visit on your file, with the dentist's chart and notes</p>
                     </div>
                 </div>
+                <form method="GET" class="history-filters"><div class="history-search"><i class="fas fa-search"></i><input class="form-control" name="search" value="{{ $search ?? '' }}" placeholder="Search treatment"></div><button class="btn-prim"><i class="fas fa-filter"></i> Filter</button></form>
             </div>
 
             <div style="overflow-x:auto">
@@ -156,7 +158,7 @@
                         <h5 class="modal-title"><i class="fas fa-notes-medical me-2" style="color:#0f7a33"></i>Visit of {{ $record->VisitDate->format('F j, Y') }}</h5>
                         <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                     </div>
-                    <div class="modal-body p-4">
+                    <div class="modal-body">
                         <div class="appt-info-grid">
                             <div class="appt-info-cell"><span class="appt-info-lbl">Treatment</span><span class="appt-info-val">{{ $record->Service ?: ($record->service->ServiceName ?? '—') }}</span></div>
                             <div class="appt-info-cell"><span class="appt-info-lbl">Date</span><span class="appt-info-val">{{ $record->VisitDate->format('F j, Y') }}</span></div>
@@ -171,7 +173,7 @@
                         <div class="odontogram-heading"><i class="bi bi-journal-text"></i> Dentist's Notes</div>
                         <div class="odontogram-detail-readvalue">{{ $record->Notes ?: 'No notes were recorded for this visit.' }}</div>
                     </div>
-                    <div class="modal-footer gap-2">
+                    <div class="modal-footer">
                         <button class="btn-sec" data-bs-dismiss="modal">Close</button>
                     </div>
                 </div>

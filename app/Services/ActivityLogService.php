@@ -29,6 +29,14 @@ class ActivityLogService
     {
         $userId ??= session('user_id');
 
+        // Archive dialogs let staff leave a message; keep it with the trail.
+        if ($activityType === 'Archive') {
+            $reason = trim((string) request()->input('reason'));
+            if ($reason !== '') {
+                $description .= ' Reason: ' . mb_substr($reason, 0, 500);
+            }
+        }
+
         return $this->write([
             'UserID' => $userId,
             'ActivityType' => $activityType,

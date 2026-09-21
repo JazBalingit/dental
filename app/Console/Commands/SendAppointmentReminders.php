@@ -2,103 +2,23 @@
 
 namespace App\Console\Commands;
 
-use App\Models\Appointment;
-use App\Models\Notification;
-use App\Services\NotificationService;
-use Carbon\Carbon;
+use App\Services\AppointmentExpiryService;
+use App\Services\AppointmentReminderService;
 use Illuminate\Console\Command;
-use Illuminate\Database\QueryException;
 
 class SendAppointmentReminders extends Command
 {
     protected $signature = 'appointments:send-reminders';
-    protected $description = 'Send day-before, hour-before, 20-minutes-before, and on-time reminders for approved appointments';
+    protected $description = 'Auto-cancel pending appointments that reached their time unapproved, then send each approved appointment its current reminder (day before / 1 hour / 20 minutes / now)';
 
-    /**
-     * Threshold offsets (in minutes) from the appointment datetime, checked
-     * in order. Using a "now has crossed the threshold" check (rather than
-     * an exact time match) means this works correctly no matter how often
-     * the scheduler actually runs.
-     */
-    protected array $stages = [
-        'day_before' => -1440, // 24 hours before appointment
-        'hour_before' => -60,
-        'coming_now' => -20,
-        'on_time' => 0,
-    ];
-
-    public function handle(NotificationService $notifications): int
+    public function handle(AppointmentExpiryService $expiry, AppointmentReminderService $reminders): int
     {
-        $now = Carbon::now('Asia/Manila');
-        $sent = 0;
+        // A Pending appointment whose time has arrived was never approved —
+        // cancel it (and free its slot) before anything else looks at it.
+        $cancelled = $expiry->expireStalePending();
+        $sent = $reminders->sendDue();
 
-        $appointments = Appointment::with(['patientInfo.userAccount'])
-            ->where('Status', 'Approved')
-            ->get();
-
-        foreach ($appointments as $appointment) {
-            $user = $appointment->patientInfo->userAccount ?? null;
-
-            if (!$user) {
-                continue;
-            }
-
-            try {
-                $dt = Carbon::createFromFormat(
-                    'Y-m-d H:i',
-                    $appointment->AppointmentDate->format('Y-m-d') . ' ' . $appointment->AppointmentTime,
-                    'Asia/Manila'
-                );
-            } catch (\Exception) {
-                continue;
-            }
-
-            // Stop bothering with appointments so far in the past that even
-            // the on-time reminder window has long since closed.
-            if ($dt->lt($now->copy()->subDay())) {
-                continue;
-            }
-
-            $timeLabel = $dt->format('g:i A');
-
-            foreach ($this->stages as $type => $minutesOffset) {
-                $threshold = $dt->copy()->addMinutes($minutesOffset);
-
-                if ($now->lt($threshold)) {
-                    continue; // hasn't crossed this threshold yet
-                }
-
-                if (Notification::where('AppointmentID', $appointment->AppointmentID)
-                    ->where('ReminderType', $type)
-                    ->exists()) {
-                    continue; // already sent
-                }
-
-                $message = match ($type) {
-                    'day_before' => "Your appointment is tomorrow at {$timeLabel}.",
-                    'hour_before' => "Your appointment is in 1 hour at {$timeLabel}.",
-                    'coming_now' => "You can come now — your appointment is in 20 minutes at {$timeLabel}.",
-                    'on_time' => 'Your appointment is now.',
-                };
-
-                try {
-                    $notifications->notifyUser(
-                        $user,
-                        'Appointment Reminder',
-                        $message,
-                        'info',
-                        $appointment->AppointmentID,
-                        $appointment->Status,
-                        $type
-                    );
-                    $sent++;
-                } catch (QueryException) {
-                    // Unique index caught a race — already sent by a concurrent run.
-                }
-            }
-        }
-
-        $this->info("Sent {$sent} reminder(s).");
+        $this->info("Auto-cancelled {$cancelled} unapproved appointment(s); sent {$sent} reminder(s).");
 
         return self::SUCCESS;
     }

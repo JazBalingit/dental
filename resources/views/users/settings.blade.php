@@ -38,6 +38,7 @@
         .cfg-empty { text-align: center; color: #6b7280; padding: 40px 0; }
         .cfg-when { white-space: nowrap; color: #4b5563; }
     </style>
+    <link rel="stylesheet" href="{{ asset('css/modals.css') }}">
     <link rel="stylesheet" href="{{ asset('css/mobile.css') }}">
 </head>
 
@@ -483,7 +484,7 @@
          aria-hidden="{{ $showResetModal ? 'false' : 'true' }}" style="{{ $showResetModal ? 'display:block;' : '' }}">
         <div class="modal-dialog modal-dialog-centered">
             <div class="modal-content">
-                <div class="modal-header border-0 pb-0" style="display:flex; align-items:center; justify-content:space-between;">
+                <div class="modal-header" style="display:flex; align-items:center; justify-content:space-between;">
                     <h5 class="modal-title fw-semibold">Enter your code</h5>
                     <form method="POST" action="{{ route('settings.reset.cancel') }}" class="m-0" style="margin-left: auto;">
                         @csrf
@@ -492,7 +493,7 @@
                           aria-label="Close"></button>
                     </form>
                 </div>
-                <div class="modal-body pt-2">
+                <div class="modal-body">
                     @if ($errors->any())
                         <div class="alert alert-danger py-2 small">
                             <ul class="mb-0 ps-3">

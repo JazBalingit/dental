@@ -29,6 +29,8 @@ class ActivityLog extends Model
         'LoggedInTime',
         'LoggedOutTime',
         'IsArchived',
+        'ArchiveReason',
+        'ArchivedAt',
         'created_at',
         'updated_at',
     ];

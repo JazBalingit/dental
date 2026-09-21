@@ -14,14 +14,22 @@
 <div class="modal fade" id="confirmActionModal" tabindex="-1" aria-hidden="true">
   <div class="modal-dialog modal-dialog-centered">
     <div class="modal-content">
-      <div class="modal-header border-0 pb-0">
+      <div class="modal-header">
         <h5 class="modal-title fw-semibold" id="confirmActionTitle">Are you sure?</h5>
         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
       </div>
-      <div class="modal-body pt-2">
+      <div class="modal-body">
         <p class="mb-0 text-muted-2" id="confirmActionMessage">This action cannot be undone.</p>
+        {{-- Shown automatically for EVERY archive action (URL ending in
+             /archive) and required: the reason is stored on the archived
+             record (ArchiveReason) and copied into the Activity Log. --}}
+        <div id="confirmActionReasonWrap" class="mt-3" hidden>
+          <label class="form-label small fw-semibold" for="confirmActionReason">Reason for archiving <span class="text-danger">*</span></label>
+          <textarea form="confirmActionForm" name="reason" id="confirmActionReason" class="form-control" rows="3" maxlength="500" required
+            placeholder="Please state why this is being archived."></textarea>
+        </div>
       </div>
-      <div class="modal-footer border-0 pt-0">
+      <div class="modal-footer">
         <button type="button" class="btn btn-pill btn-pill-cancel" data-bs-dismiss="modal">Cancel</button>
         <form method="POST" action="" id="confirmActionForm" class="d-inline">
           @csrf
@@ -79,6 +87,12 @@
       submitBtn.textContent = trigger.getAttribute('data-confirm-label') || 'Confirm';
       submitBtn.className = 'btn btn-pill ' + (trigger.getAttribute('data-confirm-class') || 'btn-pill-archive');
 
+      var isArchive = /\/archive(\?|$)/.test(form.action);
+      document.getElementById('confirmActionReasonWrap').hidden = !isArchive;
+      var reasonEl = document.getElementById('confirmActionReason');
+      reasonEl.value = '';
+      reasonEl.disabled = !isArchive;
+
       var methodField = document.getElementById('confirmActionMethodField');
       var method = trigger.getAttribute('data-method');
       methodField.innerHTML = (method && method.toUpperCase() !== 'POST')
@@ -101,14 +115,14 @@
 <div class="modal fade" id="appConfirmModal" tabindex="-1" aria-hidden="true">
   <div class="modal-dialog modal-dialog-centered">
     <div class="modal-content">
-      <div class="modal-header border-0 pb-0">
+      <div class="modal-header">
         <h5 class="modal-title fw-semibold" id="appConfirmTitle">Are you sure?</h5>
         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
       </div>
-      <div class="modal-body pt-2">
+      <div class="modal-body">
         <p class="mb-0 text-muted-2" id="appConfirmMessage">This action cannot be undone.</p>
       </div>
-      <div class="modal-footer border-0 pt-0">
+      <div class="modal-footer">
         <button type="button" class="btn btn-pill btn-pill-cancel" data-bs-dismiss="modal" id="appConfirmCancelBtn">Cancel</button>
         <button type="button" class="btn btn-pill btn-pill-archive" id="appConfirmOkBtn">Confirm</button>
       </div>

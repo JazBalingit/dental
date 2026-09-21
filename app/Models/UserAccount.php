@@ -27,6 +27,8 @@ class UserAccount extends Model
         'Position',
         'DateCreated',
         'IsArchived',
+        'ArchiveReason',
+        'ArchivedAt',
         'EmailVerifiedAt',
         'LastLoginAt',
         'IsSuperAdmin',

@@ -1,6 +1,6 @@
 {{--
     Shared booking calendar — used by both the public landing page (online
-    booking, $calendarMode = 'post') and the Walk-in Appointment wizard
+    booking, $calendarMode = 'post') and the Walk-in wizard
     ($calendarMode = 'select'). Same visual calendar, two interaction modes:
     'post' submits a real booking immediately per slot; 'select' just fills
     hidden inputs on whatever form is wrapping this partial (used inside the
@@ -350,11 +350,11 @@
         <div class="modal fade book-day-modal" id="bookDay{{ $d->format('Ymd') }}{{ $calendarMode === 'select' ? 'Wi' : '' }}" tabindex="-1" aria-hidden="true">
             <div class="modal-dialog modal-dialog-centered modal-lg modal-fullscreen-sm-down">
                 <div class="modal-content">
-                    <div class="modal-header border-0 pb-0">
+                    <div class="modal-header">
                         <h5 class="modal-title fw-semibold">{{ $d->format('l, F j, Y') }}</h5>
                         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                     </div>
-                    <div class="modal-body pt-2">
+                    <div class="modal-body">
                         @if ($dayIsOver)
                             <p class="text-muted-2 small">This date has already passed.</p>
                         @else
@@ -363,7 +363,16 @@
                                 <div class="week-grid">
                                     <div class="wh">Time</div>
                                     <div class="wh day">{{ $d->format('D') }} <span class="num">{{ $d->day }}</span></div>
-                                @foreach ($bookSlots as $time => $label)
+                                @php $lunchTimes = \App\Models\DentistSchedule::lunchSlotTimes(); @endphp
+                                @foreach (\App\Models\DentistSchedule::slotLabelsWithLunch() as $time => $label)
+                                    @if (in_array($time, $lunchTimes, true))
+                                        {{-- Lunch break: shown for reference, never clickable/bookable. --}}
+                                        <div class="time slot-time-taken">{{ $label }}</div>
+                                        <div class="slot slot-taken">
+                                            <div class="slot-btn booking-status booking-status-lunch text-center" aria-disabled="true"><i class="bi bi-cup-hot me-1"></i> Lunch Break</div>
+                                        </div>
+                                        @continue
+                                    @endif
                                     @php
                                         $row = $daySlots[$time] ?? null;
                                         $apptKey = $dateStr . '_' . $time;
@@ -543,7 +552,7 @@
                             @endif
                         @endif
                     </div>
-                    <div class="modal-footer border-0 pt-0">
+                    <div class="modal-footer">
                         <button type="button" class="btn btn-ghost" data-bs-dismiss="modal">Close</button>
                     </div>
                 </div>

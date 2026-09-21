@@ -98,6 +98,7 @@ Route::middleware('auth.session')->group(function () {
 
     // Notifications — shared by the admin side and the patient side
     Route::post('/notifications/{id}/read', [NotificationController::class, 'markRead'])->name('notifications.read');
+    Route::get('/notifications/{id}/details', [NotificationController::class, 'details'])->whereNumber('id')->name('notifications.details');
     Route::post('/notifications/read-all', [NotificationController::class, 'markAllRead'])->name('notifications.readAll');
 });
 
@@ -115,6 +116,7 @@ Route::middleware('admin')->group(function () {
 
     // Walk-in appointments
     Route::get('walk-in', [WalkInController::class, 'index'])->name('walkIn');
+    Route::get('follow-up', [WalkInController::class, 'followUp'])->name('followUp');
     Route::get('/walk-in/search-patient', [WalkInController::class, 'searchPatient'])->name('walkIn.search');
     Route::post('/walk-in', [WalkInController::class, 'store'])->name('walkIn.store');
 
@@ -141,6 +143,10 @@ Route::middleware('admin')->group(function () {
 
     // Patient records
     Route::get('/patient-records', [PatientRecordsController::class, 'index'])->name('patientRecords');
+    Route::get('/patient-records/patient/{patientId}', [PatientRecordsController::class, 'history'])->whereNumber('patientId')->name('patientRecords.history');
+    Route::post('/patient-records/patient/{patientId}/update', [PatientRecordsController::class, 'updatePatient'])->whereNumber('patientId')->name('patientRecords.patient.update');
+    Route::post('/patient-records/patient/{patientId}/archive', [PatientRecordsController::class, 'archivePatient'])->whereNumber('patientId')->name('patientRecords.patient.archive');
+    Route::post('/patient-records/patient/{patientId}/unarchive', [PatientRecordsController::class, 'unarchivePatient'])->whereNumber('patientId')->name('patientRecords.patient.unarchive');
     Route::post('/patient-records/{id}/update', [PatientRecordsController::class, 'updateNotes'])->name('patientRecords.update');
     Route::post('/patient-records/{id}/archive', [PatientRecordsController::class, 'archive'])->name('patientRecords.archive');
     Route::post('/patient-records/{id}/unarchive', [PatientRecordsController::class, 'unarchive'])->name('patientRecords.unarchive');

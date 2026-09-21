@@ -12,6 +12,7 @@
         href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Poppins:wght@500;600;700&display=swap"
         rel="stylesheet">
     <link rel="stylesheet" href="{{ asset('css/styles.css') }}">
+    <link rel="stylesheet" href="{{ asset('css/modals.css') }}">
     <link rel="stylesheet" href="{{ asset('css/mobile.css') }}">
 </head>
 
@@ -264,7 +265,7 @@
                 aria-hidden="{{ $isReopened ? 'false' : 'true' }}" style="{{ $isReopened ? 'display:block;' : '' }}">
                 <div class="modal-dialog modal-dialog-centered modal-xl">
                     <div class="modal-content">
-                        <div class="modal-header border-0 pb-0">
+                        <div class="modal-header">
                             <div>
                                 <h5 class="modal-title fw-semibold">{{ $d->format('l, F j, Y') }}</h5>
                             </div>
@@ -289,13 +290,21 @@
                             <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                         </div>
 
-                        <div class="modal-body pt-2">
+                        <div class="modal-body">
                             <div class="schedule-wrap mb-0">
                                 <div class="week-grid">
                                     <div class="wh">Time</div>
                                     <div class="wh day">{{ $d->format('D') }} <span class="num">{{ $d->day }}</span></div>
 
-                                    @foreach ($slots as $time => $label)
+                                    @php $lunchTimes = \App\Models\DentistSchedule::lunchSlotTimes(); @endphp
+                                    @foreach (\App\Models\DentistSchedule::slotLabelsWithLunch() as $time => $label)
+                                        @if (in_array($time, $lunchTimes, true))
+                                            <div class="time">{{ $label }}</div>
+                                            <div class="slot">
+                                                <div class="slot-btn w-100 booking-status-lunch text-center px-3 py-2" aria-disabled="true" title="Clinic lunch break — set in Configuration"><i class="bi bi-cup-hot me-1"></i> Lunch Break</div>
+                                            </div>
+                                            @continue
+                                        @endif
                                         @php
                                             $row = $daySlots[$time] ?? null;
                                             $appointmentForSlot = $occupiedSlots[$dateStr . '_' . $time] ?? null;
@@ -352,7 +361,7 @@
                             </div>
                         </div>
 
-                        <div class="modal-footer border-0 pt-0">
+                        <div class="modal-footer">
                             <button type="button" class="btn btn-ghost" data-bs-dismiss="modal">Close</button>
                         </div>
                     </div>

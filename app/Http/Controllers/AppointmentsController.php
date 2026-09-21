@@ -26,14 +26,7 @@ class AppointmentsController extends Controller
         $status = $request->query('status');
         $search = $request->query('search');
 
-        $query = Appointment::with(['patientInfo', 'service', 'dentist.staffInfo'])
-            // Completed > Approved > Pending > Declined > Cancelled, then
-            // newest-first within each status group.
-            ->orderByRaw("FIELD(Status, 'Completed', 'Approved', 'Pending', 'Declined', 'Cancelled')")
-            ->orderByRaw('ApprovedAt IS NULL')
-            ->orderByDesc('ApprovedAt')
-            ->orderByDesc('AppointmentDate')
-            ->orderBy('AppointmentTime');
+        $query = Appointment::with(['patientInfo.userAccount', 'service', 'dentist.staffInfo'])->workflowOrder();
 
         if ($status && in_array($status, ['Pending', 'Approved', 'Declined', 'Completed', 'Cancelled'])) {
             $query->where('Status', $status);
@@ -110,7 +103,7 @@ class AppointmentsController extends Controller
             $this->notifications->notifyUser(
                 $user,
                 'Appointment Completed',
-                'Your appointment has been marked as completed. Thank you for visiting us!',
+                'Your appointment has been completed. Thank you for choosing Pus-Pus Britanico Dental Clinic.',
                 'success',
                 $appointment->AppointmentID,
                 'Completed'
@@ -158,7 +151,7 @@ class AppointmentsController extends Controller
             $this->notifications->notifyUser(
                 $user,
                 'Appointment Cancelled',
-                'Your appointment has been cancelled by the clinic.',
+                'We regret to inform you that your appointment has been cancelled by the clinic. Please refer to the reason provided, and feel free to book another schedule at your convenience.',
                 'danger',
                 $appointment->AppointmentID,
                 'Cancelled'

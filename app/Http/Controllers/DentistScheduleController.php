@@ -175,6 +175,10 @@ class DentistScheduleController extends Controller
             return $this->redirectToSchedule($request, $dentistId, $request->date)->with('error', 'Sundays are not available for scheduling.');
         }
 
+        if (in_array($request->time, DentistSchedule::lunchSlotTimes(), true)) {
+            return $this->redirectToSchedule($request, $dentistId, $request->date)->with('error', 'That time is the clinic lunch break and cannot be opened.');
+        }
+
         if ($this->isAppointmentSlot($request->date, $request->time, $dentistId)) {
             return $this->redirectToSchedule($request, $dentistId, $request->date)
                 ->with('error', 'This slot is held by a pending or booked appointment and cannot be edited.');
@@ -299,7 +303,7 @@ class DentistScheduleController extends Controller
                     $this->notifications->notifyUser(
                         $patientUser,
                         'Appointment Cancelled — Dentist Unavailable',
-                        "We're sorry — your appointment with {$dentist->display_name} on {$dateLabel} at {$timeLabel} has been cancelled because the dentist won't be available that day. Please book another date at your convenience.",
+                        "We regret to inform you that your appointment with {$dentist->display_name} on {$dateLabel} at {$timeLabel} has been cancelled, as the dentist will not be available on that day. Please book another date at your convenience.",
                         'danger',
                         $appointment->AppointmentID,
                         'Cancelled'

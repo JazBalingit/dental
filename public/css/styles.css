@@ -1333,6 +1333,15 @@ h6 {
   height: 40px;
 }
 
+/* Bootstrap's .form-select is width:100%, which as a flex item forces every
+   filter onto its own row — size them to their content so the dropdowns and
+   the search box sit side by side (they still wrap when the row runs out). */
+.data-toolbar .left .form-select,
+.data-toolbar .right .form-select {
+  width: auto;
+  flex: 0 0 auto;
+}
+
 .data-toolbar .search {
   min-width: 260px;
 }
@@ -3233,6 +3242,14 @@ h6 {
   background: #fdecec;
   color: #b02a37;
   border: 1px solid #f3b7bb;
+}
+
+.booking-status-lunch {
+  background: #eef2f7;
+  color: #5b6b80;
+  border: 1px dashed #b8c4d4;
+  cursor: not-allowed;
+  pointer-events: none;
 }
 
 /* Sunday / day-off cells */

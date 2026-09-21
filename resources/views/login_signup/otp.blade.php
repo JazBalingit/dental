@@ -21,8 +21,8 @@
         </div>
 
         <p style="color:#6b7a70;font-size:13px;">
-            This code is valid only for this signup session. If you didn't request this,
-            you can safely ignore this email.
+            This code is valid only for this signup session. If you did not request this,
+            you may safely disregard this email.
         </p>
     </div>
 </body>

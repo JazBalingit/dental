@@ -15,6 +15,7 @@
     integrity="sha512-2SwdPD6INVrV/lHTZbO2nodKhrnDdJK9/kg2XD1r9uGqPo1cUbujc+IYdlYdEErWNu69gVcYgdxlmVmzTWnetw=="
     crossorigin="anonymous" referrerpolicy="no-referrer" />
   <link rel="stylesheet" href="{{ asset('css/styles.css') }}">
+    <link rel="stylesheet" href="{{ asset('css/modals.css') }}">
     <link rel="stylesheet" href="{{ asset('css/mobile.css') }}">
 </head>
 
@@ -420,11 +421,11 @@
   <div class="modal fade" id="privacyPolicyModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered modal-lg">
       <div class="modal-content">
-        <div class="modal-header border-0 pb-0">
+        <div class="modal-header">
           <h5 class="modal-title fw-semibold">Privacy Policy</h5>
           <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
         </div>
-        <div class="modal-body pt-2" style="max-height:60vh; overflow-y:auto; white-space:pre-wrap;">{{ $privacyPolicy ?: 'This clinic has not published a privacy policy yet.' }}</div>
+        <div class="modal-body" style="max-height:60vh; overflow-y:auto; white-space:pre-wrap;">{{ $privacyPolicy ?: 'This clinic has not published a privacy policy yet.' }}</div>
       </div>
     </div>
   </div>
@@ -432,11 +433,11 @@
   <div class="modal fade" id="legalTermsModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered modal-lg">
       <div class="modal-content">
-        <div class="modal-header border-0 pb-0">
+        <div class="modal-header">
           <h5 class="modal-title fw-semibold">Legal Terms</h5>
           <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
         </div>
-        <div class="modal-body pt-2" style="max-height:60vh; overflow-y:auto; white-space:pre-wrap;">{{ $legalTerms ?: 'This clinic has not published its legal terms yet.' }}</div>
+        <div class="modal-body" style="max-height:60vh; overflow-y:auto; white-space:pre-wrap;">{{ $legalTerms ?: 'This clinic has not published its legal terms yet.' }}</div>
       </div>
     </div>
   </div>
@@ -452,7 +453,7 @@
     aria-hidden="{{ $showOtp ? 'false' : 'true' }}" style="{{ $showOtp ? 'display:block;' : '' }}">
     <div class="modal-dialog modal-dialog-centered">
       <div class="modal-content">
-        <div class="modal-header border-0 pb-0">
+        <div class="modal-header">
           <h5 class="modal-title fw-semibold">Verify your email</h5>
           <form method="POST" action="{{ route('register.cancel') }}" class="m-0" style="margin-left: auto;">
             @csrf
@@ -461,7 +462,7 @@
               aria-label="Close"></button>
           </form>
         </div>
-        <div class="modal-body pt-2">
+        <div class="modal-body">
           <p class="small text-muted-2 mb-3">
             We sent a 6-digit code to
             <strong>{{ session('otp_email') }}</strong>. Enter it below to finish creating your account.

@@ -12,6 +12,7 @@
     href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Poppins:wght@500;600;700&display=swap"
     rel="stylesheet">
   <link rel="stylesheet" href="{{ asset('css/styles.css') }}">
+    <link rel="stylesheet" href="{{ asset('css/modals.css') }}">
     <link rel="stylesheet" href="{{ asset('css/mobile.css') }}">
 </head>
 
@@ -288,6 +289,13 @@
                     <div class="right">
                       <input type="hidden" name="settingsTab" value="services">
                       <input type="hidden" name="servicesTab" id="servicesTabField" value="{{ $servicesTab }}">
+                      <select class="form-select" name="serviceCategory" style="min-width:160px; height:38px;" onchange="this.form.submit()">
+                        <option value="">All Categories</option>
+                        @foreach ($categories as $cat)
+                          <option value="{{ $cat->CategoryID }}" {{ (string) ($serviceCategory ?? '') === (string) $cat->CategoryID ? 'selected' : '' }}>{{ $cat->Name }}</option>
+                        @endforeach
+                        <option value="none" {{ ($serviceCategory ?? '') === 'none' ? 'selected' : '' }}>Uncategorized</option>
+                      </select>
                       <div class="input-icon search">
                         <i class="bi bi-search"></i>
                         <input class="form-control" name="serviceSearch" value="{{ $serviceSearch }}"
@@ -363,6 +371,7 @@
                               <th>Category</th>
                               <th>Duration</th>
                               <th>Description</th>
+                              <th>Archive Reason</th>
                               <th class="text-end">Actions</th>
                             </tr>
                           </thead>
@@ -380,6 +389,7 @@
                                     —
                                   @endif
                                 </td>
+                                @include('partials.archive-reason-cell', ['row' => $service])
                                 <td class="text-end">
                                   <button type="button" class="btn btn-pill btn-pill-edit me-1" data-bs-toggle="modal"
                                     data-bs-target="#editServiceModal{{ $service->ServiceID }}"><i
@@ -395,7 +405,7 @@
                               </tr>
                             @empty
                               <tr>
-                                <td colspan="5" class="text-center text-muted-2 py-4">No archived services.</td>
+                                <td colspan="6" class="text-center text-muted-2 py-4">No archived services.</td>
                               </tr>
                             @endforelse
                           </tbody>
@@ -545,6 +555,7 @@
                               <th>#</th>
                               <th>Title</th>
                               <th>Description</th>
+                              <th>Archive Reason</th>
                               <th class="text-end">Actions</th>
                             </tr>
                           </thead>
@@ -557,6 +568,7 @@
                                   <span class="d-inline-block text-truncate" style="max-width: 320px;"
                                     data-bs-toggle="tooltip" title="{{ $step->Description }}">{{ $step->Description }}</span>
                                 </td>
+                                @include('partials.archive-reason-cell', ['row' => $step])
                                 <td class="text-end">
                                   <button type="button" class="btn btn-pill btn-pill-edit me-1" data-bs-toggle="modal"
                                     data-bs-target="#editAppointmentStepModal{{ $step->StepID }}"><i
@@ -572,7 +584,7 @@
                               </tr>
                             @empty
                               <tr>
-                                <td colspan="4" class="text-center text-muted-2 py-4">No archived steps.</td>
+                                <td colspan="5" class="text-center text-muted-2 py-4">No archived steps.</td>
                               </tr>
                             @endforelse
                           </tbody>
@@ -645,6 +657,9 @@
                                 <th>Type</th>
                                 <th>Activity</th>
                                 <th>When</th>
+                                @if ($paneKey === 'archived')
+                                    <th>Archive Reason</th>
+                                @endif
                                 <th class="text-end">Actions</th>
                               </tr>
                             </thead>
@@ -681,6 +696,9 @@
                                     @endif
                                   </td>
                                   <td>{{ optional($when)->format('M j, Y g:i A') ?? '—' }}</td>
+                                  @if ($paneKey === 'archived')
+                                      @include('partials.archive-reason-cell', ['row' => $log])
+                                  @endif
                                   <td class="text-end">
                                     <button type="button" class="btn btn-pill btn-pill-archive" data-bs-toggle="modal"
                                       data-bs-target="#confirmActionModal"
@@ -696,7 +714,7 @@
                                 </tr>
                               @empty
                                 <tr>
-                                  <td colspan="5" class="text-center text-muted-2 py-4">
+                                  <td colspan="{{ $paneKey === 'archived' ? 6 : 5 }}" class="text-center text-muted-2 py-4">
                                     {{ $paneKey === 'archived' ? 'No archived activity.' : 'No activity recorded yet.' }}
                                   </td>
                                 </tr>
@@ -738,7 +756,7 @@
   <div class="modal fade" id="addAppointmentStepModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
       <div class="modal-content">
-        <div class="modal-header border-0 pb-0">
+        <div class="modal-header">
           <div>
             <h5 class="modal-title fw-semibold">Add Step</h5>
             <div class="small text-muted">Add a step to "How to Book Your Appointment"</div>
@@ -754,7 +772,7 @@
         <form method="POST" action="{{ route('configuration.appointmentSteps.store') }}">
           @csrf
           <input type="hidden" name="form_source" value="add_appointment_step">
-          <div class="modal-body pt-2">
+          <div class="modal-body">
             <div class="mb-3">
               <label class="form-label">Step title</label>
               <div class="input-icon {{ $adsErr('title') }}"><i class="bi bi-list-check"></i><input type="text" name="title"
@@ -768,7 +786,7 @@
               @if ($adsMsg('description')) <div class="field-error"><i class="bi bi-exclamation-circle-fill"></i> {{ $adsMsg('description') }}</div> @endif
             </div>
           </div>
-          <div class="modal-footer border-0 pt-0">
+          <div class="modal-footer">
             <button type="button" class="btn btn-ghost" data-bs-dismiss="modal">Cancel</button>
             <button type="submit" class="btn btn-brand">Add Step</button>
           </div>
@@ -788,7 +806,7 @@
     <div class="modal fade" id="editAppointmentStepModal{{ $step->StepID }}" tabindex="-1" aria-hidden="true">
       <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content">
-          <div class="modal-header border-0 pb-0">
+          <div class="modal-header">
             <div>
               <h5 class="modal-title fw-semibold">Edit Step</h5>
               <div class="small text-muted">Update this step's details</div>
@@ -798,7 +816,7 @@
           <form method="POST" action="{{ route('configuration.appointmentSteps.update', $step->StepID) }}">
             @csrf
             <input type="hidden" name="form_source" value="edit_appointment_step_{{ $step->StepID }}">
-            <div class="modal-body pt-2">
+            <div class="modal-body">
               <div class="mb-3">
                 <label class="form-label">Step title</label>
                 <div class="input-icon {{ $edsErr('title') }}"><i class="bi bi-list-check"></i><input type="text" name="title"
@@ -812,7 +830,7 @@
                 @if ($edsMsg('description')) <div class="field-error"><i class="bi bi-exclamation-circle-fill"></i> {{ $edsMsg('description') }}</div> @endif
               </div>
             </div>
-            <div class="modal-footer border-0 pt-0">
+            <div class="modal-footer">
               <button type="button" class="btn btn-ghost" data-bs-dismiss="modal">Cancel</button>
               <button type="submit" class="btn btn-brand">Save Changes</button>
             </div>
@@ -826,7 +844,7 @@
   <div class="modal fade" id="addServiceModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
       <div class="modal-content">
-        <div class="modal-header border-0 pb-0">
+        <div class="modal-header">
           <div>
             <h5 class="modal-title fw-semibold">Add Service</h5>
             <div class="small text-muted">Create a new clinic service</div>
@@ -842,7 +860,7 @@
         <form method="POST" action="{{ route('configuration.services.store') }}">
           @csrf
           <input type="hidden" name="form_source" value="add_service">
-          <div class="modal-body pt-2">
+          <div class="modal-body">
             <div class="mb-3">
               <label class="form-label">Service name</label>
               <div class="input-icon {{ $asErr('service_name') }}"><i class="bi bi-heart-pulse"></i><input type="text" name="service_name"
@@ -880,7 +898,7 @@
               @if ($asMsg('description')) <div class="field-error"><i class="bi bi-exclamation-circle-fill"></i> {{ $asMsg('description') }}</div> @endif
             </div>
           </div>
-          <div class="modal-footer border-0 pt-0">
+          <div class="modal-footer">
             <button type="button" class="btn btn-ghost" data-bs-dismiss="modal">Cancel</button>
             <button type="submit" class="btn btn-brand">Create Service</button>
           </div>
@@ -893,14 +911,14 @@
   <div class="modal fade" id="manageCategoriesModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered modal-lg">
       <div class="modal-content">
-        <div class="modal-header border-0 pb-0">
+        <div class="modal-header">
           <div>
             <h5 class="modal-title fw-semibold">Manage Categories</h5>
             <div class="small text-muted">Group services for the landing page's "Our Services" section</div>
           </div>
           <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
         </div>
-        <div class="modal-body pt-2">
+        <div class="modal-body">
           <ul class="nav nav-pills mb-3" role="tablist">
             <li class="nav-item" role="presentation">
               <button class="nav-link active" type="button" data-bs-toggle="pill"
@@ -959,6 +977,7 @@
                       <th>Icon</th>
                       <th>Category</th>
                       <th>Services</th>
+                      <th>Archive Reason</th>
                       <th class="text-end">Actions</th>
                     </tr>
                   </thead>
@@ -968,6 +987,7 @@
                         <td><i class="{{ $category->Icon ?: 'fa-solid fa-tooth' }}" style="color: var(--brand-700);"></i></td>
                         <td class="fw-semibold">{{ $category->Name }}</td>
                         <td>{{ $category->services_count }}</td>
+                        @include('partials.archive-reason-cell', ['row' => $category])
                         <td class="text-end">
                           <button type="button" class="btn btn-pill btn-pill-edit me-1" data-bs-toggle="modal"
                             data-bs-target="#editCategoryModal{{ $category->CategoryID }}" data-bs-dismiss="modal"><i
@@ -983,7 +1003,7 @@
                       </tr>
                     @empty
                       <tr>
-                        <td colspan="4" class="text-center text-muted-2 py-3">No archived categories.</td>
+                        <td colspan="5" class="text-center text-muted-2 py-3">No archived categories.</td>
                       </tr>
                     @endforelse
                   </tbody>
@@ -1023,7 +1043,7 @@
             </div>
           </form>
         </div>
-        <div class="modal-footer border-0 pt-0">
+        <div class="modal-footer">
           <button type="button" class="btn btn-ghost" data-bs-dismiss="modal">Close</button>
         </div>
       </div>
@@ -1037,14 +1057,14 @@
     <div class="modal fade" id="editCategoryModal{{ $category->CategoryID }}" tabindex="-1" aria-hidden="true">
       <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content">
-          <div class="modal-header border-0 pb-0">
+          <div class="modal-header">
             <h5 class="modal-title fw-semibold">Edit Category</h5>
             <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
           </div>
           <form method="POST" action="{{ route('configuration.categories.update', $category->CategoryID) }}">
             @csrf
             <input type="hidden" name="form_source" value="edit_category_{{ $category->CategoryID }}">
-            <div class="modal-body pt-2">
+            <div class="modal-body">
               <div class="mb-3">
                 <label class="form-label">Name</label>
                 <input type="text" name="name" class="form-control {{ $editCategoryFailed && $errors->has('name') ? 'has-error' : '' }}"
@@ -1065,7 +1085,7 @@
                 @endif
               </div>
             </div>
-            <div class="modal-footer border-0 pt-0">
+            <div class="modal-footer">
               <button type="button" class="btn btn-ghost" data-bs-dismiss="modal">Cancel</button>
               <button type="submit" class="btn btn-brand">Save Changes</button>
             </div>
@@ -1086,7 +1106,7 @@
     <div class="modal fade" id="editServiceModal{{ $service->ServiceID }}" tabindex="-1" aria-hidden="true">
       <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content">
-          <div class="modal-header border-0 pb-0">
+          <div class="modal-header">
             <div>
               <h5 class="modal-title fw-semibold">Edit Service</h5>
               <div class="small text-muted">Update service details</div>
@@ -1096,7 +1116,7 @@
           <form method="POST" action="{{ route('configuration.services.update', $service->ServiceID) }}">
             @csrf
             <input type="hidden" name="form_source" value="edit_service_{{ $service->ServiceID }}">
-            <div class="modal-body pt-2">
+            <div class="modal-body">
               <div class="mb-3">
                 <label class="form-label">Service name</label>
                 <div class="input-icon {{ $esErr('service_name') }}"><i class="bi bi-heart-pulse"></i><input type="text" name="service_name"
@@ -1136,7 +1156,7 @@
                 @if ($esMsg('description')) <div class="field-error"><i class="bi bi-exclamation-circle-fill"></i> {{ $esMsg('description') }}</div> @endif
               </div>
             </div>
-            <div class="modal-footer border-0 pt-0">
+            <div class="modal-footer">
               <button type="button" class="btn btn-ghost" data-bs-dismiss="modal">Cancel</button>
               <button type="submit" class="btn btn-brand">Save Changes</button>
             </div>
@@ -1151,6 +1171,24 @@
 
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
   <script>
+    // Quick text filter above the small tables that have no server-side
+    // search (appointment steps + service categories, active and archived).
+    ['appointmentStepsActivePane', 'appointmentStepsArchivedPane', 'categoriesActivePane', 'categoriesArchivedPane'].forEach(function (id) {
+      var pane = document.getElementById(id);
+      var wrap = pane && pane.querySelector('.table-responsive');
+      if (!wrap) return;
+      var box = document.createElement('div');
+      box.className = 'input-icon search mb-3';
+      box.innerHTML = '<i class="bi bi-search"></i><input type="search" class="form-control" placeholder="Filter this list..." style="height:38px; padding-left:2.3rem; max-width:280px;">';
+      wrap.parentNode.insertBefore(box, wrap);
+      box.querySelector('input').addEventListener('input', function () {
+        var term = this.value.trim().toLowerCase();
+        wrap.querySelectorAll('tbody tr').forEach(function (row) {
+          row.hidden = term !== '' && row.textContent.toLowerCase().indexOf(term) === -1;
+        });
+      });
+    });
+
     // Long table cells (Service / Activity Log descriptions) are truncated
     // to one line with a Bootstrap tooltip showing the full text on hover.
     document.querySelectorAll('[data-bs-toggle="tooltip"]').forEach(function (el) {

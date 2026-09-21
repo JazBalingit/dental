@@ -15,6 +15,7 @@
         href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Poppins:wght@500;600;700&display=swap"
         rel="stylesheet">
     <link rel="stylesheet" href="/css/styles.css">
+    <link rel="stylesheet" href="{{ asset('css/modals.css') }}">
     <link rel="stylesheet" href="{{ asset('css/mobile.css') }}">
 </head>
 
@@ -79,6 +80,7 @@
                         </div>
                         <div class="right">
                             <input type="hidden" name="tab" id="activeTabField" value="{{ $tab }}">
+                            <select class="form-select" name="position" style="min-width:130px; height:40px;" onchange="this.form.submit()"><option value="">All Roles</option><option value="Dentist" {{ ($position ?? null) === 'Dentist' ? 'selected' : '' }}>Dentist</option><option value="Staff" {{ ($position ?? null) === 'Staff' ? 'selected' : '' }}>Staff</option></select><select class="form-select" name="verification" style="min-width:150px; height:40px;" onchange="this.form.submit()"><option value="">All Verification</option><option value="verified" {{ ($verification ?? null) === 'verified' ? 'selected' : '' }}>Verified</option><option value="unverified" {{ ($verification ?? null) === 'unverified' ? 'selected' : '' }}>Unverified</option></select>
                             <div class="input-icon search">
                                 <i class="bi bi-search"></i>
                                 <input class="form-control" name="search" value="{{ $search }}"
@@ -93,11 +95,14 @@
                                 <table class="table-soft">
                                     <thead>
                                         <tr>
-                                            <th>User</th>
-                                            <th>Email</th>
-                                            <th>Phone</th>
-                                            <th>Role</th>
-                                            <th>Date Created</th>
+                                            <th>Staff ID</th>
+<th>User</th>
+<th>Age / Gender</th>
+<th>Contact</th>
+<th>Role</th>
+<th>Address</th>
+<th>Last Login</th>
+<th>Date Created</th>
                                             <th>Status</th>
                                             <th>Verification</th>
                                             <th class="text-end">Actions</th>
@@ -107,11 +112,14 @@
                                         @forelse ($staff as $acc)
                                             @php $si = $acc->staffInfo; @endphp
                                             <tr>
-                                                <td><span><img class="avatar-initials" src="{{ $si->photo_url ?? asset('images/default.png') }}" alt=""></span><span
-                                                        class="fw-semibold">{{ $si->FirstName ?? '' }} {{ $si->LastName ?? '' }}</span></td>
-                                                <td>{{ $acc->Email }}</td>
-                                                <td>{{ $si->PhoneNumber ?? '—' }}</td>
-                                                <td>{{ $acc->Position }} <span class="pill pill-info">{{ ucfirst($acc->AccountRole) }}</span></td>
+                                                <td><span style="font-size:12px; color:#9ca3af; font-weight:500;">ST-{{ str_pad($acc->UserID, 4, '0', STR_PAD_LEFT) }}</span></td>
+<td><span><img class="avatar-initials" src="{{ $si->photo_url ?? asset('images/default.png') }}" alt=""></span><span
+                                                        class="fw-semibold text-nowrap">{{ $si->FirstName ?? '' }} {{ $si->LastName ?? '' }}</span></td>
+<td class="text-nowrap">{{ $si?->age_years !== null ? $si->age_years . ' yrs' : '—' }}<div class="small text-muted-2">{{ $si?->Gender ? ucfirst($si->Gender) : '—' }}</div></td>
+<td>{{ $si->PhoneNumber ?? '—' }}<div class="small text-muted-2">{{ $acc->Email }}</div></td>
+<td>{{ $acc->Position }} <span class="pill pill-info">{{ ucfirst($acc->AccountRole) }}</span></td>
+<td style="max-width:220px;"><span class="d-inline-block text-truncate align-bottom" style="max-width:200px;" title="{{ $si->Address ?? '' }}">{{ $si->Address ?? '—' }}</span></td>
+<td>{{ $acc->LastLoginAt ? \Carbon\Carbon::parse($acc->LastLoginAt)->format('M j, Y g:i A') : 'Never' }}</td>
                                                 <td>{{ \Carbon\Carbon::parse($acc->DateCreated)->format('M j, Y') }}</td>
                                                 <td><span class="pill pill-success">Active</span></td>
                                                 <td>
@@ -136,7 +144,7 @@
                                             </tr>
                                         @empty
                                             <tr>
-                                                <td colspan="8" class="text-center text-muted-2 py-4">No staff accounts yet.</td>
+                                                <td colspan="11" class="text-center text-muted-2 py-4">No staff accounts yet.</td>
                                             </tr>
                                         @endforelse
                                     </tbody>
@@ -156,13 +164,17 @@
                                 <table class="table-soft">
                                     <thead>
                                         <tr>
-                                            <th>User</th>
-                                            <th>Email</th>
-                                            <th>Phone</th>
-                                            <th>Role</th>
-                                            <th>Date Created</th>
+                                            <th>Staff ID</th>
+<th>User</th>
+<th>Age / Gender</th>
+<th>Contact</th>
+<th>Role</th>
+<th>Address</th>
+<th>Last Login</th>
+<th>Date Created</th>
                                             <th>Status</th>
                                             <th>Verification</th>
+                                            <th>Archive Reason</th>
                                             <th class="text-end">Actions</th>
                                         </tr>
                                     </thead>
@@ -170,11 +182,14 @@
                                         @forelse ($archivedStaff as $acc)
                                             @php $si = $acc->staffInfo; @endphp
                                             <tr>
-                                                <td><span><img class="avatar-initials" src="{{ $si->photo_url ?? asset('images/default.png') }}" alt=""></span><span
-                                                        class="fw-semibold">{{ $si->FirstName ?? '' }} {{ $si->LastName ?? '' }}</span></td>
-                                                <td>{{ $acc->Email }}</td>
-                                                <td>{{ $si->PhoneNumber ?? '—' }}</td>
-                                                <td>{{ $acc->Position }} <span class="pill pill-info">{{ ucfirst($acc->AccountRole) }}</span></td>
+                                                <td><span style="font-size:12px; color:#9ca3af; font-weight:500;">ST-{{ str_pad($acc->UserID, 4, '0', STR_PAD_LEFT) }}</span></td>
+<td><span><img class="avatar-initials" src="{{ $si->photo_url ?? asset('images/default.png') }}" alt=""></span><span
+                                                        class="fw-semibold text-nowrap">{{ $si->FirstName ?? '' }} {{ $si->LastName ?? '' }}</span></td>
+<td class="text-nowrap">{{ $si?->age_years !== null ? $si->age_years . ' yrs' : '—' }}<div class="small text-muted-2">{{ $si?->Gender ? ucfirst($si->Gender) : '—' }}</div></td>
+<td>{{ $si->PhoneNumber ?? '—' }}<div class="small text-muted-2">{{ $acc->Email }}</div></td>
+<td>{{ $acc->Position }} <span class="pill pill-info">{{ ucfirst($acc->AccountRole) }}</span></td>
+<td style="max-width:220px;"><span class="d-inline-block text-truncate align-bottom" style="max-width:200px;" title="{{ $si->Address ?? '' }}">{{ $si->Address ?? '—' }}</span></td>
+<td>{{ $acc->LastLoginAt ? \Carbon\Carbon::parse($acc->LastLoginAt)->format('M j, Y g:i A') : 'Never' }}</td>
                                                 <td>{{ \Carbon\Carbon::parse($acc->DateCreated)->format('M j, Y') }}</td>
                                                 <td><span class="pill pill-muted">Frozen</span></td>
                                                 <td>
@@ -184,6 +199,7 @@
                                                         <span class="pill pill-warning"><i class="bi bi-exclamation-triangle"></i> Unverified</span>
                                                     @endif
                                                 </td>
+                                                @include('partials.archive-reason-cell', ['row' => $acc])
                                                 <td class="text-end">
                                                     <button class="btn btn-pill btn-pill-edit me-1" data-bs-toggle="modal"
                                                         data-bs-target="#editUserModal{{ $acc->UserID }}"><i class="bi bi-pencil-square"></i>
@@ -199,7 +215,7 @@
                                             </tr>
                                         @empty
                                             <tr>
-                                                <td colspan="8" class="text-center text-muted-2 py-4">No archived accounts.</td>
+                                                <td colspan="12" class="text-center text-muted-2 py-4">No archived accounts.</td>
                                             </tr>
                                         @endforelse
                                     </tbody>
@@ -233,7 +249,7 @@
         aria-hidden="{{ $addFailed ? 'false' : 'true' }}" style="{{ $addFailed ? 'display:block;' : '' }}">
         <div class="modal-dialog modal-dialog-centered modal-xl modal-dialog-scrollable">
             <div class="modal-content">
-                <div class="modal-header border-0 pb-0">
+                <div class="modal-header">
                     <div>
                         <h5 class="modal-title fw-semibold" id="addModalLabel">Add User</h5>
                         <div class="small text-muted">Create a new account</div>
@@ -243,7 +259,7 @@
                 <form method="POST" action="{{ route('staffAcc.store') }}" enctype="multipart/form-data">
                     @csrf
                     <input type="hidden" name="form_source" value="add">
-                    <div class="modal-body pt-2">
+                    <div class="modal-body">
 
                         @if ($addFailed)
                             <div class="alert alert-danger">
@@ -411,7 +427,7 @@
                         </div>
 
                     </div>
-                    <div class="modal-footer border-0 pt-0">
+                    <div class="modal-footer">
                         <button type="button" class="btn btn-ghost" data-bs-dismiss="modal">Cancel</button>
                         <button type="submit" class="btn btn-brand">Create User</button>
                     </div>
@@ -434,7 +450,7 @@
             aria-hidden="{{ $editFailed ? 'false' : 'true' }}" style="{{ $editFailed ? 'display:block;' : '' }}">
             <div class="modal-dialog modal-dialog-centered modal-xl modal-dialog-scrollable">
                 <div class="modal-content">
-                    <div class="modal-header border-0 pb-0">
+                    <div class="modal-header">
                         <div>
                             <h5 class="modal-title fw-semibold">Edit User</h5>
                             <div class="small text-muted">Update account details</div>
@@ -444,7 +460,7 @@
                     <form method="POST" action="{{ route('staffAcc.update', $acc->UserID) }}" enctype="multipart/form-data">
                         @csrf
                         <input type="hidden" name="form_source" value="edit_{{ $acc->UserID }}">
-                        <div class="modal-body pt-2">
+                        <div class="modal-body">
 
                             @if ($editFailed)
                                 <div class="alert alert-danger">
@@ -605,7 +621,7 @@
                             </div>
 
                         </div>
-                        <div class="modal-footer border-0 pt-0">
+                        <div class="modal-footer">
                             <button type="button" class="btn btn-ghost" data-bs-dismiss="modal">Cancel</button>
                             <button type="submit" class="btn btn-brand">Save Changes</button>
                         </div>
@@ -630,7 +646,7 @@
         <div class="modal fade" id="changePasswordModal{{ $acc->UserID }}" tabindex="-1" aria-hidden="true">
             <div class="modal-dialog modal-dialog-centered">
                 <div class="modal-content">
-                    <div class="modal-header border-0 pb-0">
+                    <div class="modal-header">
                         <div>
                             <h5 class="modal-title fw-semibold">Change Password</h5>
                             <div class="small text-muted">{{ trim(($acc->staffInfo->FirstName ?? '') . ' ' . ($acc->staffInfo->LastName ?? '')) ?: $acc->Email }}</div>
@@ -638,7 +654,7 @@
                         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                     </div>
                     <form method="POST" action="{{ route('staffAcc.password.update', $acc->UserID) }}">
-                        <div class="modal-body pt-2">
+                        <div class="modal-body">
                             @csrf
                             <input type="hidden" name="form_source" value="pwd_{{ $acc->UserID }}">
                             <div class="mb-3">
@@ -677,7 +693,7 @@
                                 </div>
                             </div>
                         </div>
-                        <div class="modal-footer border-0 pt-0">
+                        <div class="modal-footer">
                             <button type="button" class="btn btn-ghost" data-bs-dismiss="modal">Cancel</button>
                             <button type="submit" class="btn btn-brand">Update Password</button>
                         </div>

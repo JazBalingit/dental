@@ -15,9 +15,18 @@
   <div class="nav-section">Main</div>
   <a href="{{ route('dashboard') }}" @class(['active' => $active === 'dashboard'])><i class="bi bi-grid-1x2-fill"></i> Dashboard</a>
   <a href="{{ route('dentistSchedule') }}" @class(['active' => $active === 'dentistSchedule'])><i class="bi bi-calendar-week"></i> Dentist Schedule</a>
+  @php($bookingsOpen = in_array($active, ['walkIn', 'followUp'], true))
+  <button type="button" class="nav-toggle {{ $bookingsOpen ? 'active' : '' }}" data-bs-toggle="collapse" data-bs-target="#adminBookingsSubnav" aria-expanded="{{ $bookingsOpen ? 'true' : 'false' }}">
+    <i class="bi bi-calendar-plus"></i>
+    <span>Appointment Bookings</span>
+    <i class="bi bi-chevron-down nav-toggle-caret"></i>
+  </button>
+  <div class="collapse {{ $bookingsOpen ? 'show' : '' }}" id="adminBookingsSubnav">
+    <a href="{{ route('walkIn') }}" class="nav-sub-link {{ $active === 'walkIn' ? 'active' : '' }}"><i class="bi bi-person-walking"></i> Walk-in Patient</a>
+    <a href="{{ route('followUp') }}" class="nav-sub-link {{ $active === 'followUp' ? 'active' : '' }}"><i class="bi bi-arrow-repeat"></i> Follow-up Appointment</a>
+  </div>
   <a href="{{ route('appointmentApproval') }}" @class(['active' => $active === 'appointmentApproval'])><i class="bi bi-clipboard2-check"></i> Appointment Approval</a>
   <a href="{{ route('appointments') }}" @class(['active' => $active === 'appointments'])><i class="bi bi-card-checklist"></i> Appointments</a>
-  <a href="{{ route('walkIn') }}" @class(['active' => $active === 'walkIn'])><i class="bi bi-person-walking"></i> Walk-in Appointments</a>
   <a href="{{ route('patientRecords') }}" @class(['active' => $active === 'patientRecords'])><i class="bi bi-folder2-open"></i> Patient Records</a>
 
   <div class="nav-section">User Management</div>

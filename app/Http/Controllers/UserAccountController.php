@@ -6,10 +6,13 @@ use App\Models\PatientInfo;
 use App\Models\UserAccount;
 use App\Services\ActivityLogService;
 use Carbon\Carbon;
+use App\Http\Controllers\Concerns\HandlesArchiveReason;
 use Illuminate\Http\Request;
 
 class UserAccountController extends Controller
 {
+    use HandlesArchiveReason;
+
     public function __construct(protected ActivityLogService $activityLog)
     {
     }
@@ -48,6 +51,26 @@ class UserAccountController extends Controller
             $archivedQuery->where($filter);
         }
 
+        // Activity status — "Inactive" mirrors PatientInfo::is_inactive (has
+        // appointments, none in the last 6 months); "Active" is everyone else.
+        $status = in_array($request->query('status'), ['active', 'inactive'], true) ? $request->query('status') : null;
+        if ($status) {
+            $cutoff = now()->subMonths(6)->toDateString();
+            $recent = fn ($a) => $a->whereDate('AppointmentDate', '>=', $cutoff);
+            $statusFilter = function ($q) use ($status, $recent) {
+                if ($status === 'inactive') {
+                    $q->whereHas('patientInfo', fn ($p) => $p->whereHas('appointments')->whereDoesntHave('appointments', $recent));
+                } else {
+                    $q->where(function ($w) use ($recent) {
+                        $w->whereDoesntHave('patientInfo')
+                            ->orWhereHas('patientInfo', fn ($p) => $p->whereDoesntHave('appointments')->orWhereHas('appointments', $recent));
+                    });
+                }
+            };
+            $activeQuery->where($statusFilter);
+            $archivedQuery->where($statusFilter);
+        }
+
         return $this->panelView('user-accounts', [
             // Switching the Active/Archived pill is client-side only, so it
             // never lands in the request's query string on its own — force
@@ -58,6 +81,7 @@ class UserAccountController extends Controller
             'archivedUsers' => $archivedQuery->orderByDesc('DateCreated')->paginate(10, ['*'], 'archived_page')->withQueryString()
                 ->appends(['tab' => 'archived']),
             'search' => $search,
+            'status' => $status,
             'tab' => $tab,
         ]);
     }
@@ -129,10 +153,11 @@ class UserAccountController extends Controller
         return redirect()->route('userAcc')->with('success', 'User account updated successfully.');
     }
 
-    public function archive($id)
+    public function archive(Request $request, $id)
     {
+        $reason = $this->archiveReason($request);
         $account = UserAccount::where('AccountType', 'User')->with('patientInfo')->find($id);
-        UserAccount::where('AccountType', 'User')->where('UserID', $id)->update(['IsArchived' => true]);
+        UserAccount::where('AccountType', 'User')->where('UserID', $id)->update($this->archivedState($reason));
 
         $name = $account?->patientInfo ? trim($account->patientInfo->FirstName . ' ' . $account->patientInfo->LastName) : $account?->Email;
         $this->activityLog->log('Archive', "Archived user account: {$name}.");
@@ -143,7 +168,7 @@ class UserAccountController extends Controller
     public function unarchive($id)
     {
         $account = UserAccount::where('AccountType', 'User')->with('patientInfo')->find($id);
-        UserAccount::where('AccountType', 'User')->where('UserID', $id)->update(['IsArchived' => false]);
+        UserAccount::where('AccountType', 'User')->where('UserID', $id)->update($this->restoredState());
 
         $name = $account?->patientInfo ? trim($account->patientInfo->FirstName . ' ' . $account->patientInfo->LastName) : $account?->Email;
         $this->activityLog->log('Unarchive', "Unarchived user account: {$name}.");

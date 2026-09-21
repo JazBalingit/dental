@@ -7,12 +7,15 @@ use App\Models\StaffInfo;
 use App\Models\UserAccount;
 use App\Services\ActivityLogService;
 use Carbon\Carbon;
+use App\Http\Controllers\Concerns\HandlesArchiveReason;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\Rules\Password;
 
 class StaffAccountController extends Controller
 {
+    use HandlesArchiveReason;
+
     public function __construct(protected ActivityLogService $activityLog)
     {
     }
@@ -45,6 +48,17 @@ class StaffAccountController extends Controller
             $archivedQuery->where($filter);
         }
 
+        $verification = in_array($request->query('verification'), ['verified', 'unverified'], true) ? $request->query('verification') : null;
+        $position = in_array($request->query('position'), ['Dentist', 'Staff'], true) ? $request->query('position') : null;
+        foreach ([$activeQuery, $archivedQuery] as $q) {
+            if ($verification) {
+                $verification === 'verified' ? $q->whereNotNull('EmailVerifiedAt') : $q->whereNull('EmailVerifiedAt');
+            }
+            if ($position) {
+                $q->where('Position', $position);
+            }
+        }
+
         return view('superAdmin.staff-accounts', [
             // Switching the Active/Archived pill is client-side only, so it
             // never lands in the request's query string on its own — force
@@ -55,6 +69,8 @@ class StaffAccountController extends Controller
             'archivedStaff' => $archivedQuery->orderByDesc('DateCreated')->paginate(10, ['*'], 'archived_page')->withQueryString()
                 ->appends(['tab' => 'archived']),
             'search' => $search,
+            'verification' => $verification,
+            'position' => $position,
             'tab' => $tab,
         ]);
     }
@@ -184,10 +200,11 @@ class StaffAccountController extends Controller
         return redirect()->route('staffAcc')->with('success', 'Staff account updated successfully.');
     }
 
-    public function archive($id)
+    public function archive(Request $request, $id)
     {
+        $reason = $this->archiveReason($request);
         $account = UserAccount::where('AccountType', 'Staff')->with('staffInfo')->find($id);
-        UserAccount::where('AccountType', 'Staff')->where('UserID', $id)->update(['IsArchived' => true]);
+        UserAccount::where('AccountType', 'Staff')->where('UserID', $id)->update($this->archivedState($reason));
 
         $name = $account?->staffInfo ? trim($account->staffInfo->FirstName . ' ' . $account->staffInfo->LastName) : $account?->Email;
         $this->activityLog->log('Archive', "Archived staff account: {$name}.");
@@ -198,7 +215,7 @@ class StaffAccountController extends Controller
     public function unarchive($id)
     {
         $account = UserAccount::where('AccountType', 'Staff')->with('staffInfo')->find($id);
-        UserAccount::where('AccountType', 'Staff')->where('UserID', $id)->update(['IsArchived' => false]);
+        UserAccount::where('AccountType', 'Staff')->where('UserID', $id)->update($this->restoredState());
 
         $name = $account?->staffInfo ? trim($account->staffInfo->FirstName . ' ' . $account->staffInfo->LastName) : $account?->Email;
         $this->activityLog->log('Unarchive', "Unarchived staff account: {$name}.");

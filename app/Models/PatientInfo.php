@@ -23,6 +23,8 @@ class PatientInfo extends Model
         'Address',
         'ParentsName',
         'ParentsOccupation',
+        'ParentsContactNumber',
+        'ParentsEmail',
         'Age',
         'Gender',
         'Religion',
@@ -43,9 +45,20 @@ class PatientInfo extends Model
             : asset('images/default.png');
     }
 
+    /** Age in years — from the birthdate when known, else the stored Age. */
+    public function getAgeYearsAttribute(): ?int
+    {
+        return $this->DateOfBirth ? $this->DateOfBirth->age : ($this->Age !== null ? (int) $this->Age : null);
+    }
+
     public function userAccount()
     {
         return $this->belongsTo(UserAccount::class, 'UserID', 'UserID');
+    }
+
+    public function records()
+    {
+        return $this->hasMany(PatientRecord::class, 'PatientID', 'PatientID');
     }
 
     public function appointments()

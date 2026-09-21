@@ -22,7 +22,7 @@
                 <h5 class="modal-title"><i class="fas fa-circle-info me-2" style="color:#0f7a33"></i>Appointment Information</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
-            <div class="modal-body p-4">
+            <div class="modal-body">
 
                 <div class="appt-info-grid">
                     <div class="appt-info-cell"><span class="appt-info-lbl">Service</span><span class="appt-info-val">{{ $appointment->TypeOfAppointment ?: ($appointment->service->ServiceName ?? '—') }}</span></div>
@@ -34,7 +34,7 @@
                     @if ($appointment->ApprovedAt)
                         <div class="appt-info-cell"><span class="appt-info-lbl">Approved On</span><span class="appt-info-val">{{ $appointment->ApprovedAt->format('F j, Y g:i A') }}</span></div>
                     @endif
-                    @if ($appointment->Status === 'Declined' && $appointment->DeclineReason)
+                    @if (in_array($appointment->Status, ['Declined', 'Cancelled'], true) && $appointment->DeclineReason)
                         <div class="appt-info-cell" style="grid-column:1/-1"><span class="appt-info-lbl">Reason</span><span class="appt-info-val">{{ $appointment->DeclineReason }}</span></div>
                     @endif
                 </div>
@@ -54,7 +54,7 @@
                 @endif
 
             </div>
-            <div class="modal-footer gap-2">
+            <div class="modal-footer">
                 <button class="btn-sec" data-bs-dismiss="modal">Close</button>
             </div>
         </div>

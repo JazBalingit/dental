@@ -17,13 +17,13 @@
             <div class="modal-header notif-modal-header">
                 <div class="d-flex align-items-center gap-2">
                     <span class="notif-modal-icon"><i class="bi bi-bell-fill"></i></span>
-                    <h5 class="modal-title mb-0 text-light" id="allNotificationsLabel">Notifications</h5>
+                    <h5 class="modal-title mb-0" id="allNotificationsLabel">Notifications</h5>
                 </div>
-                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"
+                <button type="button" class="btn-close" data-bs-dismiss="modal"
                     aria-label="Close"></button>
             </div>
 
-            <div class="modal-body p-3 notif-modal-body">
+            <div class="modal-body notif-modal-body">
 
                 <ul class="nav nav-pills notif-tabs mb-3" role="tablist">
                     <li class="nav-item" role="presentation">
@@ -40,35 +40,7 @@
                     <div class="tab-pane fade {{ !$showAllTab ? 'show active' : '' }}" id="userLatestNotifPane" role="tabpanel">
                         <ul class="notif-list">
                             @forelse ($userLatestNotifications as $n)
-                                <li class="notif-card" style="{{ !$n->IsRead ? 'background:var(--brand-50, #eef9f0);' : '' }}">
-                                    @unless ($n->IsRead)
-                                        <form method="POST" action="{{ route('notifications.read', $n->NotificationID) }}" style="display:contents;">
-                                            @csrf
-                                            <button type="submit" style="all:unset; display:contents; cursor:pointer;">
-                                    @endunless
-
-                                    <span class="notif-icon notif-{{ $notifTone($n->Type) }}"><i class="bi {{ $notifIcon($n->Type) }}"></i></span>
-                                    <div class="notif-content">
-                                        <p class="notif-text">
-                                            <strong>{{ $n->Title }}</strong><br>
-                                            {{ $n->Message }}
-                                            @if ($n->Status)
-                                                <br><span class="text-muted small">Status: {{ $n->Status }}</span>
-                                            @endif
-                                            @if (in_array($n->Status, ['Declined', 'Cancelled']) && $n->appointment && $n->appointment->DeclineReason)
-                                                <br><span class="text-muted small">Reason: {{ $n->appointment->DeclineReason }}</span>
-                                            @endif
-                                        </p>
-                                        <div class="notif-meta"><span>{{ $n->created_at->format('M j, Y') }}</span><span class="notif-dot">•</span><span>{{ $n->created_at->diffForHumans() }}</span>
-                                        </div>
-                                    </div>
-                                    <span class="notif-badge notif-{{ $notifTone($n->Type) }}">{{ $n->Status ?? ucfirst($n->Type) }}</span>
-
-                                    @unless ($n->IsRead)
-                                            </button>
-                                        </form>
-                                    @endunless
-                                </li>
+                                @include('partials.notification-card', ['n' => $n, 'side' => 'user'])
                             @empty
                                 <li class="text-center text-muted py-4">No notifications yet.</li>
                             @endforelse
@@ -87,35 +59,7 @@
 
                         <ul class="notif-list">
                             @forelse ($userAllNotifications as $n)
-                                <li class="notif-card" style="{{ !$n->IsRead ? 'background:var(--brand-50, #eef9f0);' : '' }}">
-                                    @unless ($n->IsRead)
-                                        <form method="POST" action="{{ route('notifications.read', $n->NotificationID) }}" style="display:contents;">
-                                            @csrf
-                                            <button type="submit" style="all:unset; display:contents; cursor:pointer;">
-                                    @endunless
-
-                                    <span class="notif-icon notif-{{ $notifTone($n->Type) }}"><i class="bi {{ $notifIcon($n->Type) }}"></i></span>
-                                    <div class="notif-content">
-                                        <p class="notif-text">
-                                            <strong>{{ $n->Title }}</strong><br>
-                                            {{ $n->Message }}
-                                            @if ($n->Status)
-                                                <br><span class="text-muted small">Status: {{ $n->Status }}</span>
-                                            @endif
-                                            @if (in_array($n->Status, ['Declined', 'Cancelled']) && $n->appointment && $n->appointment->DeclineReason)
-                                                <br><span class="text-muted small">Reason: {{ $n->appointment->DeclineReason }}</span>
-                                            @endif
-                                        </p>
-                                        <div class="notif-meta"><span>{{ $n->created_at->format('M j, Y') }}</span><span class="notif-dot">•</span><span>{{ $n->created_at->diffForHumans() }}</span>
-                                        </div>
-                                    </div>
-                                    <span class="notif-badge notif-{{ $notifTone($n->Type) }}">{{ $n->Status ?? ucfirst($n->Type) }}</span>
-
-                                    @unless ($n->IsRead)
-                                            </button>
-                                        </form>
-                                    @endunless
-                                </li>
+                                @include('partials.notification-card', ['n' => $n, 'side' => 'user'])
                             @empty
                                 <li class="text-center text-muted py-4">No notifications found.</li>
                             @endforelse
@@ -126,3 +70,4 @@
         </div>
     </div>
 </div>
+@include('partials.notification-detail-modal')

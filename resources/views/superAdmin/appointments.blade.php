@@ -15,6 +15,7 @@
         href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Poppins:wght@500;600;700&display=swap"
         rel="stylesheet">
     <link rel="stylesheet" href="{{ asset('css/styles.css') }}">
+    <link rel="stylesheet" href="{{ asset('css/modals.css') }}">
     <link rel="stylesheet" href="{{ asset('css/mobile.css') }}">
 </head>
 
@@ -188,6 +189,8 @@
                                         <td>{{ $appt->ApprovedAt ? $appt->ApprovedAt->format('M j, Y g:i A') : '—' }}</td>
                                         <td><span class="pill {{ $pillClass }}">{{ $appt->Status }}</span></td>
                                         <td class="text-end">
+                                            <button type="button" class="btn btn-pill btn-pill-edit me-1" data-bs-toggle="modal"
+                                                data-bs-target="#patientInfoModal{{ $appt->AppointmentID }}"><i class="bi bi-eye"></i> View</button>
                                             @if ($appt->Status === 'Approved')
                                                 @if ($hasStarted)
                                                     <form method="POST" action="{{ route('appointments.complete', $appt->AppointmentID) }}" class="d-inline">
@@ -231,11 +234,13 @@
 
     {{-- ===================== PER-ROW CANCEL REASON MODALS ===================== --}}
     @foreach ($appointments as $appt)
+        @include('partials.appointment-view-modal', ['appt' => $appt])
+
         @if (in_array($appt->Status, ['Pending', 'Approved']))
             <div class="modal fade" id="cancelledReasonModal{{ $appt->AppointmentID }}" tabindex="-1" aria-hidden="true">
                 <div class="modal-dialog modal-dialog-centered">
                     <div class="modal-content">
-                        <div class="modal-header border-0 pb-0">
+                        <div class="modal-header">
                             <div>
                                 <h5 class="modal-title fw-semibold">Cancel Appointment</h5>
                                 <div class="small text-muted">Let the patient know why this was cancelled</div>
@@ -244,7 +249,7 @@
                         </div>
                         <form method="POST" action="{{ route('appointments.cancel', $appt->AppointmentID) }}">
                             @csrf
-                            <div class="modal-body pt-2">
+                            <div class="modal-body">
                                 <div class="section-label">Reason for Cancelation of Appointment</div>
                                 <div class="mb-3">
                                     <label class="form-label">Message to patient</label>
@@ -252,7 +257,7 @@
                                         placeholder="e.g. Requested time slot is no longer available. Please choose another schedule."></textarea>
                                 </div>
                             </div>
-                            <div class="modal-footer border-0 pt-0">
+                            <div class="modal-footer">
                                 <button type="button" class="btn btn-ghost" data-bs-dismiss="modal">Cancel</button>
                                 <button type="submit" class="btn btn-pill btn-pill-cancel"><i class="bi bi-send"></i> Send &
                                     Cancel</button>

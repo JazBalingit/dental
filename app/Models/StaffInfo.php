@@ -29,6 +29,12 @@ class StaffInfo extends Model
         'DateOfBirth' => 'date:Y-m-d',
     ];
 
+    /** Age in years — from the birthdate when known, else the stored Age. */
+    public function getAgeYearsAttribute(): ?int
+    {
+        return $this->DateOfBirth ? $this->DateOfBirth->age : ($this->Age !== null ? (int) $this->Age : null);
+    }
+
     // Usage in Blade: $staffInfo->photo_url
     public function getPhotoUrlAttribute()
     {

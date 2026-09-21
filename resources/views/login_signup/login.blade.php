@@ -15,6 +15,7 @@
     integrity="sha512-2SwdPD6INVrV/lHTZbO2nodKhrnDdJK9/kg2XD1r9uGqPo1cUbujc+IYdlYdEErWNu69gVcYgdxlmVmzTWnetw=="
     crossorigin="anonymous" referrerpolicy="no-referrer" />
   <link rel="stylesheet" href="{{ asset('css/styles.css') }}">
+    <link rel="stylesheet" href="{{ asset('css/modals.css') }}">
     <link rel="stylesheet" href="{{ asset('css/mobile.css') }}">
 </head>
 
@@ -99,7 +100,7 @@
     aria-hidden="{{ $showReset ? 'false' : 'true' }}" style="{{ $showReset ? 'display:block;' : '' }}">
     <div class="modal-dialog modal-dialog-centered">
       <div class="modal-content">
-        <div class="modal-header border-0 pb-0">
+        <div class="modal-header">
           <h5 class="modal-title fw-semibold">
             {{ $showReset ? 'Enter your code' : 'Forgot your password?' }}
           </h5>
@@ -110,7 +111,7 @@
               aria-label="Close"></button>
           </form>
         </div>
-        <div class="modal-body pt-2">
+        <div class="modal-body">
 
 
           @if ($showReset)

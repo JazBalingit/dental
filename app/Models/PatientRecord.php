@@ -20,6 +20,8 @@ class PatientRecord extends Model
         'Status',
         'Notes',
         'IsArchived',
+        'ArchiveReason',
+        'ArchivedAt',
     ];
 
     protected $casts = [

@@ -3140,10 +3140,14 @@ h6 {
   color: #8a6100;
 }
 
+/* Completed is purple, not green — green is already claimed by "Today"
+   and "Available", and a Completed slot sitting right next to an Available
+   one (same day, different times) needs to read as clearly different, not
+   two shades of the same color. */
 .slot-btn.is-completed {
-  background: #e8f9ec;
-  border-color: #1a7f37;
-  color: #1a7f37;
+  background: #f3e8ff;
+  border-color: #7c3aed;
+  color: #6d28d9;
 }
 
 .slot-btn:disabled {
@@ -3182,10 +3186,13 @@ h6 {
   border: 1px solid #f0d78c;
 }
 
+/* Purple, not green — kept in sync with .slot-btn.is-completed /
+   .booking-status-completed and the legend dot below, which all use this
+   same text color. */
 .day-cell .ev.ev-completed {
-  background: #e8f9ec;
-  color: #1a7f37;
-  border: 1px solid #a7e8bb;
+  background: #f3e8ff;
+  color: #6d28d9;
+  border: 1px solid #d8b4fe;
 }
 
 .day-cell .ev.ev-booked {
@@ -3243,9 +3250,9 @@ h6 {
 }
 
 .booking-status-completed {
-  background: #e8f9ec;
-  color: #1a7f37;
-  border: 1px solid #a7e8bb;
+  background: #f3e8ff;
+  color: #6d28d9;
+  border: 1px solid #d8b4fe;
 }
 
 .booking-status-unavailable {

@@ -327,7 +327,7 @@
                 ? [
                     ['color' => 'var(--brand-700)', 'label' => 'Today'],
                     ['color' => '#0f766e', 'label' => 'Available'],
-                    ['color' => '#1a7f37', 'label' => 'Completed'],
+                    ['color' => '#6d28d9', 'label' => 'Completed'],
                     ['color' => '#b02a37', 'label' => 'Unavailable'],
                 ]
                 // Read-only / walk-in / follow-up views show per-slot Booked,
@@ -336,7 +336,7 @@
                     ['color' => 'var(--brand-700)', 'label' => 'Today'],
                     ['color' => '#1d4ed8', 'label' => 'Booked'],
                     ['color' => '#8a6100', 'label' => 'Pending'],
-                    ['color' => '#1a7f37', 'label' => 'Completed'],
+                    ['color' => '#6d28d9', 'label' => 'Completed'],
                     ['color' => '#b02a37', 'label' => 'Unavailable'],
                 ];
         @endphp
@@ -384,6 +384,16 @@
                         @if ($dayIsOver)
                             <p class="text-muted-2 small">This date has already passed.</p>
                         @else
+                            {{-- Same "what does this color mean" indicator as the month grid,
+                                 shown right where the colored slot rows actually are — every
+                                 dot uses the exact same hex as its slot's real color below. --}}
+                            <div class="legend mb-3">
+                                <span><span class="dot" style="background: #0f7a33;"></span>Available</span>
+                                <span><span class="dot" style="background: #1d4ed8;"></span>Booked</span>
+                                <span><span class="dot" style="background: #8a6100;"></span>Pending</span>
+                                <span><span class="dot" style="background: #6d28d9;"></span>Completed</span>
+                                <span><span class="dot" style="background: #b02a37;"></span>Unavailable</span>
+                            </div>
                             <div class="book-slots-view">
                             <div class="schedule-wrap mb-0">
                                 <div class="week-grid">

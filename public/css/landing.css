@@ -1644,16 +1644,31 @@ footer .footer-link {
     border: 1px solid #f0d78c;
 }
 
+/* Purple — kept identical to the admin side's styles.css (same for
+   .booking-status-completed below and the legend dot), so this never means
+   something different depending on which page you're looking at it from. */
 .day-cell .ev.ev-completed {
-    background: #eef2ff;
-    color: #3730a3;
-    border: 1px solid #c7d2fe;
+    background: #f3e8ff;
+    color: #6d28d9;
+    border: 1px solid #d8b4fe;
 }
 
+/* Blue — was green before, which was indistinguishable from
+   .slot-btn.is-available's green right below. Kept identical to styles.css. */
 .day-cell .ev.ev-booked {
-    background: #e8f9ec;
-    color: #1a7f37;
-    border: 1px solid #a7e8bb;
+    background: #e7f1ff;
+    color: #1d4ed8;
+    border: 1px solid #bfdbfe;
+}
+
+/* "N slots available" on a patient's own calendar — its own color, never
+   green (already used by .slot-btn.is-available for a different meaning:
+   an actual open per-slot chip, not a day's aggregate count). Kept
+   identical to styles.css. */
+.day-cell .ev.ev-available {
+    background: #e6f7f5;
+    color: #0f766e;
+    border: 1px solid #9fdfd6;
 }
 
 /* A day that's already over — muted, nothing to do. */
@@ -1696,9 +1711,9 @@ footer .footer-link {
 }
 
 .booking-status-booked {
-    background: #e8f9ec;
-    color: #1a7f37;
-    border: 1px solid #a7e8bb;
+    background: #e7f1ff;
+    color: #1d4ed8;
+    border: 1px solid #bfdbfe;
 }
 
 .booking-status-pending {
@@ -1708,9 +1723,9 @@ footer .footer-link {
 }
 
 .booking-status-completed {
-    background: #eef2ff;
-    color: #3730a3;
-    border: 1px solid #c7d2fe;
+    background: #f3e8ff;
+    color: #6d28d9;
+    border: 1px solid #d8b4fe;
 }
 
 .booking-status-unavailable {

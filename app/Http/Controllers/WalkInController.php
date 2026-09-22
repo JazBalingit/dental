@@ -10,6 +10,7 @@ use App\Models\PatientInfo;
 use App\Models\Service;
 use App\Models\UserAccount;
 use App\Services\ActivityLogService;
+use App\Services\AppointmentReminderService;
 use App\Services\NotificationService;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
@@ -19,7 +20,11 @@ class WalkInController extends Controller
 {
     use BuildsBookingCalendar;
 
-    public function __construct(protected NotificationService $notifications, protected ActivityLogService $activityLog)
+    public function __construct(
+        protected NotificationService $notifications,
+        protected ActivityLogService $activityLog,
+        protected AppointmentReminderService $reminders
+    )
     {
     }
 
@@ -262,6 +267,12 @@ class WalkInController extends Controller
         $endLabel = Carbon::createFromFormat('H:i', substr($scheduleRows[count($scheduleRows) - 1]->Time, 0, 5))
             ->addMinutes(DentistSchedule::SLOT_MINUTES)->format('g:i A');
         $patientName = trim($patientInfo->FirstName . ' ' . $patientInfo->LastName);
+
+        // This is auto-approved the instant it's created, so it may already
+        // sit inside a reminder window (e.g. a follow-up booked for later
+        // today) — send that reminder right now instead of waiting for the
+        // next scheduled tick. No-ops for a walk-in with no account.
+        $this->reminders->checkOne($appointment);
 
         // Walk-in patients get nothing sent (no account, at the counter).
         // A follow-up goes through the same notification path as an online

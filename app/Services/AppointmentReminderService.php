@@ -53,14 +53,24 @@ class AppointmentReminderService
     {
     }
 
-    /** @return int number of reminders sent */
+    /**
+     * Every currently-approved appointment, checked by the cron/schedule
+     * tick. This is the safety net: it catches an appointment drifting into
+     * its next stage purely because time passed, with nobody taking any
+     * action — the one case that genuinely can't be instant. Anything that
+     * *can* be triggered by an action (an approval, an auto-approved
+     * booking) should call checkOne() right there instead of waiting for
+     * this to next run.
+     *
+     * @return int number of reminders sent
+     */
     public function sendDue(?Carbon $now = null): int
     {
         $now = ($now ?? Carbon::now())->copy();
         $sent = 0;
 
         // Only appointments starting within the next 24 h (or that just began)
-        // can have a stage due, so don't scan the whole table every minute.
+        // can have a stage due, so don't scan the whole table every tick.
         $appointments = Appointment::with(['patientInfo.userAccount', 'service', 'dentist.staffInfo'])
             ->where('Status', 'Approved')
             ->whereDate('AppointmentDate', '>=', $now->copy()->subDay()->toDateString())
@@ -68,57 +78,80 @@ class AppointmentReminderService
             ->get();
 
         foreach ($appointments as $appointment) {
-            $user = $appointment->patientInfo->userAccount ?? null;
-
-            if (!$user) {
-                continue; // walk-ins / patients without an account
-            }
-
-            $start = $this->startsAt($appointment, $now);
-
-            if (!$start || $now->gt($start->copy()->addMinutes(self::ON_TIME_GRACE_MINUTES))) {
-                continue;
-            }
-
-            $stage = $this->currentStage($start, $now);
-
-            if ($stage === null) {
-                continue; // more than a day away — nothing due yet
-            }
-
-            $earlier = Notification::where('AppointmentID', $appointment->AppointmentID)
-                ->whereNotNull('ReminderType')
-                ->get();
-
-            if ($earlier->contains('ReminderType', $stage)) {
-                continue; // this stage was already sent
-            }
-
-            $due = $start->copy()->subMinutes(self::STAGES[$stage]);
-            $last = $earlier->max('created_at');
-
-            if ($last && Carbon::parse($last)->gte($due->copy()->subMinutes(self::NEAR_DUPLICATE_MINUTES))) {
-                continue; // a reminder just went out — this one would only repeat it
-            }
-
-            try {
-                $this->notifications->notifyUser(
-                    $user,
-                    'Appointment Reminder',
-                    $this->message($stage, $start, $now),
-                    'info',
-                    $appointment->AppointmentID,
-                    $appointment->Status,
-                    $stage
-                );
+            if ($this->checkOne($appointment, $now)) {
                 $sent++;
-            } catch (QueryException) {
-                // The unique (appointment, reminder type) index caught a race
-                // with a concurrent run — it was already sent.
             }
         }
 
         return $sent;
+    }
+
+    /**
+     * Checks and, if due, sends the current reminder for ONE appointment —
+     * the same logic sendDue() runs per row, pulled out so it can also be
+     * called immediately at the moment an appointment becomes Approved
+     * (see AppointmentApprovalController::approve() and
+     * WalkInController::store()), instead of waiting for the next cron
+     * tick. Safe to call redundantly — a stage already sent (by either
+     * path) is never sent twice, guarded both here and by the DB's unique
+     * (AppointmentID, ReminderType) index.
+     *
+     * @return bool whether a reminder was actually sent
+     */
+    public function checkOne(Appointment $appointment, ?Carbon $now = null): bool
+    {
+        $now = $now ?? Carbon::now();
+        $user = $appointment->patientInfo->userAccount ?? null;
+
+        if (!$user) {
+            return false; // walk-ins / patients without an account
+        }
+
+        $start = $this->startsAt($appointment, $now);
+
+        if (!$start || $now->gt($start->copy()->addMinutes(self::ON_TIME_GRACE_MINUTES))) {
+            return false;
+        }
+
+        $stage = $this->currentStage($start, $now);
+
+        if ($stage === null) {
+            return false; // more than a day away — nothing due yet
+        }
+
+        $earlier = Notification::where('AppointmentID', $appointment->AppointmentID)
+            ->whereNotNull('ReminderType')
+            ->get();
+
+        if ($earlier->contains('ReminderType', $stage)) {
+            return false; // this stage was already sent
+        }
+
+        $due = $start->copy()->subMinutes(self::STAGES[$stage]);
+        $last = $earlier->max('created_at');
+
+        if ($last && Carbon::parse($last)->gte($due->copy()->subMinutes(self::NEAR_DUPLICATE_MINUTES))) {
+            return false; // a reminder just went out — this one would only repeat it
+        }
+
+        try {
+            $this->notifications->notifyUser(
+                $user,
+                'Appointment Reminder',
+                $this->message($stage, $start, $now),
+                'info',
+                $appointment->AppointmentID,
+                $appointment->Status,
+                $stage
+            );
+
+            return true;
+        } catch (QueryException) {
+            // The unique (appointment, reminder type) index caught a race
+            // with a concurrent run (e.g. the cron firing at the same
+            // instant) — it was already sent.
+            return false;
+        }
     }
 
     /** The latest stage whose time has passed, or null if none has yet. */

@@ -6,6 +6,7 @@ namespace App\Http\Controllers;
 use App\Models\Appointment;
 use App\Models\DentistSchedule;
 use App\Services\AppointmentExpiryService;
+use App\Services\AppointmentReminderService;
 use App\Services\ActivityLogService;
 use App\Services\NotificationService;
 use Carbon\Carbon;
@@ -16,7 +17,8 @@ class AppointmentApprovalController extends Controller
     public function __construct(
         protected NotificationService $notifications,
         protected ActivityLogService $activityLog,
-        protected AppointmentExpiryService $appointmentExpiry
+        protected AppointmentExpiryService $appointmentExpiry,
+        protected AppointmentReminderService $reminders
     ) {
     }
 
@@ -82,6 +84,13 @@ class AppointmentApprovalController extends Controller
 
         $this->notifyPatient($appointment, 'Appointment Approved', 'We are pleased to inform you that your appointment has been approved. We look forward to welcoming you at the clinic.', 'success');
         $this->notifyAdminsOfStatus($appointment, 'has been approved', 'Approved');
+
+        // If this appointment is already inside a reminder window the moment
+        // it's approved (e.g. approved same-day), send that reminder right
+        // now instead of waiting for the next scheduled tick — the cron
+        // still covers an appointment drifting into its next stage later,
+        // purely from time passing with nobody acting.
+        $this->reminders->checkOne($appointment);
 
         $p = $appointment->patientInfo;
         $patientName = $p ? trim($p->FirstName . ' ' . $p->LastName) : 'A patient';

@@ -3194,6 +3194,16 @@ h6 {
   border: 1px solid #bfdbfe;
 }
 
+/* "N slots available" on a patient's own calendar — its own color, never
+   borrowed from ev-booked/ev-pending (those mean something else entirely:
+   an actual booked or pending appointment). Kept in sync with the legend
+   dot below, which uses this same text color. */
+.day-cell .ev.ev-available {
+  background: #e6f7f5;
+  color: #0f766e;
+  border: 1px solid #9fdfd6;
+}
+
 /* A day that's already over — muted, no action to take. */
 .day-cell .ev.ev-past {
   background: #f1f3f5;

@@ -255,8 +255,10 @@
                                 <span class="ev ev-unavailable">Date has passed</span>
                             @elseif ($calendarMode === 'post')
                                 {{-- Patients just need to know how much room is left that day —
-                                     a per-slot Completed/Pending/Booked list is admin-side detail. --}}
-                                <span class="ev {{ $takenSlots->count() > 0 ? 'ev-pending' : 'ev-booked' }}">
+                                     a per-slot Completed/Pending/Booked list is admin-side detail.
+                                     Its own "available" color, never ev-booked/ev-pending — those
+                                     mean an actual booked/pending appointment, not open room. --}}
+                                <span class="ev ev-available">
                                     {{ $availableCount }} slot{{ $availableCount === 1 ? '' : 's' }} available
                                 </span>
                             @elseif ($dayIsOver)
@@ -314,11 +316,35 @@
             @endforeach
         </div>
 
+        @php
+            // Every dot below uses the EXACT same color as its badge's text
+            // color in public/css/styles.css (.ev-*) — never an approximated
+            // one picked independently, so the legend can't drift out of
+            // sync with what the calendar actually shows again.
+            $legendItems = $calendarMode === 'post'
+                // A patient's own calendar never shows raw Booked/Pending day
+                // badges — only these four states.
+                ? [
+                    ['color' => 'var(--brand-700)', 'label' => 'Today'],
+                    ['color' => '#0f766e', 'label' => 'Available'],
+                    ['color' => '#1a7f37', 'label' => 'Completed'],
+                    ['color' => '#b02a37', 'label' => 'Unavailable'],
+                ]
+                // Read-only / walk-in / follow-up views show per-slot Booked,
+                // Pending and Completed chips, plus a Closed/passed summary.
+                : [
+                    ['color' => 'var(--brand-700)', 'label' => 'Today'],
+                    ['color' => '#1d4ed8', 'label' => 'Booked'],
+                    ['color' => '#8a6100', 'label' => 'Pending'],
+                    ['color' => '#1a7f37', 'label' => 'Completed'],
+                    ['color' => '#b02a37', 'label' => 'Unavailable'],
+                ];
+        @endphp
         <div class="p-3 d-flex justify-content-between flex-wrap gap-2">
             <div class="legend">
-                <span><span class="dot" style="background: var(--brand-700);"></span>Today</span>
-                <span><span class="dot" style="background: #dc3545;"></span>Booked</span>
-                <span><span class="dot" style="background: #e0a800;"></span>Pending</span>
+                @foreach ($legendItems as $item)
+                    <span><span class="dot" style="background: {{ $item['color'] }};"></span>{{ $item['label'] }}</span>
+                @endforeach
             </div>
             <div class="small text-muted-2">
                 @if ($readOnly)

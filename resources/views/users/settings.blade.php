@@ -126,13 +126,16 @@
                                 <div class="text-center">
                                     <img src="{{ $patientInfo->photo_url }}" alt="Profile photo"
                                          style="width:96px;height:96px;border-radius:50%;object-fit:cover;border:3px solid #e9f7ea;">
-                                    <div class="mt-2">
+                                    {{-- Only usable once Edit is clicked, same as every other field on
+                                         this form — data-edit-only hides it until then; the file input
+                                         is also kept disabled in the locked state as a second guard. --}}
+                                    <div class="mt-2" data-edit-only @unless ($profileFailed) hidden @endunless>
                                         <label class="btn-edit" style="cursor:pointer;">
                                             <i class="fas fa-camera"></i> Change Photo
-                                            <input type="file" name="photo" accept=".jpg,.jpeg,.png" class="d-none">
+                                            <input type="file" name="photo" accept=".jpg,.jpeg,.png" class="d-none" {{ $profileFailed ? '' : 'disabled' }} data-editable>
                                         </label>
                                     </div>
-                                    <div class="small text-muted mt-1">JPG or PNG, max 5MB</div>
+                                    <div class="small text-muted mt-1" data-edit-only @unless ($profileFailed) hidden @endunless>JPG or PNG, max 5MB</div>
                                 </div>
 
                                 <div class="flex-grow-1" style="min-width:220px">

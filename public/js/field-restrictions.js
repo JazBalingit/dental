@@ -1,15 +1,21 @@
 // Shared input restrictions applied by field name across the whole app:
 // phone/mobile fields accept digits only (capped at 11), name-type fields
 // (first/last/middle name, occupation, nationality, religion, guardian
-// info) accept letters + spaces/apostrophes/hyphens/periods only — no
-// digits. Works by scanning for known `name` attributes so it applies
-// uniformly without touching every form individually.
+// info, city, province) accept letters + spaces/apostrophes/hyphens/periods
+// only — no digits. Works by scanning for known `name` attributes so it
+// applies uniformly without touching every form individually.
+//
+// addr_city / addr_province are included (a city or province name is never
+// purely numeric), but addr_street / addr_barangay are deliberately left
+// alone — a house/lot number or a numbered barangay ("Barangay 176") is
+// completely normal there.
 (function () {
     var PHONE_FIELD_NAMES = ['phone', 'guardian_phone'];
     var LETTER_FIELD_NAMES = [
         'first_name', 'last_name', 'middle_name',
         'occupation', 'nationality', 'religion',
-        'guardian_name', 'guardian_occupation'
+        'guardian_name', 'guardian_occupation',
+        'addr_city', 'addr_province'
     ];
 
     var LETTER_ALLOWED = /[^\p{L}\s'.-]/gu;

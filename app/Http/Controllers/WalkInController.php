@@ -79,6 +79,7 @@ class WalkInController extends Controller
             'Address' => $p->Address,
             'PhoneNumber' => $p->PhoneNumber,
             'Email' => $p->userAccount?->Email ?? $p->Email,
+            'PhotoUrl' => $p->photo_url,
         ]));
     }
 

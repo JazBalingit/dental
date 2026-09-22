@@ -146,7 +146,7 @@
                                     <div class="alert alert-warning py-2 px-3 small" id="noPatientLoadedNotice">No patient loaded yet — search above and select a result.</div>
 
                                     <div class="d-flex align-items-center gap-3 mb-4" id="loadedPatientCard" style="display:none;">
-                                        <img class="avatar-initials" src="/images/default.png" alt=""
+                                        <img class="avatar-initials" id="loadedPatientPhoto" src="/images/default.png" alt=""
                                             style="width:64px;height:64px;">
                                         <div class="flex-grow-1">
                                             <div class="fw-semibold" id="loadedPatientName">—</div>
@@ -533,6 +533,7 @@
         const clearPatientBtn = document.getElementById('clearPatientBtn');
         const patientIdInput = document.getElementById('patient_id');
         const loadedPatientCard = document.getElementById('loadedPatientCard');
+        const loadedPatientPhoto = document.getElementById('loadedPatientPhoto');
         const noPatientLoadedNotice = document.getElementById('noPatientLoadedNotice');
         const loadedPatientName = document.getElementById('loadedPatientName');
         const loadedPatientId = document.getElementById('loadedPatientId');
@@ -557,6 +558,7 @@
             patientIdInput.value = p.PatientID;
             loadedPatientName.textContent = `${p.FirstName} ${p.LastName}`;
             loadedPatientId.textContent = p.PatientID;
+            loadedPatientPhoto.src = p.PhotoUrl || '/images/default.png';
             loadedPatientCard.style.display = 'flex';
             noPatientLoadedNotice.style.display = 'none';
 
@@ -579,6 +581,7 @@
 
         function clearLoadedPatient() {
             patientIdInput.value = '';
+            loadedPatientPhoto.src = '/images/default.png';
             loadedPatientCard.style.display = 'none';
             noPatientLoadedNotice.style.display = '';
 
@@ -1021,6 +1024,7 @@
                     Address: displayFields.address.value,
                     Email: displayFields.email.value,
                     PhoneNumber: displayFields.phone.value,
+                    PhotoUrl: loadedPatientPhoto.src,
                 } : null,
                 newFields: {
                     last_name: document.querySelector('[name=last_name]').value,

@@ -153,15 +153,13 @@
       (booking-calendar partial, admin & superadmin dentist-schedule).
    ------------------------------------------------------------------- */
 
-/* 5a. Month grid: scroll sideways INSIDE its card, never stretch the page. */
+/* 5a. Month grid: all 7 days shrink to fit the card's width — no forced
+   min-width — so every day stays visible and the same size instead of
+   needing a sideways scroll. overflow-x:auto stays only as a fallback. */
 @media (max-width: 991.98px) {
   .schedule-wrap {
     overflow-x: auto !important;
     -webkit-overflow-scrolling: touch;
-  }
-
-  .month-grid {
-    min-width: 640px;
   }
 
   /* .week-grid is a two-column Time | Slot layout — it fits any width, so
@@ -172,10 +170,6 @@
 }
 
 @media (max-width: 575.98px) {
-  .month-grid {
-    min-width: 528px;
-  }
-
   .month-grid .day-cell {
     min-height: 78px;
     padding: .3rem;

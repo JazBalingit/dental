@@ -1392,6 +1392,8 @@ h6 {
 .avatar-initials {
   width: 34px;
   height: 34px;
+  min-width: 34px;
+  min-height: 34px;
   border-radius: 50%;
   background: linear-gradient(135deg, var(--brand-700), var(--brand-500));
   color: #fff;
@@ -1401,6 +1403,14 @@ h6 {
   font-weight: 600;
   font-size: .8rem;
   margin-right: .6rem;
+  /* Every table row that uses this wraps it in a .d-flex (name + avatar +
+     pills) — as a flex item it can otherwise shrink below 34px, or squash
+     into an oval, once a long name or a narrow window tightens the row. */
+  flex-shrink: 0;
+  /* <img class="avatar-initials"> (real photos) vs. the plain div (letter
+     fallback): without this a non-square upload stretches to fill the
+     circle instead of being cropped, distorting the photo. */
+  object-fit: cover;
 }
 
 /* Pills / badges */
@@ -1758,6 +1768,13 @@ h6 {
   display: grid;
   grid-template-columns: repeat(7, 1fr);
   border-top: 1px solid var(--ink-100);
+  /* Grid tracks default to min-width:auto, sized to their widest cell's
+     content — without this a long badge (e.g. "Not available") stops the
+     7 columns from actually shrinking with the window, so the grid grows
+     past its container and .schedule-wrap's overflow:hidden below silently
+     clips Saturday/Sunday instead of every day staying visible and the
+     same width as the others. */
+  min-width: 0;
 }
 
 .month-grid .mh {
@@ -1774,6 +1791,7 @@ h6 {
 
 .month-grid .day-cell {
   min-height: 110px;
+  min-width: 0;
   padding: .5rem;
   border-bottom: 1px solid var(--ink-100);
   border-left: 1px solid var(--ink-100);
@@ -2071,15 +2089,10 @@ h6 {
     grid-template-columns: 70px 1fr;
   }
 
-  /* Same horizontal-scroll treatment as .week-grid above: without a min
-     column width, CSS Grid's default min-width:auto still sizes each 1fr
-     track to fit its cell's content (day-cell badges/labels), which was
-     forcing the whole page to overflow horizontally instead of just this
-     calendar scrolling internally. */
-  .month-grid {
-    grid-template-columns: repeat(7, minmax(80px, 1fr));
-    overflow-x: auto;
-  }
+  /* All 7 days stay visible and the same width at any window size now —
+     .month-grid's own min-width: 0 (above, base rule) plus each
+     .day-cell's min-width: 0 let the 1fr columns actually shrink instead
+     of a minimum column width forcing sideways scroll/clipping. */
 
   .auth-main {
     padding-top: 92px;

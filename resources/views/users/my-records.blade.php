@@ -96,7 +96,7 @@
                         <p>Every completed visit on your file, with the dentist's chart and notes</p>
                     </div>
                 </div>
-                <form method="GET" class="history-filters"><div class="history-search"><button type="submit" class="history-search-btn" aria-label="Search"><i class="fas fa-search"></i></button><input class="form-control" name="search" value="{{ $search ?? '' }}" placeholder="Search treatment"></div></form>
+                <form method="GET" class="history-filters"><div class="history-search"><button type="submit" class="history-search-btn" aria-label="Search"><i class="fas fa-search"></i></button><input class="form-control" name="search" value="{{ $search ?? '' }}" placeholder="Search treatment"></div>@if(($dentistOptions ?? collect())->isNotEmpty())<select class="form-select" name="dentist" onchange="this.form.submit()"><option value="">All dentists</option>@foreach($dentistOptions as $dr)<option value="{{ $dr->UserID }}" @selected((string) ($dentistId ?? '') === (string) $dr->UserID)>{{ $dr->display_name }}</option>@endforeach</select>@endif</form>
             </div>
 
             <div style="overflow-x:auto">

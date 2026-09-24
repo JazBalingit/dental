@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Http\Controllers\Concerns\HandlesArchiveReason;
 use App\Http\Controllers\Concerns\RedirectsToPatientRecord;
+use App\Models\Appointment;
 use App\Models\PatientInfo;
 use App\Models\PatientRecord;
 use App\Models\UserAccount;
@@ -43,11 +44,21 @@ class PatientRecordsController extends Controller
         }
 
         $patientId = $user->patientInfo->PatientID;
+        $dentistId = $request->query('dentist');
+
+        // Every dentist who has ever treated this patient — options for the
+        // "Filter by dentist" dropdown, independent of the current filter so
+        // a chosen dentist doesn't vanish from the list once it's applied.
+        $treatedByIds = Appointment::whereHas('patientRecord', fn ($q) => $q->where('PatientID', $patientId)->where('IsArchived', false))
+            ->pluck('DentistID')
+            ->unique();
+        $dentistOptions = UserAccount::whereIn('UserID', $treatedByIds)->with('staffInfo')->get()->sortBy('display_name');
 
         $records = PatientRecord::with(['service', 'odontogramTeeth', 'appointment.dentist.staffInfo'])
             ->where('PatientID', $patientId)
             ->where('IsArchived', false)
             ->when($request->query('search'), fn ($q, $term) => $q->where('Service', 'like', "%{$term}%"))
+            ->when($dentistId, fn ($q, $id) => $q->whereHas('appointment', fn ($a) => $a->where('DentistID', $id)))
             ->orderByDesc('VisitDate')
             ->orderByDesc('VisitTime')
             ->paginate(10)
@@ -55,6 +66,8 @@ class PatientRecordsController extends Controller
 
         return view('users.my-records', [
             'search' => $request->query('search'),
+            'dentistId' => $dentistId,
+            'dentistOptions' => $dentistOptions,
             'records' => $records,
             'patientInfo' => $user->patientInfo,
         ]);

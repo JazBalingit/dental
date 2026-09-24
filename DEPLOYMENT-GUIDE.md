@@ -338,7 +338,19 @@ Signup gamit totoong email → dapat may OTP within seconds. Resend → **Logs**
 Ang mga na-upload na larawan (profile picture, at kung papalitan mo ang logo sa Settings) ay n-i-save sa `public/images/` sa loob ng container. **Tuwing magde-deploy ka ulit, babalik sila sa mga default na nasa repo.** Ang mga default na larawan (naka-commit sa Git) ay laging andiyan, kaya hindi masisira ang landing page — pero ang bagong pina-upload ay pansamantala lang.
 
 - Para sa school demo / defense: **ok lang ito**, i-upload mo lang ulit kung kailangan bago mag-present.
-- Permanenteng solusyon (mas advanced): mag-add ng Railway **Volume** na naka-mount sa `/app/public/images`, o ilipat ang uploads sa object storage (S3/R2) — kailangan nito ng code change. Sabihan mo ako kung gusto mo itong gawin.
+- Permanenteng solusyon: mag-add ng Railway **Volume**, naka-mount sa `public/images/profiles` lang (**huwag** sa buong `public/images` — mawawala ang logo/hero/clinic photos na naka-commit doon, dahil hindi overlay ang volume mount, papalitan niya nang tuluyan ang laman ng path na iyon habang naka-mount).
+
+**Paano i-setup (Railway dashboard):**
+1. App service → **Settings** → **Volumes** → **+ New Volume**.
+2. **Mount path:** `/app/public/images/profiles`
+3. Size: 1 GB ay sobra-sobra na para sa profile photos.
+4. I-save → mag-re-redeploy ang service.
+
+Bagong Volume = **walang laman muna** — hindi kino-copy ni Railway ang mga larawang naka-commit sa Git papunta sa volume (nangyayari ang pag-mount pagkatapos ng build, kaya hindi na "nakikita" ang mga file na nasa image mula sa build). Para hindi mawala ang mga sample/demo na larawan (`patient_1_...`, `staff_61_...`, etc.) sa unang pag-mount, may auto-seed na logic sa `app/Providers/AppServiceProvider.php` (`seedDefaultProfilePhotos()`): kung production env at walang laman ang `public/images/profiles` (bagong volume), kino-copy niya papasok ang mga default na larawan mula sa `resources/seed-images/profiles/` (git-tracked, hindi naapektuhan ng volume mount). Isang beses lang tatakbo ito bawat container — kapag may laman na ang folder (kahit uploads lang, walang defaults), hindi na ito babalikan.
+
+Pagkatapos ma-attach ang Volume, permanente na ang mga bagong upload — hindi na sila mawawala sa susunod na redeploy.
+
+- Alternatibong solusyon (mas advanced pa): ilipat ang uploads sa object storage (S3/R2) — kailangan nito ng mas malaking code change sa `ProfileController`, `StaffAccountController`, at `UserAccountController`. Sabihan mo ako kung gusto mo itong gawin sa halip.
 
 ### 11.2 Automatic appointment reminders
 May scheduled command (`appointments:send-reminders`) na dapat tumakbo kada minuto. Sa Railway hindi ito kusang tumatakbo. Kung kailangan mo ng automatic reminders:

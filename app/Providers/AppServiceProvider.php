@@ -5,6 +5,7 @@ namespace App\Providers;
 use App\View\Composers\AdminNotificationComposer;
 use App\View\Composers\UserNotificationComposer;
 use Illuminate\Pagination\Paginator;
+use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\URL;
 use Illuminate\Support\Facades\View;
 use Illuminate\Support\ServiceProvider;
@@ -74,5 +75,37 @@ class AppServiceProvider extends ServiceProvider
             'users.settings',
             'users.my-records',
         ], UserNotificationComposer::class);
+
+        if (app()->environment('production')) {
+            $this->seedDefaultProfilePhotos();
+        }
+    }
+
+    /**
+     * A Railway Volume mounted at public/images/profiles starts out empty,
+     * which shadows the git-committed sample photos that used to live there
+     * (see DEPLOYMENT-GUIDE.md section 11.1). Re-copy them in from a location the
+     * volume doesn't cover, once, so a freshly attached volume still shows
+     * the demo data instead of broken images. No-ops once the folder has
+     * any files (real uploads included), so it never overwrites uploads.
+     */
+    private function seedDefaultProfilePhotos(): void
+    {
+        $seed = resource_path('seed-images/profiles');
+        $target = public_path('images/profiles');
+
+        if (!File::isDirectory($seed)) {
+            return;
+        }
+
+        File::ensureDirectoryExists($target);
+
+        if (count(File::files($target)) > 0) {
+            return;
+        }
+
+        foreach (File::files($seed) as $file) {
+            File::copy($file->getPathname(), $target.DIRECTORY_SEPARATOR.$file->getFilename());
+        }
     }
 }

@@ -113,7 +113,18 @@
       .no-print { display: none !important; }
       .report-wrap { padding: 0; max-width: none; }
       .report-sheet { box-shadow: none; padding: 0; border-radius: 0; }
-      .report-section { page-break-inside: avoid; }
+      /* A whole .report-section (heading + stats + chart + the FULL table)
+         easily runs longer than one page once there's real data in the
+         table — telling the browser to never break *inside* it just pushed
+         the entire section to the next page instead, leaving whatever came
+         before it (the report header) alone on an almost-blank page 1.
+         Only the small pieces below need to stay intact; the section and
+         its table are left free to flow and break across pages normally. */
+      .report-head,
+      .report-stats,
+      .report-bar-row,
+      .report-signature { page-break-inside: avoid; }
+      .report-section h2 { page-break-after: avoid; }
       table.report-table { page-break-inside: auto; }
       tr { page-break-inside: avoid; }
     }

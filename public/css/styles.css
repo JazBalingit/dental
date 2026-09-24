@@ -673,6 +673,12 @@ h6 {
   height: 100vh;
   display: flex;
   flex-direction: column;
+  /* Without this, a shorter browser window (or a role with a long nav
+     list) pushed the profile badge / Logout below the sidebar's own
+     100vh box with nothing able to reach it — the box doesn't grow and
+     nothing else on the page scrolls it into view. Auto only shows a
+     scrollbar when the height-based compacting below still isn't enough. */
+  overflow-y: auto;
 }
 
 .sidebar .brand {
@@ -681,6 +687,7 @@ h6 {
   gap: .75rem;
   padding: 0 1.25rem 1.25rem;
   border-bottom: 1px solid rgba(255, 255, 255, .08);
+  flex-shrink: 0;
 }
 
 .sidebar .brand .logo {
@@ -875,6 +882,64 @@ h6 {
   padding: .85rem;
   border-top: 1px solid rgba(255, 255, 255, .1);
   margin-top: .5rem;
+  flex-shrink: 0;
+}
+
+/* Shrink the sidebar's own vertical rhythm on shorter windows so a full
+   nav list (super admin: 9+ items) fits without ever needing the
+   overflow-y scroll above — most laptops/tablets never hit that fallback. */
+@media (max-height: 760px) {
+  .sidebar {
+    padding: .85rem 0;
+  }
+
+  .sidebar .brand {
+    padding: 0 1.25rem .85rem;
+  }
+
+  .sidebar .nav-section {
+    padding: .5rem .85rem .25rem;
+  }
+
+  .sidebar .nav a,
+  .sidebar .nav-toggle,
+  .sidebar .nav-sub-link {
+    padding-top: .45rem;
+    padding-bottom: .45rem;
+  }
+
+  .sidebar-footer {
+    padding: .55rem .85rem;
+  }
+}
+
+@media (max-height: 620px) {
+  .sidebar .brand .logo {
+    width: 38px;
+    height: 38px;
+    font-size: 16px;
+  }
+
+  .sidebar .nav a,
+  .sidebar .nav-toggle,
+  .sidebar .nav-sub-link {
+    padding-top: .32rem;
+    padding-bottom: .32rem;
+    font-size: .85rem;
+  }
+
+  .sidebar .nav-section {
+    padding: .35rem .85rem .15rem;
+  }
+
+  .sidebar-profile-badge {
+    padding: .4rem .5rem;
+  }
+
+  .sidebar-profile-badge .avatar {
+    width: 30px;
+    height: 30px;
+  }
 }
 
 .sidebar-profile-badge {
@@ -1911,10 +1976,12 @@ h6 {
 /* Image tiles (Configuration → System Information) */
 .cfg-img-grid {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  /* Fills the card body instead of stopping at a fixed 760px and leaving a
+     large empty gap on anything wider than that — each tile (and its
+     16:10 preview) now scales up with the available space. */
+  grid-template-columns: repeat(3, minmax(220px, 1fr));
   gap: 16px;
   margin-top: .75rem;
-  max-width: 760px;
 }
 
 .cfg-img-card {

@@ -203,6 +203,11 @@
                         $dateStr = $d->format('Y-m-d');
                         $inMonth = $d->month === $bookCurrent->month;
                         $isSunday = $d->isSunday();
+                        // Clinic-wide closure (holiday, etc.) — blocks every dentist on
+                        // this date, separate from a single dentist's own Not Available
+                        // slots below. See Configuration → Closed Dates.
+                        $isClinicClosed = \App\Models\ClosedDate::isClosed($d);
+                        $clinicClosedReason = \App\Models\ClosedDate::reasonFor($d);
                         $daySlots = $bookSchedules[$dateStr] ?? collect();
                         $takenSlots = collect($bookSlots)->filter(function ($label, $time) use ($daySlots, $dateStr, $bookOccupiedSlots) {
                             // A slot whose start time has already gone by today can't be
@@ -241,7 +246,7 @@
                                 && $a->PatientID === $bookCurrentPatientId);
                     @endphp
 
-                    @if ($inMonth && !$isSunday && !$isFullyClosed)
+                    @if ($inMonth && !$isSunday && !$isFullyClosed && !$isClinicClosed)
                         <button type="button"
                             class="day-cell border-0 text-start p-0 w-100 d-block {{ $dateStr === $bookToday ? 'today' : '' }}"
                             data-bs-toggle="modal" data-bs-target="#bookDay{{ $d->format('Ymd') }}{{ $calendarMode === 'select' ? 'Wi' : '' }}">
@@ -294,10 +299,12 @@
                                 @endforeach
                             @endif
                         </button>
-                    @elseif ($inMonth && ($isSunday || $isFullyClosed))
+                    @elseif ($inMonth && ($isSunday || $isFullyClosed || $isClinicClosed))
                         <button type="button" class="day-cell day-off border-0 text-start p-0 w-100 d-block" disabled>
                             <div class="n" style="margin-left: 8px;">{{ $d->day }}</div>
-                            @if ($isSunday)
+                            @if ($isClinicClosed)
+                                <span class="ev ev-unavailable">Closed{{ $clinicClosedReason ? ' — ' . $clinicClosedReason : '' }}</span>
+                            @elseif ($isSunday)
                                 <span class="ev ev-unavailable">Closed</span>
                             @elseif ($calendarMode === 'post' && $myCompletedThatDay)
                                 <span class="ev ev-completed">Appointment completed</span>

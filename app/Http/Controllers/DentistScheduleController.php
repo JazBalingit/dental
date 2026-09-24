@@ -6,6 +6,7 @@ use Illuminate\Http\Request;
 use Carbon\Carbon;
 use App\Models\DentistSchedule;
 use App\Models\Appointment;
+use App\Models\ClosedDate;
 use App\Models\UserAccount;
 use App\Services\ActivityLogService;
 use App\Services\NotificationService;
@@ -175,6 +176,10 @@ class DentistScheduleController extends Controller
             return $this->redirectToSchedule($request, $dentistId, $request->date)->with('error', 'Sundays are not available for scheduling.');
         }
 
+        if (ClosedDate::isClosed($date)) {
+            return $this->redirectToSchedule($request, $dentistId, $request->date)->with('error', 'This date is closed clinic-wide — reopen it from Configuration first.');
+        }
+
         if (in_array($request->time, DentistSchedule::lunchSlotTimes(), true)) {
             return $this->redirectToSchedule($request, $dentistId, $request->date)->with('error', 'That time is the clinic lunch break and cannot be opened.');
         }
@@ -250,6 +255,10 @@ class DentistScheduleController extends Controller
 
         if ($date->isSunday()) {
             return $this->redirectToSchedule($request, $dentistId, $request->date)->with('error', 'Sundays are not available for scheduling.');
+        }
+
+        if (ClosedDate::isClosed($date)) {
+            return $this->redirectToSchedule($request, $dentistId, $request->date)->with('error', 'This date is closed clinic-wide — reopen it from Configuration first.');
         }
 
         $allTimes = array_keys($this->slots());

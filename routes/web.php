@@ -23,6 +23,7 @@ use App\Http\Controllers\WalkInController;
 use App\Http\Controllers\ReportController;
 use App\Http\Controllers\ContactController;
 use App\Http\Controllers\SuperAdminSetupController;
+use App\Http\Controllers\ClosedDateController;
 
 /*
 |--------------------------------------------------------------------------
@@ -213,5 +214,9 @@ Route::middleware('admin')->group(function () {
         Route::post('/configuration/appointment-steps/{id}/update', [ConfigurationController::class, 'updateAppointmentStep'])->name('configuration.appointmentSteps.update');
         Route::post('/configuration/appointment-steps/{id}/archive', [ConfigurationController::class, 'archiveAppointmentStep'])->name('configuration.appointmentSteps.archive');
         Route::post('/configuration/appointment-steps/{id}/unarchive', [ConfigurationController::class, 'unarchiveAppointmentStep'])->name('configuration.appointmentSteps.unarchive');
+        Route::post('/configuration/closed-dates', [ClosedDateController::class, 'store'])->name('configuration.closedDates.store');
+        Route::post('/configuration/closed-dates/{id}/update', [ClosedDateController::class, 'update'])->name('configuration.closedDates.update');
+        Route::post('/configuration/closed-dates/{id}/archive', [ClosedDateController::class, 'archive'])->name('configuration.closedDates.archive');
+        Route::post('/configuration/closed-dates/{id}/unarchive', [ClosedDateController::class, 'unarchive'])->name('configuration.closedDates.unarchive');
     });
 });

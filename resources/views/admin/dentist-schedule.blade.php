@@ -133,6 +133,8 @@
                                     $dateStr = $d->format('Y-m-d');
                                     $inMonth = $d->month === $current->month;
                                     $isSunday = $d->isSunday();
+                                    $isClinicClosed = \App\Models\ClosedDate::isClosed($d);
+                                    $clinicClosedReason = \App\Models\ClosedDate::reasonFor($d);
                                     $isPast = $d->lt(\Carbon\Carbon::parse($today));
                                     $daySlots = $schedules[$dateStr] ?? collect();
                                     $notAvailable = $daySlots->where('Status', 'Not Available');
@@ -149,7 +151,7 @@
                                     }
                                 @endphp
 
-                                @if ($inMonth && !$isSunday && $isPast)
+                                @if ($inMonth && !$isSunday && !$isClinicClosed && $isPast)
                                     {{-- The day is done — no slots to manage anymore. Show it plainly
                                          as passed, and roll the per-slot "Completed" chips into one line. --}}
                                     <button type="button"
@@ -161,7 +163,7 @@
                                             <span class="ev ev-completed">{{ $completedThatDay }} appointment{{ $completedThatDay === 1 ? '' : 's' }} completed</span>
                                         @endif
                                     </button>
-                                @elseif ($inMonth && !$isSunday)
+                                @elseif ($inMonth && !$isSunday && !$isClinicClosed)
                                     <button type="button"
                                         class="day-cell border-0 text-start p-0 w-100 d-block {{ $dateStr === $today ? 'today' : '' }}"
                                         data-bs-toggle="modal" data-bs-target="#{{ $modalId }}">
@@ -196,10 +198,14 @@
                                             @endforeach
                                         @endif
                                     </button>
-                                @elseif ($inMonth && $isSunday)
+                                @elseif ($inMonth && ($isSunday || $isClinicClosed))
                                     <button type="button" class="day-cell day-off border-0 text-start p-0 w-100 d-block" disabled>
                                         <div class="n" style="margin-left: 8px;">{{ $d->day }}</div>
-                                        <span class="ev ev-unavailable">Day Off</span>
+                                        @if ($isClinicClosed)
+                                            <span class="ev ev-unavailable">Closed{{ $clinicClosedReason ? ' — ' . $clinicClosedReason : '' }}</span>
+                                        @else
+                                            <span class="ev ev-unavailable">Day Off</span>
+                                        @endif
                                     </button>
                                 @else
                                     <button class="day-cell border-0 text-start p-0 w-100 d-block disabled" disabled>

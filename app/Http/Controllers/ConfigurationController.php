@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Http\Controllers\Concerns\HandlesArchiveReason;
 use App\Models\ActivityLog;
 use App\Models\AppointmentStep;
+use App\Models\ClosedDate;
 use App\Models\DentistSchedule;
 use App\Models\Service;
 use App\Models\ServiceCategory;
@@ -97,6 +98,9 @@ class ConfigurationController extends Controller
         $activeCategories = ServiceCategory::withCount('services')->where('IsArchived', false)->orderBy('DisplayOrder')->orderBy('Name');
         $archivedCategories = ServiceCategory::withCount('services')->where('IsArchived', true)->orderBy('DisplayOrder')->orderBy('Name');
 
+        $activeClosedDates = ClosedDate::with('closedBy.staffInfo')->where('IsArchived', false)->orderByDesc('Date');
+        $archivedClosedDates = ClosedDate::with('closedBy.staffInfo')->where('IsArchived', true)->orderByDesc('Date');
+
         $logoPath = public_path('images/puspus_logo.png');
 
         $settingsTab = in_array($request->query('settingsTab'), ['about', 'services', 'privacy', 'appointment', 'activity'], true)
@@ -130,6 +134,11 @@ class ConfigurationController extends Controller
                 ->appends(['settingsTab' => 'services', 'servicesTab' => 'active']),
             'archivedServices' => $archivedServices->orderBy('ServiceName')->paginate(10, ['*'], 'services_archived_page')->withQueryString()
                 ->appends(['settingsTab' => 'services', 'servicesTab' => 'archived']),
+            'closedDates' => $activeClosedDates->paginate(10, ['*'], 'closedDates_page')->withQueryString()
+                ->appends(['settingsTab' => 'about', 'closedDatesTab' => 'active']),
+            'archivedClosedDates' => $archivedClosedDates->paginate(10, ['*'], 'closedDates_archived_page')->withQueryString()
+                ->appends(['settingsTab' => 'about', 'closedDatesTab' => 'archived']),
+            'closedDatesTab' => $request->query('closedDatesTab') === 'archived' ? 'archived' : 'active',
             'activityLogs' => $activeActivity->paginate(15, ['*'], 'activity_page')->withQueryString()
                 ->appends(['settingsTab' => 'activity', 'activityTab' => 'active']),
             'archivedActivityLogs' => $archivedActivity->paginate(15, ['*'], 'activity_archived_page')->withQueryString()

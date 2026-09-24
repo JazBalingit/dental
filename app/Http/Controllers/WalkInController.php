@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 
 use App\Http\Controllers\Concerns\BuildsBookingCalendar;
 use App\Models\Appointment;
+use App\Models\ClosedDate;
 use App\Models\DentistSchedule;
 use App\Models\PatientInfo;
 use App\Models\Service;
@@ -148,8 +149,8 @@ class WalkInController extends Controller
 
         $date = $mode === 'followup' ? Carbon::parse($data['date']) : today();
 
-        if ($date->isSunday() || $date->lt(today())) {
-            return back()->withInput()->with('error', $mode === 'followup' ? 'That date is not available for booking.' : "The clinic is closed on Sundays — walk-ins can't be booked today.")
+        if ($date->isSunday() || $date->lt(today()) || ClosedDate::isClosed($date)) {
+            return back()->withInput()->with('error', $mode === 'followup' ? 'That date is not available for booking.' : "The clinic is closed today — walk-ins can't be booked.")
                 ->with('walkin_error_step', 2);
         }
 

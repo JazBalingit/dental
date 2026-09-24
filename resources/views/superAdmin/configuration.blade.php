@@ -254,6 +254,156 @@
                   </form>
                 </div>
               </div>
+
+              {{-- ===================== CLOSED DATES ===================== --}}
+              <div class="card-soft mt-3">
+                <div class="card-header d-flex align-items-center justify-content-between flex-wrap gap-2">
+                  <span><i class="bi bi-calendar-x me-2" style="color: var(--brand-700);"></i> Closed Dates</span>
+                  <button type="button" class="btn btn-brand px-3" id="closeDateToggleBtn">
+                    <i class="bi bi-plus-lg"></i> <span id="closeDateToggleBtnLabel">Close a Date</span>
+                  </button>
+                </div>
+                <div class="card-body p-3 p-md-4">
+                  <p class="small text-muted-2 mb-3">Block an entire date &mdash; every dentist, every slot &mdash; from
+                    being booked. Use this for holidays or other clinic-wide closures; per-dentist availability still
+                    lives in Dentist Schedule.</p>
+
+                  @php
+                    $closeDateFailed = $errors->any() && old('form_source') === 'close_date';
+                    $cdErr = fn ($field) => $closeDateFailed && $errors->has($field) ? 'has-error' : '';
+                    $cdMsg = fn ($field) => $closeDateFailed && $errors->has($field) ? $errors->first($field) : null;
+                  @endphp
+                  <div id="closeDateFormWrap" class="mb-4 p-3" style="background:#fafbfa;border:1px solid #edf1ee;border-radius:12px;" {{ $closeDateFailed ? '' : 'hidden' }}>
+                    <form method="POST" action="{{ route('configuration.closedDates.store') }}" class="row g-3 align-items-end"
+                      data-confirm-title="Close this day?"
+                      data-confirm-message="No one will be able to book any dentist on this date. Any pending or booked appointments already on it will be cancelled and the patient(s) notified. Continue?">
+                      @csrf
+                      <input type="hidden" name="form_source" value="close_date">
+                      <div class="col-md-4 col-6">
+                        <label class="form-label">Date</label>
+                        <input type="date" name="date" class="form-control {{ $cdErr('date') }}" min="{{ now()->format('Y-m-d') }}"
+                          value="{{ old('date') }}" required>
+                        @if ($cdMsg('date')) <div class="field-error"><i class="bi bi-exclamation-circle-fill"></i> {{ $cdMsg('date') }}</div> @endif
+                      </div>
+                      <div class="col-md-5 col-12">
+                        <label class="form-label">Reason <span class="text-muted-2">(optional)</span></label>
+                        <input type="text" name="reason" class="form-control {{ $cdErr('reason') }}" maxlength="500"
+                          placeholder="e.g. Christmas Day" value="{{ old('reason') }}">
+                        @if ($cdMsg('reason')) <div class="field-error"><i class="bi bi-exclamation-circle-fill"></i> {{ $cdMsg('reason') }}</div> @endif
+                      </div>
+                      <div class="col-md-3 col-12 d-flex gap-2">
+                        <button type="submit" class="btn btn-brand px-3 flex-grow-1"><i class="bi bi-calendar-x me-1"></i> Close Day</button>
+                        <button type="button" class="btn btn-outline-secondary px-3" id="closeDateCancelBtn">Cancel</button>
+                      </div>
+                    </form>
+                  </div>
+
+                  <form method="GET" action="{{ route('configuration') }}" class="data-toolbar">
+                    <div class="left">
+                      <ul class="nav nav-pills" data-tabgroup="closedDates" role="tablist">
+                        <li class="nav-item" role="presentation">
+                          <button class="nav-link {{ $closedDatesTab !== 'archived' ? 'active' : '' }}" type="button"
+                            data-bs-toggle="pill" data-bs-target="#closedDatesActivePane" data-tab-value="active"
+                            role="tab">Active</button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                          <button class="nav-link {{ $closedDatesTab === 'archived' ? 'active' : '' }}" type="button"
+                            data-bs-toggle="pill" data-bs-target="#closedDatesArchivedPane" data-tab-value="archived"
+                            role="tab">Archived</button>
+                        </li>
+                      </ul>
+                    </div>
+                    <div class="right">
+                      <input type="hidden" name="settingsTab" value="about">
+                      <input type="hidden" name="closedDatesTab" id="closedDatesTabField" value="{{ $closedDatesTab }}">
+                    </div>
+                  </form>
+
+                  <div class="tab-content mt-3">
+                    <div class="tab-pane fade {{ $closedDatesTab !== 'archived' ? 'show active' : '' }}" id="closedDatesActivePane" role="tabpanel">
+                      <div class="table-responsive">
+                        <table class="table-soft" style="border-radius:0; box-shadow:none;">
+                          <thead>
+                            <tr>
+                              <th>Date</th>
+                              <th>Reason</th>
+                              <th>Closed By</th>
+                              <th class="text-end">Actions</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            @forelse ($closedDates as $cd)
+                              <tr>
+                                <td class="fw-semibold">{{ $cd->Date->format('l, F j, Y') }}</td>
+                                <td>{{ $cd->Reason ?: '—' }}</td>
+                                <td>{{ $cd->closedBy?->display_name ?? '—' }}</td>
+                                <td class="text-end">
+                                  <button type="button" class="btn btn-pill btn-pill-edit me-1" data-bs-toggle="modal"
+                                    data-bs-target="#editClosedDateModal{{ $cd->ClosedDateID }}"><i class="bi bi-pencil-square"></i> Edit</button>
+                                  <button type="button" class="btn btn-pill btn-pill-archive" data-bs-toggle="modal"
+                                    data-bs-target="#confirmActionModal"
+                                    data-action-url="{{ route('configuration.closedDates.archive', $cd->ClosedDateID) }}"
+                                    data-title="Open This Date"
+                                    data-message="Reopen {{ $cd->Date->format('F j, Y') }} for booking?"
+                                    data-confirm-label="Open Date" data-confirm-class="btn-pill-archive">
+                                    <i class="bi bi-unlock"></i> Open This Date</button>
+                                </td>
+                              </tr>
+                            @empty
+                              <tr><td colspan="4" class="text-center text-muted-2 py-4">No closed dates right now.</td></tr>
+                            @endforelse
+                          </tbody>
+                        </table>
+                      </div>
+                      <div class="pagination-soft">
+                        <div>Showing {{ $closedDates->count() }} of {{ $closedDates->total() }} entries</div>
+                        <div class="pages">@include('partials.pagination-pages', ['paginator' => $closedDates])</div>
+                      </div>
+                    </div>
+
+                    <div class="tab-pane fade {{ $closedDatesTab === 'archived' ? 'show active' : '' }}" id="closedDatesArchivedPane" role="tabpanel">
+                      <div class="table-responsive">
+                        <table class="table-soft" style="border-radius:0; box-shadow:none;">
+                          <thead>
+                            <tr>
+                              <th>Date</th>
+                              <th>Reason</th>
+                              <th>Closed By</th>
+                              <th>Archive Reason</th>
+                              <th class="text-end">Actions</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            @forelse ($archivedClosedDates as $cd)
+                              <tr>
+                                <td class="fw-semibold">{{ $cd->Date->format('l, F j, Y') }}</td>
+                                <td>{{ $cd->Reason ?: '—' }}</td>
+                                <td>{{ $cd->closedBy?->display_name ?? '—' }}</td>
+                                @include('partials.archive-reason-cell', ['row' => $cd])
+                                <td class="text-end">
+                                  <button type="button" class="btn btn-pill btn-pill-archive" data-bs-toggle="modal"
+                                    data-bs-target="#confirmActionModal"
+                                    data-action-url="{{ route('configuration.closedDates.unarchive', $cd->ClosedDateID) }}"
+                                    data-title="Close Again"
+                                    data-message="Close {{ $cd->Date->format('F j, Y') }} again?"
+                                    data-confirm-label="Close Again" data-confirm-class="btn-pill-archive">
+                                    <i class="bi bi-lock"></i> Close Again</button>
+                                </td>
+                              </tr>
+                            @empty
+                              <tr><td colspan="5" class="text-center text-muted-2 py-4">No archived (reopened) dates.</td></tr>
+                            @endforelse
+                          </tbody>
+                        </table>
+                      </div>
+                      <div class="pagination-soft">
+                        <div>Showing {{ $archivedClosedDates->count() }} of {{ $archivedClosedDates->total() }} entries</div>
+                        <div class="pages">@include('partials.pagination-pages', ['paginator' => $archivedClosedDates])</div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
             </div>
 
             {{-- ===================== SERVICES ===================== --}}
@@ -1166,6 +1316,47 @@
     </div>
   @endforeach
 
+  @foreach ($closedDates as $cd)
+    @php
+      $editClosedDateFailed = $errors->any() && old('form_source') === 'edit_closed_date_' . $cd->ClosedDateID;
+      $ecdErr = fn ($field) => $editClosedDateFailed && $errors->has($field) ? 'has-error' : '';
+      $ecdMsg = fn ($field) => $editClosedDateFailed && $errors->has($field) ? $errors->first($field) : null;
+      $ecdOld = fn ($field, $default = null) => $editClosedDateFailed ? old($field) : $default;
+    @endphp
+    <div class="modal fade" id="editClosedDateModal{{ $cd->ClosedDateID }}" tabindex="-1" aria-hidden="true">
+      <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title fw-semibold">Edit Closed Date</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+          </div>
+          <form method="POST" action="{{ route('configuration.closedDates.update', $cd->ClosedDateID) }}">
+            @csrf
+            <input type="hidden" name="form_source" value="edit_closed_date_{{ $cd->ClosedDateID }}">
+            <div class="modal-body">
+              <div class="mb-3">
+                <label class="form-label">Date</label>
+                <input type="date" name="date" class="form-control {{ $ecdErr('date') }}" min="{{ now()->format('Y-m-d') }}"
+                  value="{{ $ecdOld('date', $cd->Date->format('Y-m-d')) }}" required>
+                @if ($ecdMsg('date')) <div class="field-error"><i class="bi bi-exclamation-circle-fill"></i> {{ $ecdMsg('date') }}</div> @endif
+              </div>
+              <div class="mb-3">
+                <label class="form-label">Reason <span class="text-muted-2">(optional)</span></label>
+                <input type="text" name="reason" class="form-control {{ $ecdErr('reason') }}" maxlength="500"
+                  value="{{ $ecdOld('reason', $cd->Reason) }}">
+                @if ($ecdMsg('reason')) <div class="field-error"><i class="bi bi-exclamation-circle-fill"></i> {{ $ecdMsg('reason') }}</div> @endif
+              </div>
+            </div>
+            <div class="modal-footer">
+              <button type="button" class="btn btn-ghost" data-bs-dismiss="modal">Cancel</button>
+              <button type="submit" class="btn btn-brand">Save Changes</button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  @endforeach
+
   @include('partials.admin-notif-modal')
   @include('partials.confirm-action-modal')
 
@@ -1220,6 +1411,25 @@
         });
       });
     });
+
+    // "Close a Date" reveals the date/reason form in place — no page nav,
+    // no modal. The Cancel button (and clicking the toggle again) hides it.
+    (function () {
+      var wrap = document.getElementById('closeDateFormWrap');
+      var toggleBtn = document.getElementById('closeDateToggleBtn');
+      var toggleLabel = document.getElementById('closeDateToggleBtnLabel');
+      var cancelBtn = document.getElementById('closeDateCancelBtn');
+      if (!wrap || !toggleBtn) return;
+
+      function setOpen(open) {
+        wrap.hidden = !open;
+        if (toggleLabel) toggleLabel.textContent = open ? 'Cancel' : 'Close a Date';
+        if (open) wrap.querySelector('input[name="date"]')?.focus();
+      }
+
+      toggleBtn.addEventListener('click', function () { setOpen(wrap.hidden); });
+      cancelBtn?.addEventListener('click', function () { setOpen(false); });
+    })();
 
     document.querySelectorAll('[data-settings-tab]').forEach(function (btn) {
       btn.addEventListener('click', function () {

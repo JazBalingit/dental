@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 
 use App\Http\Controllers\Concerns\BuildsBookingCalendar;
 use App\Models\Appointment;
+use App\Models\ClosedDate;
 use App\Models\DentistSchedule;
 use App\Models\Service;
 use App\Models\UserAccount;
@@ -58,7 +59,7 @@ class AppointmentBookingController extends Controller
 
         $date = Carbon::parse($data['date']);
 
-        if ($date->isSunday() || $date->lt(today())) {
+        if ($date->isSunday() || $date->lt(today()) || ClosedDate::isClosed($date)) {
             return redirect()->to(route('userAppointment.book'))
                 ->with('booking_error', 'That date is not available for booking.');
         }

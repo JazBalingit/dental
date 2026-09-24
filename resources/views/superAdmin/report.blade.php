@@ -193,13 +193,14 @@
             @else
               <table class="report-table">
                 <thead>
-                  <tr><th>Date</th><th>Time</th><th>Patient</th><th>Contact</th><th>Service</th><th>Status</th></tr>
+                  <tr><th>Date</th><th>Time</th><th>Patient ID</th><th>Patient</th><th>Contact</th><th>Service</th><th>Status</th></tr>
                 </thead>
                 <tbody>
                   @foreach ($appointmentsList as $a)
                     <tr>
                       <td>{{ optional($a->AppointmentDate)->format('M j, Y') }}</td>
                       <td>{{ $a->AppointmentTime }}</td>
+                      <td>{{ $a->patientInfo ? 'PT-' . str_pad($a->patientInfo->PatientID, 4, '0', STR_PAD_LEFT) : '—' }}</td>
                       <td>{{ trim(($a->patientInfo->FirstName ?? '') . ' ' . ($a->patientInfo->LastName ?? '')) ?: '—' }}</td>
                       <td>{{ $a->patientInfo->PhoneNumber ?? $a->patientInfo->userAccount?->Email ?? $a->patientInfo->Email ?? '—' }}</td>
                       <td>{{ $a->TypeOfAppointment ?: ($a->service->ServiceName ?? '—') }}</td>
@@ -241,11 +242,12 @@
             @else
               <table class="report-table">
                 <thead>
-                  <tr><th>Name</th><th>Age</th><th>Gender</th><th>Phone</th><th>Address</th></tr>
+                  <tr><th>Patient ID</th><th>Name</th><th>Age</th><th>Gender</th><th>Phone</th><th>Address</th></tr>
                 </thead>
                 <tbody>
                   @foreach ($patientsList as $p)
                     <tr>
+                      <td>PT-{{ str_pad($p->PatientID, 4, '0', STR_PAD_LEFT) }}</td>
                       <td>{{ trim(($p->FirstName ?? '') . ' ' . ($p->LastName ?? '')) ?: '—' }}</td>
                       <td>{{ $p->Age ?? '—' }}</td>
                       <td>{{ $p->Gender ?? '—' }}</td>

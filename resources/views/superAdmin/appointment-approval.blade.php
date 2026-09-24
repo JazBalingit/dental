@@ -132,6 +132,7 @@
                         <table class="table-soft">
                             <thead>
                                 <tr>
+                                    <th>Patient ID</th>
                                     <th>Patient</th>
                                     <th>Dentist</th>
                                     <th>Service</th>
@@ -153,6 +154,7 @@
                                         };
                                     @endphp
                                     <tr>
+                                        <td><span style="font-size:12px; color:#9ca3af; font-weight:500;">{{ $p ? 'PT-' . str_pad($p->PatientID, 4, '0', STR_PAD_LEFT) : '—' }}</span></td>
                                         <td><span><img class="avatar-initials"
                                                     src="{{ $p->photo_url ?? asset('images/default.png') }}"
                                                     alt=""></span>{{ $p->FirstName }} {{ $p->LastName }}

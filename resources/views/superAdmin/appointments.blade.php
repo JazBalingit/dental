@@ -155,6 +155,7 @@
                             <thead>
                                 <tr>
                                     <th>Date &amp; Time</th>
+                                    <th>Patient ID</th>
                                     <th>Patient</th>
                                     <th>Dentist</th>
                                     <th>Treatment</th>
@@ -179,6 +180,7 @@
                                     @endphp
                                     <tr>
                                         <td><span class="fw-semibold">{{ $appt->AppointmentDate->format('M j, Y') }} &bull; {{ $timeLabel }}</span></td>
+                                        <td><span style="font-size:12px; color:#9ca3af; font-weight:500;">{{ $p ? 'PT-' . str_pad($p->PatientID, 4, '0', STR_PAD_LEFT) : '—' }}</span></td>
                                         <td><span><img class="avatar-initials" src="{{ $p->photo_url ?? asset('images/default.png') }}" alt=""></span>{{ $p->FirstName ?? '' }} {{ $p->LastName ?? '' }}
                                             @if ($appt->Source === 'Walk-in')
                                                 <span class="pill pill-muted">Walk-in</span>

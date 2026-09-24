@@ -155,7 +155,7 @@
                                     {{-- The day is done — no slots to manage anymore. Show it plainly
                                          as passed, and roll the per-slot "Completed" chips into one line. --}}
                                     <button type="button"
-                                        class="day-cell day-past border-0 text-start p-0 w-100 d-block"
+                                        class="day-cell day-past border-0 text-start p-0 w-100 d-block {{ $dateStr === $today ? 'today' : '' }}"
                                         data-bs-toggle="modal" data-bs-target="#{{ $modalId }}">
                                         <div class="n" style="margin-left: 8px;">{{ $d->day }}</div>
                                         <span class="ev ev-past">Date passed</span>

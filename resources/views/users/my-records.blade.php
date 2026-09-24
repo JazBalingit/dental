@@ -96,7 +96,7 @@
                         <p>Every completed visit on your file, with the dentist's chart and notes</p>
                     </div>
                 </div>
-                <form method="GET" class="history-filters"><div class="history-search"><i class="fas fa-search"></i><input class="form-control" name="search" value="{{ $search ?? '' }}" placeholder="Search treatment"></div><button class="btn-prim"><i class="fas fa-filter"></i> Filter</button></form>
+                <form method="GET" class="history-filters"><div class="history-search"><button type="submit" class="history-search-btn" aria-label="Search"><i class="fas fa-search"></i></button><input class="form-control" name="search" value="{{ $search ?? '' }}" placeholder="Search treatment"></div></form>
             </div>
 
             <div style="overflow-x:auto">

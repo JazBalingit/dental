@@ -65,7 +65,7 @@
                                 <p>A record of your past dental visits</p>
                             </div>
                         </div>
-                        <form method="GET" class="history-filters"><div class="history-search"><i class="fas fa-search"></i><input class="form-control" name="search" value="{{ $search }}" placeholder="Search service"></div><select class="form-select" name="status" onchange="this.form.submit()"><option value="">All statuses</option>@foreach(['Pending','Approved','Completed','Cancelled','Declined'] as $option)<option value="{{ $option }}" @selected($status === $option)>{{ $option === 'Approved' ? 'Booked' : $option }}</option>@endforeach</select><button class="btn-prim"><i class="fas fa-filter"></i> Filter</button></form>
+                        <form method="GET" class="history-filters"><div class="history-search"><button type="submit" class="history-search-btn" aria-label="Search"><i class="fas fa-search"></i></button><input class="form-control" name="search" value="{{ $search }}" placeholder="Search service"></div><select class="form-select" name="status" onchange="this.form.submit()"><option value="">All statuses</option>@foreach(['Pending','Approved','Completed','Cancelled','Declined'] as $option)<option value="{{ $option }}" @selected($status === $option)>{{ $option === 'Approved' ? 'Booked' : $option }}</option>@endforeach</select></form>
                     </div>
                     <div style="overflow-x:auto">
                         <table class="appt-table">

@@ -198,4 +198,37 @@
             reopen();
         }
     })();
+
+    /*
+     * Restore scroll position after an action redirects back to the same
+     * page. Every archive/unarchive/close-date/etc. action here is a plain
+     * POST that reloads the whole page — without this, closing a date (or
+     * any similar action) three screens down in Configuration snapped the
+     * page back to the very top, so the admin had to scroll all the way
+     * back down to see the result. Works regardless of success or error
+     * (unlike the modal-reopen logic above, which only matters on error).
+     */
+    (function () {
+        var KEY = 'scrollY:' + location.pathname;
+
+        document.addEventListener('submit', function (e) {
+            var form = e.target;
+            if (!(form instanceof HTMLFormElement)) return;
+            if ((form.getAttribute('method') || 'get').toLowerCase() !== 'post') return;
+
+            try { sessionStorage.setItem(KEY, String(window.scrollY)); } catch (err) {}
+        }, true);
+
+        var y = null;
+        try { y = sessionStorage.getItem(KEY); sessionStorage.removeItem(KEY); } catch (err) {}
+        if (y === null) return;
+
+        function restore() { window.scrollTo(0, parseInt(y, 10) || 0); }
+
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', restore);
+        } else {
+            restore();
+        }
+    })();
 </script>

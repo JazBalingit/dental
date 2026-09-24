@@ -1189,8 +1189,29 @@
         .history-filters .form-select { width: 165px; }
 
         .history-search { position: relative; min-width: 250px; }
-        .history-search i { position: absolute; z-index: 2; left: 13px; top: 14px; color: #5a7593; font-size: 13px; }
+        .history-search i { position: absolute; z-index: 2; left: 13px; top: 14px; color: #5a7593; font-size: 13px; pointer-events: none; }
         .history-search .form-control { padding-left: 36px; }
+
+        /* The search icon is a real submit button now (no more separate
+           "Filter" button) — reset it back to looking like the plain icon
+           it replaced, just clickable and keyboard-focusable. */
+        .history-search-btn {
+            position: absolute;
+            z-index: 2;
+            left: 0;
+            top: 0;
+            width: 36px;
+            height: 100%;
+            border: 0;
+            background: transparent;
+            padding: 0;
+            cursor: pointer;
+        }
+        .history-search-btn:focus-visible {
+            outline: 2px solid #24b85a;
+            outline-offset: -2px;
+            border-radius: 9px 0 0 9px;
+        }
 
         .history-filters .btn-prim {
             min-height: 42px;

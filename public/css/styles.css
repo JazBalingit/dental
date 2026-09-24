@@ -1555,6 +1555,25 @@ h6 {
   color: #047857;
 }
 
+/* Every table's Actions column (Appointments, Appointment Approval, Patient
+   Records, User/Staff Accounts, Services, Closed Dates, ...) holds 1-3
+   .btn-pill buttons side by side with plain inline-block wrapping — once the
+   column runs out of room (a narrow window, or a long row of buttons), that
+   default wrap staggers them at uneven heights instead of a clean line
+   break. Flexbox gives them a consistent gap and right-aligned wrap instead. */
+.table-soft td.text-end {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  align-items: center;
+  gap: .4rem;
+}
+
+.table-soft td.text-end .btn-pill,
+.table-soft td.text-end .btn {
+  margin: 0;
+}
+
 /* Pagination */
 .pagination-soft {
   display: flex;

@@ -109,6 +109,14 @@
     .report-signature-name { font-weight: 700; color: var(--ink-900); font-size: .9rem; }
     .report-signature-role { font-size: .75rem; color: var(--ink-500); text-transform: uppercase; letter-spacing: .04em; margin-top: .1rem; }
     @media print {
+      /* styles.css sets `html, body { background: var(--ink-100) }` for
+         the normal on-screen admin theme — this page only ever whitened
+         `body`. Because print-color-adjust:exact above forces backgrounds
+         to actually print instead of being stripped, `html`'s grey never
+         got overridden and showed through as a shaded block wherever the
+         document's content ended before the physical page did (e.g. below
+         the signature on the last page). */
+      html,
       body { background: #fff; }
       .no-print { display: none !important; }
       .report-wrap { padding: 0; max-width: none; }

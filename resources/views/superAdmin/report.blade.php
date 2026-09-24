@@ -109,11 +109,30 @@
     .report-signature-name { font-weight: 700; color: var(--ink-900); font-size: .9rem; }
     .report-signature-role { font-size: .75rem; color: var(--ink-500); text-transform: uppercase; letter-spacing: .04em; margin-top: .1rem; }
     @media print {
+      /* styles.css sets `html, body { background: var(--ink-100) }` for
+         the normal on-screen admin theme — this page only ever whitened
+         `body`. Because print-color-adjust:exact above forces backgrounds
+         to actually print instead of being stripped, `html`'s grey never
+         got overridden and showed through as a shaded block wherever the
+         document's content ended before the physical page did (e.g. below
+         the signature on the last page). */
+      html,
       body { background: #fff; }
       .no-print { display: none !important; }
       .report-wrap { padding: 0; max-width: none; }
       .report-sheet { box-shadow: none; padding: 0; border-radius: 0; }
-      .report-section { page-break-inside: avoid; }
+      /* A whole .report-section (heading + stats + chart + the FULL table)
+         easily runs longer than one page once there's real data in the
+         table — telling the browser to never break *inside* it just pushed
+         the entire section to the next page instead, leaving whatever came
+         before it (the report header) alone on an almost-blank page 1.
+         Only the small pieces below need to stay intact; the section and
+         its table are left free to flow and break across pages normally. */
+      .report-head,
+      .report-stats,
+      .report-bar-row,
+      .report-signature { page-break-inside: avoid; }
+      .report-section h2 { page-break-after: avoid; }
       table.report-table { page-break-inside: auto; }
       tr { page-break-inside: avoid; }
     }

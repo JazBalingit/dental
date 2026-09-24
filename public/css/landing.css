@@ -453,6 +453,14 @@ section[id] {
 }
 
 /* SERVICES */
+/* Bootstrap's .row is already a flex container (row-cols-md-2 gives each
+   .col a fixed 50% width) — centering it keeps a trailing odd card (e.g.
+   an uncategorized "Other Services" card with no pair) centered under the
+   row above instead of stuck against the left edge, on every breakpoint. */
+#services .row {
+    justify-content: center;
+}
+
 .service-card {
     padding: 32px;
 }

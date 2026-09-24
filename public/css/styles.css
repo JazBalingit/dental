@@ -673,6 +673,12 @@ h6 {
   height: 100vh;
   display: flex;
   flex-direction: column;
+  /* Without this, a shorter browser window (or a role with a long nav
+     list) pushed the profile badge / Logout below the sidebar's own
+     100vh box with nothing able to reach it — the box doesn't grow and
+     nothing else on the page scrolls it into view. Auto only shows a
+     scrollbar when the height-based compacting below still isn't enough. */
+  overflow-y: auto;
 }
 
 .sidebar .brand {
@@ -681,6 +687,7 @@ h6 {
   gap: .75rem;
   padding: 0 1.25rem 1.25rem;
   border-bottom: 1px solid rgba(255, 255, 255, .08);
+  flex-shrink: 0;
 }
 
 .sidebar .brand .logo {
@@ -875,6 +882,64 @@ h6 {
   padding: .85rem;
   border-top: 1px solid rgba(255, 255, 255, .1);
   margin-top: .5rem;
+  flex-shrink: 0;
+}
+
+/* Shrink the sidebar's own vertical rhythm on shorter windows so a full
+   nav list (super admin: 9+ items) fits without ever needing the
+   overflow-y scroll above — most laptops/tablets never hit that fallback. */
+@media (max-height: 760px) {
+  .sidebar {
+    padding: .85rem 0;
+  }
+
+  .sidebar .brand {
+    padding: 0 1.25rem .85rem;
+  }
+
+  .sidebar .nav-section {
+    padding: .5rem .85rem .25rem;
+  }
+
+  .sidebar .nav a,
+  .sidebar .nav-toggle,
+  .sidebar .nav-sub-link {
+    padding-top: .45rem;
+    padding-bottom: .45rem;
+  }
+
+  .sidebar-footer {
+    padding: .55rem .85rem;
+  }
+}
+
+@media (max-height: 620px) {
+  .sidebar .brand .logo {
+    width: 38px;
+    height: 38px;
+    font-size: 16px;
+  }
+
+  .sidebar .nav a,
+  .sidebar .nav-toggle,
+  .sidebar .nav-sub-link {
+    padding-top: .32rem;
+    padding-bottom: .32rem;
+    font-size: .85rem;
+  }
+
+  .sidebar .nav-section {
+    padding: .35rem .85rem .15rem;
+  }
+
+  .sidebar-profile-badge {
+    padding: .4rem .5rem;
+  }
+
+  .sidebar-profile-badge .avatar {
+    width: 30px;
+    height: 30px;
+  }
 }
 
 .sidebar-profile-badge {
@@ -1392,6 +1457,8 @@ h6 {
 .avatar-initials {
   width: 34px;
   height: 34px;
+  min-width: 34px;
+  min-height: 34px;
   border-radius: 50%;
   background: linear-gradient(135deg, var(--brand-700), var(--brand-500));
   color: #fff;
@@ -1401,6 +1468,14 @@ h6 {
   font-weight: 600;
   font-size: .8rem;
   margin-right: .6rem;
+  /* Every table row that uses this wraps it in a .d-flex (name + avatar +
+     pills) — as a flex item it can otherwise shrink below 34px, or squash
+     into an oval, once a long name or a narrow window tightens the row. */
+  flex-shrink: 0;
+  /* <img class="avatar-initials"> (real photos) vs. the plain div (letter
+     fallback): without this a non-square upload stretches to fill the
+     circle instead of being cropped, distorting the photo. */
+  object-fit: cover;
 }
 
 /* Pills / badges */
@@ -1758,6 +1833,13 @@ h6 {
   display: grid;
   grid-template-columns: repeat(7, 1fr);
   border-top: 1px solid var(--ink-100);
+  /* Grid tracks default to min-width:auto, sized to their widest cell's
+     content — without this a long badge (e.g. "Not available") stops the
+     7 columns from actually shrinking with the window, so the grid grows
+     past its container and .schedule-wrap's overflow:hidden below silently
+     clips Saturday/Sunday instead of every day staying visible and the
+     same width as the others. */
+  min-width: 0;
 }
 
 .month-grid .mh {
@@ -1774,6 +1856,7 @@ h6 {
 
 .month-grid .day-cell {
   min-height: 110px;
+  min-width: 0;
   padding: .5rem;
   border-bottom: 1px solid var(--ink-100);
   border-left: 1px solid var(--ink-100);
@@ -1893,10 +1976,12 @@ h6 {
 /* Image tiles (Configuration → System Information) */
 .cfg-img-grid {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  /* Fills the card body instead of stopping at a fixed 760px and leaving a
+     large empty gap on anything wider than that — each tile (and its
+     16:10 preview) now scales up with the available space. */
+  grid-template-columns: repeat(3, minmax(220px, 1fr));
   gap: 16px;
   margin-top: .75rem;
-  max-width: 760px;
 }
 
 .cfg-img-card {
@@ -2071,15 +2156,10 @@ h6 {
     grid-template-columns: 70px 1fr;
   }
 
-  /* Same horizontal-scroll treatment as .week-grid above: without a min
-     column width, CSS Grid's default min-width:auto still sizes each 1fr
-     track to fit its cell's content (day-cell badges/labels), which was
-     forcing the whole page to overflow horizontally instead of just this
-     calendar scrolling internally. */
-  .month-grid {
-    grid-template-columns: repeat(7, minmax(80px, 1fr));
-    overflow-x: auto;
-  }
+  /* All 7 days stay visible and the same width at any window size now —
+     .month-grid's own min-width: 0 (above, base rule) plus each
+     .day-cell's min-width: 0 let the 1fr columns actually shrink instead
+     of a minimum column width forcing sideways scroll/clipping. */
 
   .auth-main {
     padding-top: 92px;

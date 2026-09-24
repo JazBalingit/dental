@@ -45,6 +45,15 @@ class AppServiceProvider extends ServiceProvider
         if (config('app.url')) {
             URL::forceRootUrl(config('app.url'));
             URL::forceScheme(str_starts_with(config('app.url'), 'https://') ? 'https' : 'http');
+
+            // Pagination links are the one place Laravel builds URLs from
+            // $request->url() directly instead of going through url()/route()
+            // — so they aren't covered by forceRootUrl() above. Without this,
+            // clicking "page 2" on the rewritten Host sends the browser to
+            // Railway's raw domain, the session cookie (scoped to the real
+            // domain) doesn't follow, and EnsureAuthenticated bounces you
+            // back to /login even though you were still signed in.
+            Paginator::currentPathResolver(fn () => url()->current());
         }
 
         // One password policy for every "create / change password" form in the

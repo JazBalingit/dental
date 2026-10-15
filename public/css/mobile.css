@@ -699,7 +699,9 @@
   }
 
   .table-soft td.text-end:has(.btn-pill) > .btn-pill:first-child,
-  .table-soft td.text-end:has(.btn-pill) > :first-child .btn-pill {
+  .table-soft td.text-end:has(.btn-pill) > :first-child .btn-pill,
+  .table-soft td.text-end:has(.btn-pill) > .rt-val > .btn-pill:first-child,
+  .table-soft td.text-end:has(.btn-pill) > .rt-val > :first-child .btn-pill {
     margin-top: 0 !important;
   }
 }
@@ -996,4 +998,149 @@
   .appt-table td[data-label]:last-child a { width: 100%; justify-content: center; }
 
   .appt-table td:not([data-label]) { padding: 1rem .5rem !important; white-space: normal !important; }
+}
+
+/* ---------------------------------------------------------------------
+   16. Admin tables (.table-soft) — card mode. responsive-tables.js adds
+       .rt-stack only when a table is too wide for its box (any screen
+       size), and labels each cell from its <th>. Rows become cards of
+       "LABEL  value" lines laid out in an auto-fitting grid; actions
+       wrap across the bottom of the card. .rt-val wraps each cell's
+       content: invisible (display:contents) in table mode.
+   ------------------------------------------------------------------- */
+.table-soft .rt-val { display: contents; }
+
+.table-soft.rt-stack {
+  display: block;
+  background: transparent;
+  box-shadow: none;
+  border-radius: 0;
+  overflow: visible;
+}
+.table-soft.rt-stack thead { display: none; }
+.table-soft.rt-stack tbody {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 320px), 1fr));
+  gap: .75rem;
+  padding: .75rem;
+}
+.table-soft.rt-stack tbody tr {
+  display: flex;
+  flex-direction: column;
+  background: #fff !important;
+  border: 1px solid var(--ink-100, #e2e8f0);
+  border-radius: 14px;
+  padding: .35rem .95rem .6rem;
+  box-shadow: 0 2px 8px rgba(15, 23, 42, .04);
+  min-width: 0;
+}
+.table-soft.rt-stack tbody tr:hover { background: #fff !important; border-color: var(--brand-100, #d6f3d9); }
+.table-soft.rt-stack tbody td {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: .9rem;
+  padding: .5rem 0 !important;
+  border-bottom: 1px dashed var(--ink-100, #e2e8f0) !important;
+  white-space: normal !important;
+  min-width: 0 !important;
+  text-align: right;
+  font-size: .88rem;
+}
+.table-soft.rt-stack tbody td::before {
+  content: attr(data-label);
+  flex: none;
+  max-width: 45%;
+  font-size: .7rem;
+  font-weight: 700;
+  letter-spacing: .05em;
+  text-transform: uppercase;
+  color: var(--ink-500, #64748b);
+  text-align: left;
+}
+.table-soft.rt-stack tbody td:not([data-label])::before,
+.table-soft.rt-stack tbody td[data-label=""]::before { display: none; }
+.table-soft.rt-stack .rt-val {
+  display: block;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+/* Avatar + name cells keep their own row layout, right-aligned. */
+.table-soft.rt-stack .rt-val > .d-flex { justify-content: flex-end; text-align: left; }
+
+/* The actions cell (last one / text-end): no label, buttons fill the width. */
+.table-soft.rt-stack tbody td:last-child {
+  border-bottom: 0 !important;
+  padding-top: .7rem !important;
+  justify-content: flex-start;
+}
+.table-soft.rt-stack tbody td:last-child::before { display: none; }
+.table-soft.rt-stack tbody td:last-child > .rt-val {
+  display: flex;
+  flex-wrap: wrap;
+  gap: .4rem;
+  width: 100%;
+}
+.table-soft.rt-stack tbody td:last-child > .rt-val > *,
+.table-soft.rt-stack tbody td:last-child > .rt-val > form > .btn-pill,
+.table-soft.rt-stack tbody td:last-child > .rt-val > .btn-pill {
+  flex: 1 1 calc(50% - .4rem);
+  margin: 0 !important;
+}
+.table-soft.rt-stack tbody td:last-child form { display: flex; }
+.table-soft.rt-stack tbody td:last-child .btn-pill,
+.table-soft.rt-stack tbody td:last-child .btn {
+  width: 100%;
+  justify-content: center;
+}
+/* "No records" row spans the whole grid, centered. */
+.table-soft.rt-stack tbody tr:has(td[colspan]) {
+  grid-column: 1 / -1;
+  border-style: dashed;
+}
+.table-soft.rt-stack tbody td[colspan] {
+  justify-content: center;
+  text-align: center;
+  border-bottom: 0 !important;
+}
+
+/* ---------------------------------------------------------------------
+   17. Table pagination: the page buttons wrap instead of running off the
+       right edge (the last-page arrows were half off-screen at 320px).
+   ------------------------------------------------------------------- */
+.pagination-soft { flex-wrap: wrap; gap: .5rem .75rem; }
+.pagination-soft .pages { flex-wrap: wrap; }
+@media (max-width: 575.98px) {
+  .pagination-soft { flex-direction: column; align-items: center; text-align: center; }
+  .pagination-soft .pages { justify-content: center; }
+  .pagination-soft .pages a,
+  .pagination-soft .pages button { width: 34px; height: 34px; }
+}
+
+/* ---------------------------------------------------------------------
+   18. Configuration → images: the three image tiles needed ~700px, more
+       than the card has at 1024px (sidebar + tab list), so the third ran
+       off the edge. Fit as many columns as the card allows.
+   ------------------------------------------------------------------- */
+.cfg-img-grid {
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 200px), 1fr)) !important;
+  max-width: none !important;
+}
+.table-soft.rt-stack tbody td:last-child .btn-pill,
+.table-soft.rt-stack tbody td:last-child .btn { gap: .35rem; }
+/* Values shrink to the card: fixed-width truncated text (service
+   descriptions, emails…) fits the space instead of poking out. */
+.table-soft.rt-stack .rt-val { flex: 1 1 auto; }
+.table-soft.rt-stack .rt-val .text-truncate,
+.table-soft.rt-stack .rt-val [style*="max-width"] {
+  max-width: 100% !important;
+}
+.table-soft.rt-stack .rt-val .text-truncate { display: block; }
+/* Status pills ("Appointment Rescheduled") may wrap inside a narrow card. */
+.table-soft.rt-stack .rt-val .pill,
+.table-soft.rt-stack .rt-val .badge,
+.table-soft.rt-stack .rt-val .badge-pill {
+  white-space: normal;
+  max-width: 100%;
+  text-align: center;
 }

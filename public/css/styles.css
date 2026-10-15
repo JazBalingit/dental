@@ -3888,3 +3888,24 @@ canvas {
   .legal-modal .modal-body { padding: 1rem 1rem 1.25rem; }
   .legal-doc { font-size: .9rem; }
 }
+
+/* Checkboxes, radios and switches in the brand green instead of Bootstrap blue. */
+.form-check-input:checked {
+  background-color: #1e8f27;
+  border-color: #1e8f27;
+}
+.form-check-input:focus {
+  border-color: #4cc45a;
+  box-shadow: 0 0 0 .25rem rgba(30, 143, 39, .2);
+}
+.form-check-input[type="checkbox"]:indeterminate {
+  background-color: #1e8f27;
+  border-color: #1e8f27;
+}
+.form-switch .form-check-input:focus:not(:checked) {
+  --bs-form-switch-bg: url("data:image/svg+xml,%3csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%27-4 -4 8 8%27%3e%3ccircle r=%273%27 fill=%27%234cc45a%27/%3e%3c/svg%3e");
+}
+input[type="checkbox"],
+input[type="radio"] {
+  accent-color: #1e8f27;
+}

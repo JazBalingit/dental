@@ -428,14 +428,13 @@
       Configuration, and the admin profile tabs).
    ------------------------------------------------------------------- */
 @media (max-width: 920px) {
+  /* Only three tabs: wrap them (filling the row) instead of a sideways-
+     scrolling strip whose last tab was half cut off. */
   .settings-tabs {
     flex-direction: row;
-    flex-wrap: nowrap;
-    overflow-x: auto;
+    flex-wrap: wrap;
+    overflow-x: visible;
     gap: 6px;
-    padding-bottom: 5px;
-    scroll-snap-type: x proximity;
-    -webkit-overflow-scrolling: touch;
   }
 
   .settings-tabs::-webkit-scrollbar {
@@ -448,9 +447,9 @@
   }
 
   .settings-tab-btn {
-    flex: 0 0 auto;
+    flex: 1 1 auto;
+    justify-content: center;
     width: auto !important;
-    scroll-snap-align: start;
     white-space: nowrap;
     padding: 9px 13px;
     font-size: 13px;

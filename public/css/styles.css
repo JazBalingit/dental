@@ -3752,3 +3752,19 @@ canvas {
   .backup-copy { padding: 12px 14px; }
   .backup-copy-actions { width: 100%; }
 }
+
+/* Auth & guest pages (login, signup, guest booking, manage booking): links
+   in the brand green instead of Bootstrap's default blue — Privacy Policy /
+   Terms, Log in, Resend code, Use a different email, Change… */
+.auth-main a:not(.btn),
+.auth-main .btn-link {
+  color: var(--brand-800, #167d1d);
+  text-decoration-color: rgba(22, 125, 29, .45);
+}
+.auth-main a:not(.btn):hover,
+.auth-main .btn-link:hover,
+.auth-main .btn-link:focus-visible {
+  color: var(--brand-900, #0f5c14);
+  text-decoration-color: currentColor;
+}
+.auth-main .btn-link:disabled { color: #8fa596; }

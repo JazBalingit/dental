@@ -127,7 +127,7 @@ class ActivityLogService
         }
     }
 
-    protected function resolveActorName(?int $userId): ?string
+    public function resolveActorName(?int $userId): ?string
     {
         if (!$userId) {
             return null;

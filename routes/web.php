@@ -19,6 +19,7 @@ use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\AppointmentsController;
 use App\Http\Controllers\PatientRecordsController;
 use App\Http\Controllers\OdontogramController;
+use App\Http\Controllers\BackupController;
 use App\Http\Controllers\ConfigurationController;
 use App\Http\Controllers\WalkInController;
 use App\Http\Controllers\ReportController;
@@ -252,6 +253,13 @@ Route::middleware('admin')->group(function () {
         // Configuration → Activity Logs
         Route::post('/configuration/activity-logs/{id}/archive', [ConfigurationController::class, 'archiveActivityLog'])->name('configuration.activityLogs.archive');
         Route::post('/configuration/activity-logs/{id}/unarchive', [ConfigurationController::class, 'unarchiveActivityLog'])->name('configuration.activityLogs.unarchive');
+
+        // Configuration → Backup & Restore
+        Route::post('/configuration/backups', [BackupController::class, 'store'])->name('configuration.backups.store');
+        Route::post('/configuration/backups/restore-upload', [BackupController::class, 'restoreUpload'])->name('configuration.backups.restoreUpload');
+        Route::get('/configuration/backups/{name}/download', [BackupController::class, 'download'])->name('configuration.backups.download');
+        Route::post('/configuration/backups/{name}/restore', [BackupController::class, 'restore'])->name('configuration.backups.restore');
+        Route::post('/configuration/backups/{name}/delete', [BackupController::class, 'destroy'])->name('configuration.backups.destroy');
     });
 
     /*

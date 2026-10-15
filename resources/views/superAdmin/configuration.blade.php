@@ -71,6 +71,8 @@
                 @if ($canViewActivityLogs)
                   <button class="nav-link text-start {{ $settingsTab === 'activity' ? 'active' : '' }}"
                     data-settings-tab="activity" type="button"><i class="bi bi-activity me-2"></i>Activity Logs</button>
+                  <button class="nav-link text-start {{ $settingsTab === 'backup' ? 'active' : '' }}"
+                    data-settings-tab="backup" type="button"><i class="bi bi-database-check me-2"></i>Backup &amp; Restore</button>
                 @endif
               </div>
             </div>
@@ -919,6 +921,11 @@
                   </div>
                 </div>
               </div>
+            </div>
+
+            {{-- ===================== BACKUP & RESTORE (super admin only) ===================== --}}
+            <div class="settings-pane" data-settings-pane="backup" @if ($settingsTab !== 'backup') hidden @endif>
+              @include('superAdmin.partials.backup-restore')
             </div>
             @endif
 

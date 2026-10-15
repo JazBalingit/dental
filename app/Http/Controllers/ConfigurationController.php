@@ -11,6 +11,7 @@ use App\Models\Service;
 use App\Models\ServiceCategory;
 use App\Models\SystemSetting;
 use App\Services\ActivityLogService;
+use App\Services\BackupService;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
 
@@ -33,6 +34,7 @@ class ConfigurationController extends Controller
         'Reschedule Proposed', 'Reschedule Accepted', 'Reschedule Declined',
         'Profile Updated', 'Email Changed', 'Password Changed',
         'Super Admin Activated', 'Super Admin Released',
+        'Backup Created', 'Backup Restored', 'Backup Deleted',
     ];
 
     public function index(Request $request)
@@ -114,6 +116,7 @@ class ConfigurationController extends Controller
         $tabs = ['about', 'services', 'privacy', 'appointment'];
         if ($canViewActivityLogs) {
             $tabs[] = 'activity';
+            $tabs[] = 'backup';
         }
         $settingsTab = in_array($request->query('settingsTab'), $tabs, true)
             ? $request->query('settingsTab')
@@ -121,6 +124,9 @@ class ConfigurationController extends Controller
 
         return view('superAdmin.configuration', [
             'canViewActivityLogs' => $canViewActivityLogs,
+            // Backup & Restore is super-admin only, same as Activity Logs.
+            'backups' => $canViewActivityLogs ? app(BackupService::class)->list() : [],
+            'backupTypeLabels' => BackupService::TYPE_LABELS,
             'closedWeekdays' => ClosedDate::closedWeekdays(),
             'serviceCategory' => $serviceCategory,
             'settingsTab' => $settingsTab,

@@ -567,15 +567,18 @@
   .sidebar-footer .dropdown-menu,
   .sidebar .dropdown-menu {
     position: fixed !important;
+    /* Inset from whatever contains it: the open (transformed, scrolling)
+       sidebar clips anything wider than itself, so a 100vw-wide sheet was
+       cut off at the sidebar's edge. */
     left: 12px !important;
-    right: auto !important;
+    right: 12px !important;
     bottom: 12px !important;
     top: auto !important;
     transform: none !important;
     margin: 0 !important;
-    width: calc(100vw - 24px) !important;
+    width: auto !important;
     min-width: 0 !important;
-    max-width: calc(100vw - 24px) !important;
+    max-width: none !important;
     max-height: 70vh;
     overflow-y: auto;
     z-index: 1090;

@@ -85,6 +85,19 @@ html {
   scrollbar-gutter: stable;
 }
 
+/* …which means Bootstrap's own "make room for the vanished scrollbar"
+   padding (body, fixed bars, the modal itself) is no longer needed — with
+   it, every open modal sat 15px left of center and fixed bars nudged. */
+body.modal-open,
+body.modal-open .fixed-top,
+body.modal-open .fixed-bottom,
+.modal {
+  padding-right: 0 !important;
+}
+body.modal-open .sticky-top {
+  margin-right: 0 !important;
+}
+
 h1,
 h2,
 h3,
@@ -3768,3 +3781,110 @@ canvas {
   text-decoration-color: currentColor;
 }
 .auth-main .btn-link:disabled { color: #8fa596; }
+
+/* =====================================================================
+   Privacy Policy / Terms of Use modals — formatted by App\Support\LegalText
+   ===================================================================== */
+.legal-modal .modal-title i { color: var(--brand-700); }
+.legal-modal .modal-body { padding: 1.25rem 1.5rem 1.5rem; }
+.legal-doc {
+  color: #3f4a44;
+  font-size: .94rem;
+  line-height: 1.7;
+  max-width: 68ch;
+  margin: 0 auto;
+  overflow-wrap: break-word;
+}
+.legal-doc p { margin: 0 0 .85rem; }
+.legal-title {
+  font-family: 'Poppins', sans-serif;
+  font-weight: 700;
+  font-size: clamp(1.05rem, 3.6vw, 1.3rem);
+  color: var(--brand-800);
+  letter-spacing: .01em;
+  line-height: 1.3;
+}
+.legal-subtitle {
+  font-weight: 600;
+  font-size: .82rem;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  color: #6b7a70;
+  margin-top: .2rem;
+}
+.legal-meta {
+  display: inline-flex;
+  align-items: center;
+  gap: .4rem;
+  margin: .9rem 0 1.25rem;
+  padding: .3rem .75rem;
+  border-radius: 999px;
+  background: var(--brand-50);
+  color: var(--brand-800);
+  font-size: .8rem;
+}
+.legal-section {
+  display: flex;
+  align-items: center;
+  gap: .6rem;
+  margin: 1.75rem 0 .9rem;
+  padding-bottom: .55rem;
+  border-bottom: 2px solid var(--brand-100);
+  font-family: 'Poppins', sans-serif;
+  font-weight: 700;
+  font-size: clamp(1rem, 3.4vw, 1.15rem);
+  color: #1f2a24;
+}
+.legal-num {
+  flex: none;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--brand-700);
+  color: #fff;
+  font-size: .85rem;
+}
+.legal-heading {
+  margin: 1.35rem 0 .45rem;
+  font-weight: 700;
+  font-size: .98rem;
+  color: var(--brand-800);
+}
+.legal-list {
+  list-style: none;
+  margin: 0 0 1rem;
+  padding: .7rem .9rem;
+  border-radius: .75rem;
+  background: #f7faf8;
+  border: 1px solid #e6eee9;
+}
+.legal-list li {
+  position: relative;
+  padding: .2rem 0 .2rem 1.15rem;
+}
+.legal-list li::before {
+  content: "";
+  position: absolute;
+  left: .1rem;
+  top: .78em;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--brand-500);
+}
+.legal-callout {
+  margin: 0 0 1rem;
+  padding: .9rem 1rem;
+  border-left: 4px solid var(--brand-700);
+  border-radius: .5rem;
+  background: var(--brand-50);
+  color: #24332a;
+  font-weight: 500;
+}
+@media (max-width: 575.98px) {
+  .legal-modal .modal-body { padding: 1rem 1rem 1.25rem; }
+  .legal-doc { font-size: .9rem; }
+}

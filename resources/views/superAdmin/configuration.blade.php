@@ -622,6 +622,12 @@
                     data-confirm-title="Save Privacy &amp; Legal Terms?"
                     data-confirm-message="Save these changes to the Privacy Policy and Legal Terms? This updates what patients see on the signup page.">
                     @csrf
+                    <div class="small text-muted-2 mb-3 p-2 rounded-3" style="background: var(--brand-50);">
+                      <i class="bi bi-magic me-1" style="color: var(--brand-700);"></i>
+                      Plain text is formatted for patients automatically: leave a <strong>blank line</strong> between paragraphs ·
+                      a <strong>short line on its own</strong> becomes a heading · <strong>"1. Title"</strong> starts a numbered section ·
+                      <strong>lines with no blank line between them</strong> become a bullet list · <strong>"Last Updated: …"</strong> shows as a date badge.
+                    </div>
                     <div class="mb-3">
                       <label class="form-label">Privacy Policy</label>
                       <textarea name="privacy_policy" class="form-control @error('privacy_policy') has-error @enderror" rows="10"
@@ -629,7 +635,7 @@
                       @error('privacy_policy')
                         <div class="field-error"><i class="bi bi-exclamation-circle-fill"></i> {{ $message }}</div>
                       @else
-                        <div class="small text-muted-2 mt-1">Shown to patients on the sign-up page.</div>
+                        <div class="small text-muted-2 mt-1">Shown to patients on the sign-up and guest booking pages.</div>
                       @enderror
                     </div>
                     <div class="mb-3">

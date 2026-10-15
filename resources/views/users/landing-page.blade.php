@@ -137,11 +137,14 @@
               <div class="step-icon"><i class="{{ $stepIcons[($n - 1) % count($stepIcons)] }}"></i></div>
               <h5>{{ $step['title'] }}</h5>
               <p>{{ $step['desc'] }}</p>
-              @if ($n === 1)
-                @unless (session('user_id'))
+              {{-- Step 3 = book as a guest, step 4 = use an account (the default copy). --}}
+              @unless (session('user_id'))
+                @if ($n === 3)
+                  <a href="#appointment" class="step-cta"><i class="fa-regular fa-calendar-plus me-2"></i>Book Now</a>
+                @elseif ($n === 4)
                   <a href="{{ route('signup') }}" class="step-cta"><i class="fa-solid fa-user-plus me-2"></i>Sign Up</a>
-                @endunless
-              @endif
+                @endif
+              @endunless
               @if ($n === $lastStep && session('user_id'))
                 <a href="{{ route('userAppointment') }}" class="step-cta"><i
                     class="fa-regular fa-calendar-check me-2"></i>My Appointments</a>

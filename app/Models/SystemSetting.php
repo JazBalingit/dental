@@ -48,12 +48,12 @@ class SystemSetting extends Model
     public static function appointmentStepDefaults(): array
     {
         return [
-            1 => ['title' => 'Create an Account or Log In', 'desc' => 'Sign up with your basic details, or log back in if you already have an account with us.'],
-            2 => ['title' => 'Open the Appointment Section', 'desc' => 'Once you\'re logged in, scroll down to "Book Now" — the dentist\'s monthly schedule appears right here on this page.'],
-            3 => ['title' => 'Pick an Open Date', 'desc' => 'Click any date that still has open slots to see that day\'s available times.'],
-            4 => ['title' => 'Choose a Time & Service', 'desc' => 'Pick an open time slot, then select the dental treatment you need for that visit.'],
-            5 => ['title' => 'Review & Confirm', 'desc' => 'Double-check the service, date, and time, then confirm to submit your appointment request.'],
-            6 => ['title' => 'Wait for Approval', 'desc' => 'Your request starts as Pending — we\'ll notify you once staff approves it. Track it anytime on your Appointments page.'],
+            1 => ['title' => 'Pick a Dentist & Date', 'desc' => 'Scroll down to "Book an Appointment", choose your dentist, then tap any date that still has open slots.'],
+            2 => ['title' => 'Choose a Time & Service', 'desc' => 'Pick an open time and up to 3 services. Add a note or a photo so your dentist knows what you need.'],
+            3 => ['title' => 'Book as a Guest', 'desc' => 'No account needed — just confirm your email with a 6-digit code. It\'s the quickest way to book, and you manage it from the link we email you.'],
+            4 => ['title' => 'Or Use a Free Account', 'desc' => 'Keep every visit, your dental records and history in one Patient Portal, get notified in the app, and book for your family in a few taps.'],
+            5 => ['title' => 'Wait for Approval', 'desc' => 'Your request starts as Pending. We\'ll email you (and notify you in your portal) as soon as the clinic approves it.'],
+            6 => ['title' => 'Reschedule or Cancel Anytime', 'desc' => 'Use your Patient Portal or the "Manage my appointment" link in your email. If the clinic suggests a new time, accept it or keep yours.'],
         ];
     }
 
@@ -94,12 +94,12 @@ class SystemSetting extends Model
     public static function appointmentStepIcons(): array
     {
         return [
-            'fa-solid fa-user-plus',
-            'fa-regular fa-calendar',
             'fa-regular fa-calendar-days',
             'fa-regular fa-clock',
-            'fa-regular fa-circle-check',
+            'fa-regular fa-envelope',
+            'fa-solid fa-user-plus',
             'fa-regular fa-bell',
+            'fa-regular fa-calendar-check',
             'fa-regular fa-comment-dots',
             'fa-solid fa-notes-medical',
         ];

@@ -24,6 +24,9 @@ class EnsureStaffIsVerified
         'staffProfile.updateProfile',
         'staffProfile.sendVerification',
         'staffProfile.verifyEmail',
+        // A mistyped email can be corrected (and verified) by changing it.
+        'emailChange.send',
+        'emailChange.verify',
         'logout',
     ];
 

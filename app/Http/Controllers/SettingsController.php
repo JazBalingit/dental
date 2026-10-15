@@ -48,7 +48,7 @@ class SettingsController extends Controller
         $search = $request->query('search');
         $type = $request->query('type');
 
-        $logs = ActivityLog::where('UserID', $user->UserID)
+        $logs = ActivityLog::meaningful()->where('UserID', $user->UserID)
             ->where('IsArchived', false)
             ->when($type, fn ($q) => $q->where('ActivityType', $type))
             ->when($search, fn ($q) => $q->where(fn ($w) => $w
@@ -62,7 +62,7 @@ class SettingsController extends Controller
             // page link so paging the log doesn't bounce back to Profile.
             ->appends(['tab' => 'configuration']);
 
-        $activityTypes = ActivityLog::where('UserID', $user->UserID)
+        $activityTypes = ActivityLog::meaningful()->where('UserID', $user->UserID)
             ->distinct()->orderBy('ActivityType')->pluck('ActivityType');
 
         return view('users.settings', [

@@ -4,8 +4,9 @@
     menu can't drift between screens.
 
     The super admin sees the full menu. A staff/dentist session
-    (no session('is_super_admin')) doesn't get Staff Accounts or the
-    System section — those pages are guarded to the super admin anyway.
+    (no session('is_super_admin')) doesn't get Staff Accounts; a Staff-role
+    account does get Configuration (minus Activity Logs), a Dentist doesn't.
+    The routes enforce the same rules.
 
     Usage: @include('partials.admin-sidebar-nav', ['active' => 'dashboard'])
     where $active matches one of the keys below.
@@ -25,7 +26,7 @@
     <a href="{{ route('walkIn') }}" class="nav-sub-link {{ $active === 'walkIn' ? 'active' : '' }}"><i class="bi bi-person-walking"></i> Walk-in Patient</a>
     <a href="{{ route('followUp') }}" class="nav-sub-link {{ $active === 'followUp' ? 'active' : '' }}"><i class="bi bi-arrow-repeat"></i> Follow-up Appointment</a>
   </div>
-  <a href="{{ route('appointmentApproval') }}" @class(['active' => $active === 'appointmentApproval'])><i class="bi bi-clipboard2-check"></i> Appointment Approval</a>
+  <a href="{{ route('appointmentApproval') }}" @class(['active' => $active === 'appointmentApproval'])><i class="bi bi-clipboard2-check"></i> Appointment Requests</a>
   <a href="{{ route('appointments') }}" @class(['active' => $active === 'appointments'])><i class="bi bi-card-checklist"></i> Appointments</a>
   <a href="{{ route('patientRecords') }}" @class(['active' => $active === 'patientRecords'])><i class="bi bi-folder2-open"></i> Patient Records</a>
 
@@ -33,7 +34,10 @@
   <a href="{{ route('userAcc') }}" @class(['active' => $active === 'userAcc'])><i class="bi bi-person-vcard"></i> User Accounts</a>
   @if (session('is_super_admin'))
     <a href="{{ route('staffAcc') }}" @class(['active' => $active === 'staffAcc'])><i class="bi bi-person-badge"></i> Staff Accounts</a>
+  @endif
 
+  {{-- Configuration: super admin + Staff-role accounts (not dentists) --}}
+  @if (\App\Models\UserAccount::currentCanManageConfiguration())
     <div class="nav-section">System</div>
     <a href="{{ route('configuration') }}" @class(['active' => $active === 'configuration'])><i class="bi bi-sliders2"></i> Configuration</a>
   @endif

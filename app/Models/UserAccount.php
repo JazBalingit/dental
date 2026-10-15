@@ -79,6 +79,45 @@ class UserAccount extends Model
             ->orderBy('UserID');
     }
 
+    /** The logged-in admin-panel account, memoized per request. */
+    protected static ?UserAccount $sessionAccount = null;
+
+    public static function current(): ?UserAccount
+    {
+        $id = session('user_id');
+        if (!$id) {
+            return null;
+        }
+
+        if (static::$sessionAccount?->UserID !== $id) {
+            static::$sessionAccount = static::find($id);
+        }
+
+        return static::$sessionAccount;
+    }
+
+    /**
+     * Configuration is open to the super admin and to accounts with the
+     * Staff role — never to a Dentist. (Activity Logs inside it stay
+     * super-admin only; see canViewActivityLogs.)
+     */
+    public static function currentCanManageConfiguration(): bool
+    {
+        if (session('super_admin_setup')) {
+            return false;
+        }
+
+        return session('is_super_admin') || static::current()?->Position === 'Staff';
+    }
+
+    /**
+     * A dentist (not the super admin) only ever sees their own schedule.
+     */
+    public static function currentIsDentist(): bool
+    {
+        return !session('is_super_admin') && static::current()?->Position === 'Dentist';
+    }
+
     /**
      * "Dr. Jane Cruz" for a dentist account, falling back to the email.
      */

@@ -40,7 +40,7 @@
                     @endif
                 </span>
             @endif
-            @if ($side === 'user' && in_array($n->Status, ['Declined', 'Cancelled']) && $n->appointment && $n->appointment->DeclineReason)
+            @if ($side === 'user' && in_array($n->Status, ['Declined', 'Cancelled', 'No Show']) && $n->appointment && $n->appointment->DeclineReason)
                 <br><span class="text-muted small">Reason: {{ $n->appointment->DeclineReason }}</span>
             @endif
         </p>

@@ -670,21 +670,29 @@
        the cell breathing room so the row doesn't look cramped.
    ------------------------------------------------------------------- */
 @media (max-width: 767.98px) {
+  /* The <td> stays a real table cell (no display:flex, see styles.css) so
+     it keeps its row's height; the buttons stack as full-width blocks. */
   .table-soft td.text-end:has(.btn-pill) {
-    display: flex;
-    flex-direction: column;
-    align-items: stretch;
-    gap: .4rem;
+    white-space: normal;
     min-width: 132px;
     padding-top: .75rem;
     padding-bottom: .75rem;
   }
 
+  .table-soft td.text-end:has(.btn-pill) form {
+    display: block;
+  }
+
   .table-soft td.text-end:has(.btn-pill) .btn-pill {
     width: 100%;
-    display: inline-flex;
+    display: flex;
     align-items: center;
     justify-content: center;
-    margin: 0 !important;
+    margin: .4rem 0 0 !important;
+  }
+
+  .table-soft td.text-end:has(.btn-pill) > .btn-pill:first-child,
+  .table-soft td.text-end:has(.btn-pill) > :first-child .btn-pill {
+    margin-top: 0 !important;
   }
 }

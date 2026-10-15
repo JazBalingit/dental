@@ -38,7 +38,9 @@ class StaffInfo extends Model
     // Usage in Blade: $staffInfo->photo_url
     public function getPhotoUrlAttribute()
     {
-        return $this->ProfilePicture
+        // Fall back to the default avatar when the file is gone (e.g. an upload
+        // wiped by a Railway redeploy), instead of rendering a broken image.
+        return $this->ProfilePicture && is_file(public_path($this->ProfilePicture))
             ? asset($this->ProfilePicture)
             : asset('images/default.png');
     }

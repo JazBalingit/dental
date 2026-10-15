@@ -13,6 +13,7 @@
     rel="stylesheet">
   <link rel="stylesheet" href="{{ asset('css/styles.css') }}">
   <link rel="stylesheet" href="{{ asset('css/odontogram.css') }}">
+  <link rel="stylesheet" href="{{ asset('css/medical-history.css') }}">
   <link rel="stylesheet" href="{{ asset('css/modals.css') }}">
   <link rel="stylesheet" href="{{ asset('css/mobile.css') }}">
 </head>
@@ -64,26 +65,62 @@
         {{-- Static (read-only) profile; editing is on the Patient Records list. --}}
         @include('patient-records.profile-card', ['patient' => $patient])
 
+        {{-- Medical history: current version + every earlier one --}}
+        @php $currentMedical = $medicalVersions->first(); @endphp
+        <div class="card-soft p-3 p-md-4 mb-3">
+          <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-2">
+            <div class="fw-semibold"><i class="bi bi-heart-pulse me-1" style="color:#b91c1c;"></i> Medical History</div>
+            <button type="button" class="btn btn-pill btn-pill-edit" data-bs-toggle="modal" data-bs-target="#medicalEditModal">
+              <i class="bi bi-pencil-square"></i> {{ $currentMedical ? 'Update' : 'Fill in' }}
+            </button>
+          </div>
+          @include('partials.medical-history-view', ['mhv' => $currentMedical, 'mhvCompact' => true])
+
+          @if ($medicalVersions->count() > 1)
+            <details class="mt-3">
+              <summary class="small fw-semibold" style="cursor:pointer;">Earlier versions ({{ $medicalVersions->count() - 1 }})</summary>
+              @foreach ($medicalVersions->slice(1) as $version)
+                <div class="mt-3 pt-3" style="border-top:1px dashed #e3ece6;">
+                  @include('partials.medical-history-view', ['mhv' => $version, 'mhvCompact' => true])
+                </div>
+              @endforeach
+            </details>
+          @endif
+        </div>
+
+        <div class="modal fade" id="medicalEditModal" tabindex="-1" aria-hidden="true">
+          <div class="modal-dialog modal-dialog-centered modal-lg modal-dialog-scrollable">
+            <div class="modal-content">
+              <form method="POST" action="{{ route('patientRecords.medical.update', $patient->PatientID) }}">
+                @csrf
+                <div class="modal-header">
+                  <h5 class="modal-title"><i class="bi bi-heart-pulse me-2" style="color:#b91c1c;"></i>Medical History — {{ $patient->full_name }}</h5>
+                  <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body" data-mh-step>
+                  <p class="small text-muted-2 mb-2">Saving keeps the old answers as an earlier version — nothing is overwritten.</p>
+                  <div data-mh-form>
+                    @include('partials.medical-history-form', ['mhf' => ['name' => 'mh', 'id' => 'staff', 'values' => $currentMedical?->form_values ?? [], 'staff' => true]])
+                  </div>
+                </div>
+                <div class="modal-footer">
+                  <button type="button" class="btn btn-ghost" data-bs-dismiss="modal">Cancel</button>
+                  <button type="submit" class="btn btn-brand"><i class="bi bi-check2-circle me-1"></i> Save Medical History</button>
+                </div>
+              </form>
+            </div>
+          </div>
+        </div>
+        @if ($errors->has('mh') || collect($errors->keys())->contains(fn ($k) => str_starts_with($k, 'mh.')))
+          <script>document.addEventListener('DOMContentLoaded', () => bootstrap.Modal.getOrCreateInstance(document.getElementById('medicalEditModal')).show());</script>
+        @endif
+
         <div class="card-soft p-3 p-md-4">
           <form method="GET" action="{{ route('patientRecords.history', $patient->PatientID) }}" class="data-toolbar">
             <div class="left">
-              <ul class="nav nav-pills" id="recordsTabs" role="tablist">
-                <li class="nav-item" role="presentation">
-                  <button class="nav-link {{ $tab !== 'archived' ? 'active' : '' }}" id="active-tab-btn"
-                    data-bs-toggle="pill" data-bs-target="#activePane" type="button" role="tab">
-                    Active
-                  </button>
-                </li>
-                <li class="nav-item" role="presentation">
-                  <button class="nav-link {{ $tab === 'archived' ? 'active' : '' }}" id="archived-tab-btn"
-                    data-bs-toggle="pill" data-bs-target="#archivedPane" type="button" role="tab">
-                    Archived
-                  </button>
-                </li>
-              </ul>
+              <div class="fw-semibold">Visit History</div>
             </div>
             <div class="right">
-              <input type="hidden" name="tab" id="activeTabField" value="{{ $tab }}">
               <div class="input-icon search">
                 <i class="bi bi-search"></i>
                 <input class="form-control" name="search" value="{{ $search }}" placeholder="Search treatment..." style="height:40px; padding-left:2.4rem;" />
@@ -91,74 +128,50 @@
             </div>
           </form>
 
-          <div class="tab-content mt-3">
-            @foreach ([
-              ['id' => 'activePane', 'list' => $records, 'archived' => false, 'empty' => 'No patient records yet.'],
-              ['id' => 'archivedPane', 'list' => $archivedRecords, 'archived' => true, 'empty' => 'No archived records.'],
-            ] as $pane)
-              <div class="tab-pane fade {{ ($tab === 'archived') === $pane['archived'] ? 'show active' : '' }}" id="{{ $pane['id'] }}" role="tabpanel">
-                <div class="table-responsive">
-                  <table class="table-soft">
-                    <thead>
-                      <tr>
-                        <th>Visit Date &amp; Time</th>
-                        <th>Treatment</th>
-                        <th>Completed On</th>
-                        <th>Status</th>
-                        @if ($pane['archived'])
-                            <th>Archive Reason</th>
-                        @endif
-                        <th class="text-end">Actions</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      @forelse ($pane['list'] as $record)
-                        <tr>
-                          <td>{{ $record->VisitDate->format('M j, Y') }} &bull; {{ \Carbon\Carbon::createFromFormat('H:i', $record->VisitTime)->format('g:i A') }}</td>
-                          <td>{{ $record->Service }}</td>
-                          <td>{{ $record->created_at->format('M j, Y g:i A') }}</td>
-                          <td><span class="pill {{ $pane['archived'] ? 'pill-muted' : 'pill-success' }}">{{ $record->Status }}</span></td>
-                          @if ($pane['archived'])
-                              @include('partials.archive-reason-cell', ['row' => $record])
-                          @endif
-                          <td class="text-end">
-                            <button type="button" class="btn-pill btn-pill-edit me-1" data-bs-toggle="modal" data-bs-target="#viewModal{{ $record->RecordID }}"><i
-                                class="bi bi-eye"></i> View</button>
-                            <button type="button" class="btn-pill btn-pill-archive" data-bs-toggle="modal"
-                              data-bs-target="#confirmActionModal"
-                              data-action-url="{{ route($pane['archived'] ? 'patientRecords.unarchive' : 'patientRecords.archive', $record->RecordID) }}"
-                              data-title="{{ $pane['archived'] ? 'Unarchive' : 'Archive' }} Patient Record"
-                              data-message="{{ $pane['archived'] ? 'Restore' : 'Archive' }} this record for {{ $fullName }}?"
-                              data-confirm-label="{{ $pane['archived'] ? 'Unarchive' : 'Archive' }}" data-confirm-class="btn-pill-archive">
-                              <i class="bi bi-archive"></i> {{ $pane['archived'] ? 'Unarchive' : 'Archive' }}</button>
-                          </td>
-                        </tr>
-                      @empty
-                        <tr>
-                          <td colspan="{{ $pane['archived'] ? 6 : 5 }}" class="text-center text-muted-2 py-4">{{ $pane['empty'] }}</td>
-                        </tr>
-                      @endforelse
-                    </tbody>
-                  </table>
-                </div>
+          {{-- Visits can't be archived one by one — only the whole patient can,
+               from the Patient Records list — so this is a single read-only list. --}}
+          <div class="mt-3">
+            <div class="table-responsive">
+              <table class="table-soft">
+                <thead>
+                  <tr>
+                    <th>Visit Date &amp; Time</th>
+                    <th>Treatment</th>
+                    <th>Completed On</th>
+                    <th>Status</th>
+                    <th class="text-end">Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  @forelse ($records as $record)
+                    <tr>
+                      <td>{{ $record->VisitDate->format('M j, Y') }} &bull; {{ \Carbon\Carbon::createFromFormat('H:i', $record->VisitTime)->format('g:i A') }}</td>
+                      <td>{{ $record->Service }}</td>
+                      <td>{{ $record->created_at->format('M j, Y g:i A') }}</td>
+                      <td><span class="pill pill-success">{{ $record->Status }}</span></td>
+                      <td class="text-end">
+                        <button type="button" class="btn-pill btn-pill-edit me-1" data-bs-toggle="modal" data-bs-target="#viewModal{{ $record->RecordID }}"><i
+                            class="bi bi-eye"></i> View</button>
+                        <button type="button" class="btn-pill btn-pill-archive" data-print-preview="{{ route('patientRecords.print', $record->RecordID) }}"
+                          data-print-title="Dental record · {{ $record->VisitDate->format('M j, Y') }}"><i class="bi bi-printer"></i> Print</button>
+                      </td>
+                    </tr>
+                  @empty
+                    <tr>
+                      <td colspan="5" class="text-center text-muted-2 py-4">No patient records yet.</td>
+                    </tr>
+                  @endforelse
+                </tbody>
+              </table>
+            </div>
 
-                <div class="pagination-soft">
-                  <div>Showing {{ $pane['list']->count() }} of {{ $pane['list']->total() }} entries</div>
-                  <div class="pages">
-                    @include('partials.pagination-pages', ['paginator' => $pane['list']])
-                  </div>
-                </div>
+            <div class="pagination-soft">
+              <div>Showing {{ $records->count() }} of {{ $records->total() }} entries</div>
+              <div class="pages">
+                @include('partials.pagination-pages', ['paginator' => $records])
               </div>
-            @endforeach
+            </div>
           </div>
-
-          <script>
-            document.querySelectorAll('#recordsTabs button').forEach(function (btn) {
-                btn.addEventListener('shown.bs.tab', function () {
-                    document.getElementById('activeTabField').value = btn.id === 'archived-tab-btn' ? 'archived' : 'active';
-                });
-            });
-          </script>
         </div><!-- /card-soft -->
 
       </div><!-- /content -->
@@ -166,11 +179,11 @@
   </div><!-- /app -->
 
   {{-- ══════════════════════════════════════════════
-     VIEW MODAL — one per record (active + archived).
+     VIEW MODAL — one per record.
      Appointment details + odontogram (+ the dentist's notes);
      the patient's own information is deliberately left out.
 ══════════════════════════════════════════════ --}}
-  @foreach ($records->merge($archivedRecords) as $record)
+  @foreach ($records as $record)
     @php
       $timeLabel = \Carbon\Carbon::createFromFormat('H:i', $record->VisitTime)->format('g:i A');
       $duration = $record->appointment?->duration_label;
@@ -214,17 +227,33 @@
             {{-- Odontogram (interactive dental chart for this visit) --}}
             @include('partials.odontogram', ['record' => $record])
 
-            <!-- Dentist's Notes -->
-            <div class="section-label">
-              <i class="bi bi-journal-text" style="font-size:13px; color:var(--brand);"></i> Dentist's Notes
-            </div>
             <form method="POST" action="{{ route('patientRecords.update', $record->RecordID) }}">
               @csrf
               @include('partials.record-return-fields')
+
+              <!-- Vital signs — measured at this visit -->
+              <div class="section-label">
+                <i class="bi bi-activity" style="font-size:13px; color:var(--brand);"></i> Vital Signs (this visit)
+              </div>
+              <div class="info-grid-edit mb-3">
+                <div class="field-group">
+                  <label class="field-label" for="bp{{ $record->RecordID }}"><i class="bi bi-heart-pulse"></i> Blood Pressure</label>
+                  <input type="text" class="field-input" id="bp{{ $record->RecordID }}" name="blood_pressure" maxlength="20" placeholder="e.g. 120/80" value="{{ old('blood_pressure', $record->BloodPressure) }}" />
+                </div>
+                <div class="field-group">
+                  <label class="field-label" for="bt{{ $record->RecordID }}"><i class="bi bi-droplet"></i> Bleeding Time</label>
+                  <input type="text" class="field-input" id="bt{{ $record->RecordID }}" name="bleeding_time" maxlength="30" placeholder="e.g. 2 min" value="{{ old('bleeding_time', $record->BleedingTime) }}" />
+                </div>
+              </div>
+
+              <!-- Dentist's Notes -->
+              <div class="section-label">
+                <i class="bi bi-journal-text" style="font-size:13px; color:var(--brand);"></i> Dentist's Notes
+              </div>
               <div class="note-add-row">
                 <textarea name="notes" rows="3" placeholder="Add notes for this visit...">{{ $record->Notes }}</textarea>
                 <button type="submit" class="btn-brand" style="flex-shrink:0; height:40px; align-self:flex-end;">
-                  <i class="bi bi-floppy"></i> Save Notes
+                  <i class="bi bi-floppy"></i> Save
                 </button>
               </div>
             </form>
@@ -233,6 +262,10 @@
           <div class="modal-footer">
             <button type="button" class="btn-ghost" data-bs-dismiss="modal">
               <i class="bi bi-x"></i> Close
+            </button>
+            <button type="button" class="btn-brand" data-print-preview="{{ route('patientRecords.print', $record->RecordID) }}"
+              data-print-title="Dental record · {{ $record->VisitDate->format('M j, Y') }}">
+              <i class="bi bi-printer"></i> Print Record
             </button>
           </div>
 
@@ -243,8 +276,10 @@
 
   @include('partials.admin-notif-modal')
   @include('partials.confirm-action-modal')
+  @include('partials.print-preview-modal')
 
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="{{ asset('js/booking-forms.js') }}"></script>
 
   <script>
     // After saving notes or the odontogram the controller redirects back with

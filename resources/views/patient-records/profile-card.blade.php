@@ -12,41 +12,62 @@
     $recordCount = $p->records()->count();
     $lastVisit = $p->records()->max('VisitDate');
     $isMinor = $p->age_years !== null && $p->age_years < 18;
-    $fields = [
-        ['Age', $p->age_years !== null ? $p->age_years . ' years old' : null],
-        ['Gender', $p->Gender ? ucfirst($p->Gender) : null],
-        ['Birthdate', $p->DateOfBirth?->format('F j, Y')],
-        ['Contact Number', $p->PhoneNumber],
-        ['Email', $email],
-        ['Nationality', $p->Nationality],
-        ['Religion', $p->Religion],
-        ['Occupation', $p->Occupation],
-        ['Address', $p->Address, true],
+
+    // [label, value, icon, wide?] — grouped so each row holds 3–4 tiles.
+    $sections = [
+        'Personal Information' => [
+            ['Age', $p->age_years !== null ? $p->age_years . ' years old' : null, 'bi-hourglass-split'],
+            ['Gender', $p->Gender ? ucfirst($p->Gender) : null, 'bi-gender-ambiguous'],
+            ['Birthdate', $p->DateOfBirth?->format('F j, Y'), 'bi-calendar-heart'],
+            ['Nationality', $p->Nationality, 'bi-flag'],
+            ['Religion', $p->Religion, 'bi-book'],
+            ['Occupation', $p->Occupation, 'bi-briefcase'],
+        ],
+        'Contact Details' => [
+            ['Contact Number', $p->PhoneNumber, 'bi-telephone'],
+            ['Email', $email, 'bi-envelope'],
+            ['Address', $p->Address, 'bi-geo-alt', true],
+        ],
     ];
-    $guardian = [
-        ['Parent / Guardian', $p->ParentsName],
-        ['Guardian Contact', $p->ParentsContactNumber],
-        ['Guardian Email', $p->ParentsEmail],
-        ['Guardian Occupation', $p->ParentsOccupation],
-    ];
+    if ($isMinor || collect([$p->ParentsName, $p->ParentsContactNumber, $p->ParentsEmail, $p->ParentsOccupation])->filter()->isNotEmpty()) {
+        $sections['Parent / Guardian'] = [
+            ['Name', $p->ParentsName, 'bi-person-heart'],
+            ['Contact Number', $p->ParentsContactNumber, 'bi-telephone'],
+            ['Email', $p->ParentsEmail, 'bi-envelope'],
+            ['Occupation', $p->ParentsOccupation, 'bi-briefcase'],
+        ];
+    }
+    $sectionIcons = ['Personal Information' => 'bi-person-vcard', 'Contact Details' => 'bi-chat-dots', 'Parent / Guardian' => 'bi-people'];
 @endphp
 
 <style>
     .pp-card { background:#fff; border:1px solid var(--border, #e6ecef); border-radius:16px; padding:20px 22px; margin-bottom:18px; }
-    .pp-head { display:flex; align-items:center; gap:16px; flex-wrap:wrap; padding-bottom:16px; margin-bottom:16px; border-bottom:1px solid var(--border, #e6ecef); }
-    .pp-avatar { width:64px; height:64px; border-radius:50%; object-fit:cover; flex:0 0 auto; }
+    .pp-head { display:flex; align-items:center; gap:16px; flex-wrap:wrap; padding-bottom:16px; margin-bottom:6px; border-bottom:1px solid var(--border, #e6ecef); }
+    .pp-avatar { width:64px; height:64px; border-radius:50%; object-fit:cover; flex:0 0 auto; box-shadow:0 0 0 3px #eaf8ec; }
     .pp-name { font-size:1.15rem; font-weight:700; margin:0; }
     .pp-sub { color:#64748b; font-size:.85rem; margin-top:2px; }
-    .pp-stats { margin-left:auto; display:flex; gap:22px; }
-    .pp-stat { text-align:center; }
-    .pp-stat b { display:block; font-size:1.15rem; }
-    .pp-stat span { color:#64748b; font-size:.72rem; text-transform:uppercase; letter-spacing:.06em; font-weight:700; }
-    .pp-grid { display:grid; grid-template-columns:repeat(auto-fill, minmax(190px, 1fr)); gap:14px 20px; margin:0; }
-    .pp-item dt { color:#64748b; font-size:.7rem; font-weight:700; letter-spacing:.07em; text-transform:uppercase; margin:0 0 2px; }
-    .pp-item dd { margin:0; font-weight:600; word-break:break-word; }
-    .pp-item.pp-wide { grid-column:1 / -1; }
-    .pp-title { color:var(--brand-900, #167d1d); font-size:.72rem; font-weight:700; letter-spacing:.08em; text-transform:uppercase; margin:18px 0 12px; }
-    @media (max-width: 575.98px) { .pp-stats { margin-left:0; width:100%; justify-content:space-around; } }
+    .pp-stats { margin-left:auto; display:flex; gap:10px; }
+    .pp-stat { text-align:center; background:#f6faf7; border:1px solid #e3efe6; border-radius:12px; padding:8px 16px; min-width:110px; }
+    .pp-stat b { display:block; font-size:1.1rem; color:#0f172a; }
+    .pp-stat span { color:#64748b; font-size:.68rem; text-transform:uppercase; letter-spacing:.06em; font-weight:700; }
+
+    .pp-title { display:flex; align-items:center; gap:8px; color:var(--brand-900, #14532d); font-size:.74rem; font-weight:700; letter-spacing:.08em; text-transform:uppercase; margin:18px 0 10px; }
+    .pp-title::after { content:''; flex:1; height:1px; background:var(--border, #e6ecef); }
+    .pp-grid { display:grid; grid-template-columns:repeat(4, minmax(0, 1fr)); gap:10px; margin:0; }
+    .pp-item { display:flex; align-items:flex-start; gap:10px; background:#fafcfb; border:1px solid #edf2ee; border-radius:12px; padding:10px 12px; min-width:0; }
+    .pp-item.pp-wide { grid-column:span 2; }
+    .pp-icon { flex:none; width:32px; height:32px; border-radius:9px; background:#eaf8ec; color:var(--brand-700, #167d1d); display:flex; align-items:center; justify-content:center; font-size:.95rem; }
+    .pp-item dt { color:#64748b; font-size:.68rem; font-weight:700; letter-spacing:.06em; text-transform:uppercase; margin:0 0 1px; }
+    .pp-item dd { margin:0; font-weight:600; color:#0f172a; overflow-wrap:anywhere; }
+    .pp-item dd.is-empty { color:#a0aec0; font-weight:500; font-style:italic; }
+
+    @media (max-width: 991.98px) { .pp-grid { grid-template-columns:repeat(2, minmax(0, 1fr)); } }
+    @media (max-width: 575.98px) {
+        .pp-grid { grid-template-columns:minmax(0, 1fr); }
+        .pp-item.pp-wide { grid-column:auto; }
+        .pp-stats { margin-left:0; width:100%; }
+        .pp-stat { flex:1; }
+    }
 </style>
 
 <div class="pp-card">
@@ -56,7 +77,7 @@
             <h3 class="pp-name">{{ $fullName }}</h3>
             <div class="pp-sub">
                 PT-{{ str_pad($p->PatientID, 4, '0', STR_PAD_LEFT) }}
-                &bull; {{ $p->IsWalkIn ? 'Walk-in patient' : 'Registered patient' }}
+                &bull; {{ $p->patient_type }} patient
                 @if ($p->is_inactive)
                     <span class="pill pill-warning ms-1" title="No appointment in the last 6 months">Inactive</span>
                 @else
@@ -70,18 +91,18 @@
         </div>
     </div>
 
-    <dl class="pp-grid">
-        @foreach ($fields as $f)
-            <div class="pp-item {{ !empty($f[2] ?? null) ? 'pp-wide' : '' }}"><dt>{{ $f[0] }}</dt><dd>{{ $f[1] ?: '—' }}</dd></div>
-        @endforeach
-    </dl>
-
-    @if ($isMinor || collect($guardian)->contains(fn ($g) => !empty($g[1])))
-        <div class="pp-title">Parent / Guardian</div>
+    @foreach ($sections as $title => $items)
+        <div class="pp-title"><i class="bi {{ $sectionIcons[$title] ?? 'bi-info-circle' }}"></i> {{ $title }}</div>
         <dl class="pp-grid">
-            @foreach ($guardian as [$label, $value])
-                <div class="pp-item"><dt>{{ $label }}</dt><dd>{{ $value ?: '—' }}</dd></div>
+            @foreach ($items as $f)
+                <div class="pp-item {{ !empty($f[3] ?? null) ? 'pp-wide' : '' }}">
+                    <span class="pp-icon"><i class="bi {{ $f[2] }}"></i></span>
+                    <div style="min-width:0;">
+                        <dt>{{ $f[0] }}</dt>
+                        <dd class="{{ $f[1] ? '' : 'is-empty' }}">{{ $f[1] ?: 'Not provided' }}</dd>
+                    </div>
+                </div>
             @endforeach
         </dl>
-    @endif
+    @endforeach
 </div>

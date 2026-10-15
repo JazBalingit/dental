@@ -92,6 +92,10 @@ class StaffProfileController extends Controller
             'Address' => $data['address'],
         ]);
 
+        if (!$si->wasChanged()) {
+            return redirect()->route('staffProfile')->with('success', 'No changes to save.');
+        }
+
         $this->activityLog->log('Profile Updated', 'Updated own profile information (My Profile).', $staff->UserID);
 
         return redirect()->route('staffProfile')->with('success', 'Profile updated successfully.');

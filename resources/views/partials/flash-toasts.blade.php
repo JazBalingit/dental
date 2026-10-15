@@ -232,3 +232,6 @@
         }
     })();
 </script>
+
+@include('partials.auto-filter-script')
+@include('partials.no-double-submit')

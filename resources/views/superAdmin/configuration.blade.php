@@ -47,7 +47,7 @@
         <div class="page-head">
           <div>
             <h2>Configuration</h2>
-            <div class="crumbs">System information, services, legal content, appointment process, and the activity logs.</div>
+            <div class="crumbs">System information, services, legal content, appointment process{{ $canViewActivityLogs ? ', and the activity logs' : '' }}.</div>
           </div>
         </div>
 
@@ -68,8 +68,10 @@
                 <button class="nav-link text-start {{ $settingsTab === 'appointment' ? 'active' : '' }}"
                   data-settings-tab="appointment" type="button"><i class="bi bi-list-check me-2"></i>Appointment
                   Process</button>
-                <button class="nav-link text-start {{ $settingsTab === 'activity' ? 'active' : '' }}"
-                  data-settings-tab="activity" type="button"><i class="bi bi-activity me-2"></i>Activity Logs</button>
+                @if ($canViewActivityLogs)
+                  <button class="nav-link text-start {{ $settingsTab === 'activity' ? 'active' : '' }}"
+                    data-settings-tab="activity" type="button"><i class="bi bi-activity me-2"></i>Activity Logs</button>
+                @endif
               </div>
             </div>
           </div>
@@ -264,6 +266,39 @@
                   </button>
                 </div>
                 <div class="card-body p-3 p-md-4">
+                  {{-- Weekly closed days — e.g. closed every Sunday. Multi-select dropdown. --}}
+                  @php
+                    $weekdayNames = \App\Models\ClosedDate::WEEKDAYS;
+                    $closedWeekdayNames = collect($weekdayNames)->filter(fn ($n, $dow) => in_array($dow, $closedWeekdays, true))->values();
+                  @endphp
+                  <form method="POST" action="{{ route('configuration.closedWeekdays.update') }}" class="mb-4 pb-4"
+                    style="border-bottom:1px solid #edf1ee;"
+                    data-confirm-title="Save weekly closed days?"
+                    data-confirm-message="The clinic will be closed every selected day of the week. Any upcoming pending or booked appointments on a newly closed day will be cancelled and the patient(s) notified. Continue?">
+                    @csrf
+                    <label class="form-label fw-semibold mb-1">Weekly Closed Days</label>
+                    <p class="small text-muted-2 mb-2">Days of the week the clinic is closed every week. Pick as many as you need.</p>
+                    <div class="d-flex align-items-start gap-2 flex-wrap">
+                      <div class="dropdown weekday-dropdown" style="width: 260px; max-width: 100%;">
+                        <button type="button" class="form-select text-start text-truncate" id="weekdayDropdownBtn"
+                          data-bs-toggle="dropdown" data-bs-auto-close="outside" aria-expanded="false">
+                          {{ $closedWeekdayNames->isEmpty() ? 'Open every day' : $closedWeekdayNames->implode(', ') }}
+                        </button>
+                        <div class="dropdown-menu p-2 w-100" aria-labelledby="weekdayDropdownBtn">
+                          @foreach ($weekdayNames as $dow => $dayName)
+                            <label class="dropdown-item d-flex align-items-center gap-2 rounded" style="cursor:pointer;">
+                              <input type="checkbox" class="form-check-input m-0 weekday-option" name="closed_weekdays[]"
+                                value="{{ $dow }}" data-name="{{ $dayName }}" {{ in_array($dow, $closedWeekdays, true) ? 'checked' : '' }}>
+                              {{ $dayName }}
+                            </label>
+                          @endforeach
+                        </div>
+                      </div>
+                      <button type="submit" class="btn btn-brand px-3"><i class="bi bi-floppy me-1"></i> Save</button>
+                    </div>
+                    @error('closed_weekdays') <div class="field-error"><i class="bi bi-exclamation-circle-fill"></i> {{ $message }}</div> @enderror
+                  </form>
+
                   <p class="small text-muted-2 mb-3">Block an entire date &mdash; every dentist, every slot &mdash; from
                     being booked. Use this for holidays or other clinic-wide closures; per-dentist availability still
                     lives in Dentist Schedule.</p>
@@ -752,7 +787,8 @@
               </div>
             </div>
 
-            {{-- ===================== ACTIVITY LOGS ===================== --}}
+            {{-- ===================== ACTIVITY LOGS (super admin only) ===================== --}}
+            @if ($canViewActivityLogs)
             <div class="settings-pane" data-settings-pane="activity" @if ($settingsTab !== 'activity') hidden @endif>
 
               <div class="card-soft">
@@ -884,6 +920,7 @@
                 </div>
               </div>
             </div>
+            @endif
 
 
           </div>
@@ -1429,6 +1466,22 @@
 
       toggleBtn.addEventListener('click', function () { setOpen(wrap.hidden); });
       cancelBtn?.addEventListener('click', function () { setOpen(false); });
+    })();
+
+    // Weekly Closed Days dropdown — keep the button label in step with the
+    // ticked days ("Saturday, Sunday" / "Open every day").
+    (function () {
+      var btn = document.getElementById('weekdayDropdownBtn');
+      var boxes = document.querySelectorAll('.weekday-option');
+      if (!btn) return;
+
+      function refresh() {
+        var names = Array.prototype.filter.call(boxes, function (b) { return b.checked; })
+          .map(function (b) { return b.dataset.name; });
+        btn.textContent = names.length ? names.join(', ') : 'Open every day';
+      }
+
+      boxes.forEach(function (b) { b.addEventListener('change', refresh); });
     })();
 
     document.querySelectorAll('[data-settings-tab]').forEach(function (btn) {

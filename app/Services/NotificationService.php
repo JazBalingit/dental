@@ -47,7 +47,13 @@ class NotificationService
                     ? Appointment::with(['patientInfo', 'service', 'services', 'dentist.staffInfo'])->find($appointmentId)
                     : null;
 
-                Mail::to($user->Email)->send(new AppointmentStatusMail($title, $message, $appointment));
+                // Patients get a "Manage my appointment" button (works from the
+                // email without logging in); clinic staff don't need one.
+                $manageUrl = $appointment && !in_array($user->AccountRole, UserAccount::ADMIN_ROLES, true)
+                    ? $appointment->manage_url
+                    : null;
+
+                Mail::to($user->Email)->send(new AppointmentStatusMail($title, $message, $appointment, $manageUrl));
             } catch (\Throwable $e) {
                 Log::warning('Notification email failed to send', [
                     'user_id' => $user->UserID,
@@ -62,9 +68,82 @@ class NotificationService
     }
 
     /**
-     * Create a notification for every admin-role account (super admin + staff,
-     * since staff share the same admin dashboard/bell). Admin notifications
-     * are DB-only — no email per spec.
+     * Tell the patient side about an appointment — whoever that is:
+     *
+     *  - the account that booked it (a parent who booked for their child),
+     *    else the patient's own account, else the patient's guardian
+     *    account → bell notification + email, same as notifyUser();
+     *  - nobody with an account (guest booking, walk-in with an email) →
+     *    email only, to the address that booked it, with a "Manage my
+     *    appointment" link since they have no portal. Logged as a
+     *    notification row with no UserID, which also keeps reminders from
+     *    being sent twice.
+     *
+     * Returns null when there's nobody to reach (a walk-in with no email).
+     */
+    public function notifyPatient(
+        Appointment $appointment,
+        string $title,
+        string $message,
+        string $type = 'info',
+        ?string $status = null,
+        ?string $reminderType = null,
+        bool $sendEmail = true
+    ): ?Notification {
+        $appointment->loadMissing(['patientInfo.userAccount', 'patientInfo.guardianAccount', 'bookedBy']);
+        $patient = $appointment->patientInfo;
+        $status ??= $appointment->Status;
+
+        $user = $appointment->bookedBy
+            ?? $patient?->userAccount
+            ?? $patient?->guardianAccount;
+
+        if ($user && !$user->IsArchived) {
+            return $this->notifyUser($user, $title, $message, $type, $appointment->AppointmentID, $status, $reminderType, $sendEmail);
+        }
+
+        $email = $appointment->BookedByEmail
+            ?: ($patient?->Email ?: ($patient?->GuardianEmail ?: $patient?->ParentsEmail));
+
+        if (!$email) {
+            return null;
+        }
+
+        $notification = Notification::create([
+            'UserID' => null,
+            'Email' => $email,
+            'AppointmentID' => $appointment->AppointmentID,
+            'Title' => $title,
+            'Message' => $message,
+            'Type' => $type,
+            'Status' => $status,
+            'ReminderType' => $reminderType,
+            'IsRead' => true,
+        ]);
+
+        if ($sendEmail) {
+            try {
+                $fresh = Appointment::with(['patientInfo', 'service', 'services', 'dentist.staffInfo'])->find($appointment->AppointmentID);
+                Mail::to($email)->send(new AppointmentStatusMail($title, $message, $fresh, $fresh?->manage_url));
+            } catch (\Throwable $e) {
+                Log::warning('Guest notification email failed to send', [
+                    'appointment_id' => $appointment->AppointmentID,
+                    'email' => $email,
+                    'title' => $title,
+                    'error' => $e->getMessage(),
+                ]);
+            }
+        }
+
+        return $notification;
+    }
+
+    /**
+     * Notify every active admin-panel account (super admin + staff + dentists,
+     * who share the admin bell) — in-app AND by email, with the full
+     * appointment details. Archived accounts and the un-claimed .env setup
+     * login are skipped, and whoever triggered the event isn't emailed about
+     * their own action (they still get the in-app notice).
      */
     public function notifyAdmins(
         string $title,
@@ -73,10 +152,16 @@ class NotificationService
         ?int $appointmentId = null,
         ?string $status = null
     ): void {
-        UserAccount::whereIn('AccountRole', UserAccount::ADMIN_ROLES)->get()->each(
-            fn (UserAccount $admin) => $this->notifyUser(
-                $admin, $title, $message, $type, $appointmentId, $status, null, false
-            )
-        );
+        $actorId = (int) session('user_id');
+        $setupEmail = config('superadmin.email');
+
+        UserAccount::whereIn('AccountRole', UserAccount::ADMIN_ROLES)
+            ->where('IsArchived', false)
+            ->get()
+            ->reject(fn (UserAccount $admin) => !$admin->IsSuperAdmin && $setupEmail && strcasecmp((string) $admin->Email, $setupEmail) === 0)
+            ->each(fn (UserAccount $admin) => $this->notifyUser(
+                $admin, $title, $message, $type, $appointmentId, $status, null,
+                $admin->UserID !== $actorId
+            ));
     }
 }

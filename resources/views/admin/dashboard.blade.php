@@ -80,9 +80,26 @@
         <div class="page-head">
           <div>
             <h2>Welcome back, {{ $adminName }} 👋</h2>
-            <div class="crumbs">Here's what's happening at the clinic today.</div>
+            <div class="crumbs">Here's what's happening at the clinic — <span class="fw-semibold" style="color: var(--brand-700);"><i class="bi bi-calendar3 me-1"></i>{{ $range['label'] }}</span></div>
           </div>
-          <div class="d-flex gap-2">
+          <div class="d-flex gap-2 flex-wrap">
+            {{-- Period filter — every date-based card and chart follows it --}}
+            <form method="GET" action="{{ route('dashboard') }}" class="m-0 d-flex gap-2 flex-wrap align-items-center" id="dashPeriodForm">
+              <select name="period" class="form-select" style="height:40px; min-width:150px; width:auto;" aria-label="Dashboard period" id="dashPeriodSelect">
+                @foreach ($periods as $value => $periodLabel)
+                  <option value="{{ $value }}" {{ $period === $value ? 'selected' : '' }}>{{ $periodLabel }}</option>
+                @endforeach
+              </select>
+              {{-- Custom Range — only shown while "Custom Range" is picked --}}
+              <div class="d-flex gap-2 align-items-center flex-wrap" id="dashCustomRange" @if ($period !== 'custom') hidden @endif>
+                <input type="date" name="from" class="form-control" style="height:40px; width:auto;" aria-label="From date"
+                  value="{{ $range['from'] }}" @if ($period !== 'custom') disabled @endif>
+                <span class="text-muted-2 small">to</span>
+                <input type="date" name="to" class="form-control" style="height:40px; width:auto;" aria-label="To date"
+                  value="{{ $range['to'] }}" @if ($period !== 'custom') disabled @endif>
+                <button type="submit" class="btn btn-outline-secondary px-3" style="height:40px;">Apply</button>
+              </div>
+            </form>
             <button class="btn btn-brand px-3" style="height:40px;" data-bs-toggle="modal"
               data-bs-target="#reportModal"><i class="bi bi-download me-1"></i> Generate Report</button>
           </div>
@@ -104,8 +121,8 @@
             <div class="stat-card alt-1">
               <div class="d-flex align-items-start justify-content-between">
                 <div>
-                  <div class="label">Appointments Today</div>
-                  <div class="value">{{ number_format($stats['appointmentsToday']) }}</div>
+                  <div class="label">Appointments <span class="text-muted-2" style="font-weight:400;">({{ $range['noun'] }})</span></div>
+                  <div class="value">{{ number_format($stats['appointmentsInPeriod']) }}</div>
                 </div>
                 <div class="icon"><i class="bi bi-calendar-check"></i></div>
               </div>
@@ -126,7 +143,7 @@
             <div class="stat-card alt-3">
               <div class="d-flex align-items-start justify-content-between">
                 <div>
-                  <div class="label">Dentist Available Schedule</div>
+                  <div class="label">Dentist Available Schedule <span class="text-muted-2" style="font-weight:400;">({{ $range['noun'] }})</span></div>
                   <div class="value">{{ number_format($stats['dentistAvailableSchedule']) }}</div>
                 </div>
                 <div class="icon"><i class="fa-regular fa-calendar"></i></div>
@@ -140,7 +157,7 @@
             <div class="card-soft">
               <div class="card-header d-flex justify-content-between align-items-center">
                 Appointments Overview
-                <span class="pill pill-info">Last 7 days</span>
+                <span class="pill pill-info">{{ $overviewChart['pill'] }}</span>
               </div>
               <div class="card-body">
                 <div class="chart-ph">
@@ -150,7 +167,7 @@
                   <div class="legend-item">
                     <span class="legend-dot" style="background:#167d1d;"></span>
                     Appointments per day
-                    <span class="legend-count">({{ number_format($overviewChart['total']) }} total this week)</span>
+                    <span class="legend-count">({{ number_format($overviewChart['total']) }} {{ $overviewChart['totalLabel'] }})</span>
                   </div>
                 </div>
               </div>
@@ -158,7 +175,7 @@
           </div>
           <div class="col-xl-4">
             <div class="card-soft h-100">
-              <div class="card-header">Appointments by Status</div>
+              <div class="card-header d-flex justify-content-between align-items-center">Appointments by Status <span class="pill pill-info">{{ $range['noun'] }}</span></div>
               <div class="card-body">
                 <div class="chart-ph" style="position: relative;">
                   <canvas id="statusDonutChart"></canvas>
@@ -184,7 +201,7 @@
         <div class="row g-3">
           <div class="col-xl-6">
             <div class="card-soft h-100">
-              <div class="card-header">Appointments by Service</div>
+              <div class="card-header d-flex justify-content-between align-items-center">Appointments by Service <span class="pill pill-info">{{ $range['noun'] }}</span></div>
               <div class="card-body">
                 <div class="chart-ph" style="height: 320px;">
                   <canvas id="serviceBarsChart"></canvas>
@@ -246,6 +263,8 @@
 
   @include('partials.admin-notif-modal')
 
+  @include('partials.report-preview-modal')
+
   <!-- ============ GENERATE REPORT MODAL ============ -->
   <div class="modal fade" id="reportModal" tabindex="-1" aria-labelledby="reportModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered" style="max-width:1000px;">
@@ -287,14 +306,6 @@
                 </label>
               </div>
 
-              <div class="col-6">
-                <input type="radio" class="btn-check" name="reportType" id="rtRevenue">
-                <label class="report-card" for="rtRevenue">
-                  <div class="rc-icon"><i class="fa-regular fa-calendar"></i></div>
-                  <div class="rc-title">Dentist Schedule</div>
-                  <div class="rc-desc">Availability of the dentist's schedule</div>
-                </label>
-              </div>
 
               <div class="col-6">
                 <input type="radio" class="btn-check" name="reportType" id="rtSummary">
@@ -312,25 +323,14 @@
           <div class="section-block">
             <div class="section-label"><i class="bi bi-calendar3"></i> Date range</div>
 
-            <div class="d-flex flex-wrap gap-2 mb-2">
-              <input type="radio" class="btn-check" name="quickRange" id="qrToday">
-              <label class="range-pill" for="qrToday">Today</label>
+            {{-- Same periods as the dashboard filter. --}}
+            <select class="form-select" id="reportPeriod" aria-label="Report date range" style="max-width: 420px;">
+              @foreach ($reportPeriods as $value => $label)
+                <option value="{{ $value }}" {{ $value === ($period === 'custom' ? 'daily' : $period) ? 'selected' : '' }}>{{ $label }}</option>
+              @endforeach
+            </select>
 
-              <input type="radio" class="btn-check" name="quickRange" id="qrWeek" checked>
-              <label class="range-pill" for="qrWeek">Last 7 days</label>
-
-              <input type="radio" class="btn-check" name="quickRange" id="qrMonth">
-              <label class="range-pill" for="qrMonth">This month</label>
-
-              <input type="radio" class="btn-check" name="quickRange" id="qrAll">
-              <label class="range-pill" for="qrAll">All time</label>
-            </div>
-
-            <a class="custom-range-link" id="customRangeLink" href="#" role="button">
-              <i class="bi bi-sliders me-1"></i>Use a custom range instead
-            </a>
-
-            <div class=" mt-3" id="customRange">
+            <div class="mt-3" id="customRange" hidden>
               <div class="row g-2">
                 <div class="col-6">
                   <label class="form-label small fw-semibold mb-1">From</label>
@@ -536,27 +536,19 @@
   </script>
   <script>
     (function () {
-        var reportTypeMap = { rtAppointments: 'appointments', rtPatients: 'patients', rtRevenue: 'schedule', rtSummary: 'summary' };
-        var quickRangeMap = { qrToday: 'today', qrWeek: 'week', qrMonth: 'month', qrAll: 'all' };
+        var reportTypeMap = { rtAppointments: 'appointments', rtPatients: 'patients', rtSummary: 'summary' };
+
         var reportUrl = @json(route('reports.generate'));
 
-        var customRangeActive = false;
-        var customLink = document.getElementById('customRangeLink');
-        var quickRadios = document.querySelectorAll('input[name="quickRange"]');
-
-        if (customLink) {
-            customLink.addEventListener('click', function (e) {
-                e.preventDefault();
-                customRangeActive = true;
-                quickRadios.forEach(function (r) { r.checked = false; });
-                var fromInput = document.getElementById('reportDateFrom');
-                if (fromInput) fromInput.focus();
+        // Date range dropdown: "Custom Range" reveals the From/To dates.
+        var periodSelect = document.getElementById('reportPeriod');
+        var customBox = document.getElementById('customRange');
+        if (periodSelect && customBox) {
+            periodSelect.addEventListener('change', function () {
+                customBox.hidden = periodSelect.value !== 'custom';
+                if (!customBox.hidden) document.getElementById('reportDateFrom')?.focus();
             });
         }
-
-        quickRadios.forEach(function (r) {
-            r.addEventListener('change', function () { customRangeActive = false; });
-        });
 
         var generateBtn = document.getElementById('generateReportBtn');
         if (generateBtn) {
@@ -567,15 +559,22 @@
                 var params = new URLSearchParams();
                 params.set('type', reportType);
 
-                if (customRangeActive) {
+                var chosen = periodSelect ? periodSelect.value : 'daily';
+                if (chosen === 'custom') {
                     var from = document.getElementById('reportDateFrom');
                     var to = document.getElementById('reportDateTo');
+                    if (!from.value || !to.value) {
+                        (from.value ? to : from).focus();
+                        from.classList.toggle('is-invalid', !from.value);
+                        to.classList.toggle('is-invalid', !to.value);
+                        return;
+                    }
+                    from.classList.remove('is-invalid'); to.classList.remove('is-invalid');
                     params.set('range', 'custom');
-                    if (from && from.value) params.set('from', from.value);
-                    if (to && to.value) params.set('to', to.value);
+                    params.set('from', from.value);
+                    params.set('to', to.value);
                 } else {
-                    var rangeInput = document.querySelector('input[name="quickRange"]:checked');
-                    params.set('range', rangeInput ? (quickRangeMap[rangeInput.id] || 'week') : 'week');
+                    params.set('range', chosen);
                 }
 
                 var charts = document.getElementById('includeCharts');
@@ -583,35 +582,79 @@
                 params.set('charts', charts && charts.checked ? '1' : '0');
                 params.set('patients', patients && patients.checked ? '1' : '0');
 
-                // No preview page: load the report in a hidden frame that prints itself.
-                var label = generateBtn.innerHTML;
-                generateBtn.disabled = true;
-                generateBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Preparing…';
-
-                var old = document.getElementById('reportPrintFrame');
-                if (old) old.remove();
-                var frame = document.createElement('iframe');
-                frame.id = 'reportPrintFrame';
-                frame.style.cssText = 'position:fixed;right:0;bottom:0;width:0;height:0;border:0;visibility:hidden;';
-                frame.src = reportUrl + '?' + params.toString();
-
-                function done() {
-                    window.removeEventListener('message', onMessage);
-                    generateBtn.disabled = false;
-                    generateBtn.innerHTML = label;
-                    setTimeout(function () { frame.remove(); }, 500);
-                }
-                function onMessage(e) {
-                    if (e.origin === window.location.origin && e.data === 'report-printed') done();
-                }
-                window.addEventListener('message', onMessage);
-                // Safety net if the dialog never reports back (e.g. blocked).
-                setTimeout(function () { if (document.body.contains(frame)) done(); }, 120000);
-                document.body.appendChild(frame);            });
+                // Show the report in the "Report Preview" modal first — it's
+                // only printed when the admin clicks Print there.
+                params.set('preview', '1');
+                openPreview(reportUrl + '?' + params.toString());
+            });
         }
+
+        var optionsModalEl = document.getElementById('reportModal');
+        var previewModalEl = document.getElementById('reportPreviewModal');
+        var previewFrame = document.getElementById('reportPreviewFrame');
+        var previewLoading = document.getElementById('reportPreviewLoading');
+        var printBtn = document.getElementById('reportPreviewPrintBtn');
+        var backBtn = document.getElementById('reportPreviewBackBtn');
+
+        function openPreview(url) {
+            printBtn.disabled = true;
+            previewLoading.hidden = false;
+            previewFrame.style.visibility = 'hidden';
+            previewFrame.src = url;
+            swapModal(optionsModalEl, previewModalEl);
+        }
+
+        // Open `to` only once `from` has finished closing — two Bootstrap
+        // modals transitioning at once can leave a stray backdrop behind.
+        function swapModal(from, to) {
+            if (from.classList.contains('show')) {
+                from.addEventListener('hidden.bs.modal', function () {
+                    bootstrap.Modal.getOrCreateInstance(to).show();
+                }, { once: true });
+                bootstrap.Modal.getOrCreateInstance(from).hide();
+            } else {
+                bootstrap.Modal.getOrCreateInstance(to).show();
+            }
+        }
+
+        previewFrame.addEventListener('load', function () {
+            if (!previewFrame.src || previewFrame.src === 'about:blank') return;
+            previewLoading.hidden = true;
+            previewFrame.style.visibility = 'visible';
+            printBtn.disabled = false;
+        });
+
+        printBtn.addEventListener('click', function () {
+            previewFrame.contentWindow.focus();
+            previewFrame.contentWindow.print();
+        });
+
+        backBtn.addEventListener('click', function () {
+            swapModal(previewModalEl, optionsModalEl);
+        });
+
+        // Unload the report when the preview closes so a stale one never flashes.
+        previewModalEl.addEventListener('hidden.bs.modal', function () {
+            previewFrame.src = 'about:blank';
+        });
     })();
   </script>
 
+  <script>
+    // Dashboard period filter: a preset reloads right away; "Custom Range"
+    // reveals the From/To dates and waits for Apply.
+    (function () {
+      var select = document.getElementById('dashPeriodSelect');
+      var custom = document.getElementById('dashCustomRange');
+      if (!select || !custom) return;
+      select.addEventListener('change', function () {
+        var isCustom = select.value === 'custom';
+        custom.hidden = !isCustom;
+        custom.querySelectorAll('input').forEach(function (i) { i.disabled = !isCustom; });
+        if (!isCustom) select.form.submit();
+      });
+    })();
+  </script>
 </body>
 
 </html>

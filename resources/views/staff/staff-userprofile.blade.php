@@ -99,7 +99,12 @@
                                 <div class="row g-3 {{ $si ? 'mb-3' : '' }}">
                                     <div class="col-md-6">
                                         <label class="form-label">Email address</label>
-                                        <div class="input-icon"><i class="bi bi-envelope"></i><input type="text" class="form-control" value="{{ $staff->Email }}" disabled></div>
+                                        <div class="d-flex gap-2">
+                                            <div class="input-icon flex-grow-1"><i class="bi bi-envelope"></i><input type="text" class="form-control" value="{{ $staff->Email }}" disabled></div>
+                                            <button type="button" class="btn btn-outline-secondary px-3" data-email-change
+                                                data-current-email="{{ $staff->Email }}"><i class="bi bi-pencil-square"></i> Change</button>
+                                        </div>
+                                        <div class="small text-muted-2 mt-1">A verification code is sent to the new email before it changes.</div>
                                     </div>
                                     <div class="col-md-6">
                                         <label class="form-label">Email verification</label>
@@ -363,6 +368,7 @@
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
     @include('partials.confirm-action-modal')
+    @include('partials.email-change-modal')
     <script src="{{ asset('js/field-restrictions.js') }}"></script>
     <script src="{{ asset('js/birthdate-age.js') }}"></script>
     <script src="{{ asset('js/profile-edit-toggle.js') }}"></script>

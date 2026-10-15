@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Http\Controllers\Concerns\HandlesArchiveReason;
 use App\Http\Controllers\Concerns\RedirectsToPatientRecord;
 use App\Models\Appointment;
+use App\Models\MedicalHistory;
 use App\Models\PatientInfo;
 use App\Models\PatientRecord;
 use App\Models\UserAccount;
@@ -43,7 +44,9 @@ class PatientRecordsController extends Controller
             abort(403, 'Your patient profile is incomplete.');
         }
 
-        $patientId = $user->patientInfo->PatientID;
+        // Your own records, or those of someone you booked for (your child…).
+        $people = collect([$user->patientInfo])->concat(PatientInfo::dependentsOf($user)->orderBy('FirstName')->get());
+        $patientId = (int) ($people->firstWhere('PatientID', (int) $request->query('patient'))?->PatientID ?? $user->patientInfo->PatientID);
         $dentistId = $request->query('dentist');
 
         // Every dentist who has ever treated this patient — options for the
@@ -70,6 +73,8 @@ class PatientRecordsController extends Controller
             'dentistOptions' => $dentistOptions,
             'records' => $records,
             'patientInfo' => $user->patientInfo,
+            'people' => $people,
+            'viewingPatientId' => $patientId,
         ]);
     }
 
@@ -118,11 +123,17 @@ class PatientRecordsController extends Controller
             $archivedQuery->where($filter);
         }
 
-        $type = in_array($request->query('type'), ['registered', 'walkin'], true) ? $request->query('type') : null;
+        // Registered = has an account; Walk-in = recorded at the counter;
+        // Guest = booked online without an account.
+        $type = in_array($request->query('type'), ['registered', 'walkin', 'guest'], true) ? $request->query('type') : null;
         if ($type) {
-            $isWalkIn = $type === 'walkin';
-            $activeQuery->where('IsWalkIn', $isWalkIn);
-            $archivedQuery->where('IsWalkIn', $isWalkIn);
+            $byType = fn ($q) => match ($type) {
+                'registered' => $q->whereNotNull('UserID'),
+                'walkin' => $q->whereNull('UserID')->where('IsWalkIn', true),
+                'guest' => $q->whereNull('UserID')->where('IsWalkIn', false),
+            };
+            $byType($activeQuery);
+            $byType($archivedQuery);
         }
 
         // Visit date range: patients with at least one visit inside it (either end may be left blank).
@@ -163,33 +174,84 @@ class PatientRecordsController extends Controller
         ]);
     }
 
+    /**
+     * Printable Dental Record for one visit (staff side) — patient info,
+     * appointment details, odontogram and notes. Shown inside the "Print
+     * Preview" modal first; printed from there.
+     */
+    public function printRecord($id)
+    {
+        $record = PatientRecord::with(['patientInfo.userAccount', 'service', 'odontogramTeeth', 'appointment.dentist.staffInfo', 'appointment.services'])
+            ->findOrFail($id);
+
+        return $this->printView($record);
+    }
+
+    /** Same Dental Record, for a patient printing one of their OWN visits. */
+    public function printMine($id)
+    {
+        $user = UserAccount::with('patientInfo')->find(session('user_id'));
+        abort_unless($user?->patientInfo, 403);
+
+        $allowed = PatientInfo::dependentsOf($user)->pluck('PatientID')->push($user->patientInfo->PatientID);
+        $record = PatientRecord::with(['patientInfo.userAccount', 'service', 'odontogramTeeth', 'appointment.dentist.staffInfo', 'appointment.services'])
+            ->whereIn('PatientID', $allowed)
+            ->where('IsArchived', false)
+            ->findOrFail($id);
+
+        return $this->printView($record);
+    }
+
+    protected function printView(PatientRecord $record)
+    {
+        return view('patient-records.print', [
+            'record' => $record,
+            'patient' => $record->patientInfo,
+            'appointment' => $record->appointment,
+            'generatedAt' => now(),
+        ]);
+    }
+
     /** Every visit for one patient — the "Patient Record History" page. */
     public function history(Request $request, $patientId)
     {
         $patient = PatientInfo::with('userAccount')->withMax('appointments', 'AppointmentDate')->findOrFail($patientId);
         $search = $request->query('search');
 
-        $forPatient = fn () => PatientRecord::where('PatientID', $patient->PatientID);
-
-        $activeQuery = $forPatient()->where('IsArchived', false);
-        $archivedQuery = $forPatient()->where('IsArchived', true);
+        // Individual visits can't be archived — only the patient as a whole
+        // (archivePatient). So the history is one list of every visit on
+        // file, whether or not the patient is currently archived.
+        $query = PatientRecord::where('PatientID', $patient->PatientID);
 
         if ($search) {
-            $activeQuery->where('Service', 'like', "%{$search}%");
-            $archivedQuery->where('Service', 'like', "%{$search}%");
+            $query->where('Service', 'like', "%{$search}%");
         }
-
-        $tab = $request->query('tab') === 'archived' ? 'archived' : 'active';
 
         return view('patient-records.history', [
             'patient' => $patient,
-            'records' => $activeQuery->orderByDesc('VisitDate')->orderByDesc('VisitTime')->paginate(10, ['*'], 'page')->withQueryString()
-                ->appends(['tab' => 'active']),
-            'archivedRecords' => $archivedQuery->orderByDesc('VisitDate')->orderByDesc('VisitTime')->paginate(10, ['*'], 'archived_page')->withQueryString()
-                ->appends(['tab' => 'archived']),
+            'records' => $query->orderByDesc('VisitDate')->orderByDesc('VisitTime')->paginate(10, ['*'], 'page')->withQueryString(),
             'search' => $search,
-            'tab' => $tab,
+            // Newest first — the first one is the patient's current history.
+            'medicalVersions' => $patient->medicalHistories()->get(),
         ]);
+    }
+
+    /** Staff update a patient's medical history (saved as a new version). */
+    public function updateMedical(Request $request, $patientId)
+    {
+        $patient = PatientInfo::with('latestMedicalHistory')->findOrFail($patientId);
+        $data = $request->validate(MedicalHistory::rules(true), MedicalHistory::messages());
+
+        MedicalHistory::record(
+            $patient->PatientID,
+            MedicalHistory::answersFrom($data['mh'], true, $patient->latestMedicalHistory?->Answers),
+            'staff',
+            UserAccount::current()
+        );
+
+        $this->activityLog->log('Edit', "Updated {$patient->full_name}'s medical history.");
+
+        return redirect()->route('patientRecords.history', $patient->PatientID)->with('success', 'Medical history updated.');
     }
 
     public function updatePatient(Request $request, $patientId)
@@ -235,6 +297,10 @@ class PatientRecordsController extends Controller
 
         $patient->update($updates);
 
+        if (!$patient->wasChanged()) {
+            return redirect()->route('patientRecords')->with('success', 'No changes to save.');
+        }
+
         $this->activityLog->log('Edit', "Edited patient information for {$data['first_name']} {$data['last_name']}.");
 
         return redirect()->route('patientRecords')->with('success', 'Patient information updated.');
@@ -244,36 +310,27 @@ class PatientRecordsController extends Controller
     {
         $data = $request->validate([
             'notes' => 'nullable|string|max:2000',
+            // Measured at this visit.
+            'blood_pressure' => ['nullable', 'string', 'max:20', 'regex:/^\d{2,3}\s*\/\s*\d{2,3}$/'],
+            'bleeding_time' => 'nullable|string|max:30',
+        ], [
+            'blood_pressure.regex' => 'Enter the blood pressure like 120/80.',
         ]);
 
         $record = PatientRecord::with('patientInfo')->findOrFail($id);
-        $record->update(['Notes' => $data['notes'] ?? null]);
+        $record->update([
+            'Notes' => $data['notes'] ?? null,
+            'BloodPressure' => isset($data['blood_pressure']) ? preg_replace('/\s+/', '', $data['blood_pressure']) : null,
+            'BleedingTime' => $data['bleeding_time'] ?? null,
+        ]);
+
+        if (!$record->wasChanged()) {
+            return $this->redirectToRecord($request, $record)->with('success', 'No changes to save.');
+        }
 
         $this->activityLog->log('Edit', "Edited patient record notes for {$this->patientName($record)}.");
 
         return $this->redirectToRecord($request, $record)->with('success', 'Patient record updated.');
-    }
-
-    /** Archive a single visit (from the patient's history page). */
-    public function archive(Request $request, $id)
-    {
-        $reason = $this->archiveReason($request);
-        $record = PatientRecord::with('patientInfo')->findOrFail($id);
-        $record->update($this->archivedState($reason));
-
-        $this->activityLog->log('Archive', "Archived patient record for {$this->patientName($record)}.");
-
-        return redirect()->route('patientRecords.history', $record->PatientID)->with('success', 'Record archived.');
-    }
-
-    public function unarchive($id)
-    {
-        $record = PatientRecord::with('patientInfo')->findOrFail($id);
-        $record->update($this->restoredState());
-
-        $this->activityLog->log('Unarchive', "Unarchived patient record for {$this->patientName($record)}.");
-
-        return redirect()->route('patientRecords.history', ['patientId' => $record->PatientID, 'tab' => 'archived'])->with('success', 'Record restored.');
     }
 
     /** Archive every active visit for a patient (from the main list). */

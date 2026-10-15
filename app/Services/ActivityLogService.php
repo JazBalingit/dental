@@ -99,6 +99,13 @@ class ActivityLogService
 
     protected function write(array $attributes): ?ActivityLog
     {
+        // Sign-ins/outs, failed attempts and the like aren't recorded — the
+        // trail is for real changes only (see ActivityLog::IGNORED_TYPES).
+        // startSession() then returns null and endSession() is a no-op.
+        if (in_array($attributes['ActivityType'] ?? null, ActivityLog::IGNORED_TYPES, true)) {
+            return null;
+        }
+
         try {
             return ActivityLog::create($attributes + [
                 'created_at' => now(),

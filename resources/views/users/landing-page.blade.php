@@ -63,8 +63,8 @@
         <p class="lead mb-2">{{ $aboutInfo['heroSubtitle'] }}</p>
         <p>{{ $aboutInfo['heroDescription'] }}</p>
         <div class="hero-cta">
-          <a href="{{ route('login') }}" class="book"><i
-              class="fa-regular fa-calendar-check me-2"></i>Sign in to Book</a>
+          <a href="#appointment" class="book"><i
+              class="fa-regular fa-calendar-check me-2"></i>Book an Appointment</a>
           <a href="#how" class="book-ghost">How It Works</a>
         </div>
       </div>
@@ -152,20 +152,28 @@
       </div>
     </div>
   </section>
-  <!-- SCHEDULE PREVIEW (guests only — sign in to book from the Patient Portal) -->
+  <!-- BOOK AN APPOINTMENT (no account needed — the same picker as the Patient Portal) -->
   <section id="appointment" class="section" style="background: linear-gradient(180deg, #c2f2c677 0%, #d1ffca30 100%);">
 
     <div class="container">
       <div class="text-center">
-        <span class="section-eyebrow">See Our Schedule</span>
-        <h2 class="section-title">Dentist Availability</h2>
+        <span class="section-eyebrow">Book Online</span>
+        <h2 class="section-title">Book an Appointment</h2>
         <hr class="section-divider mx-auto">
-        <p class="section-intro mx-auto">Browse open dates and times below. <a href="{{ route('login') }}">Sign in</a> to book a slot from your Patient Portal.</p>
+        <p class="section-intro mx-auto">
+          Pick a dentist, an open date and a time — no account needed. We'll confirm your email with a quick code.
+          <span class="d-block mt-1 small">
+            Have an account? <a href="{{ route('login') }}">Log in</a> ·
+            Already booked? <a href="{{ route('manage.lookup') }}">Manage my booking</a>
+          </span>
+        </p>
       </div>
 
       @include('partials.booking-calendar', [
         'calendarMode' => 'post',
-        'readOnly' => true,
+        'bookInteractive' => true,
+        'bookConfirmAction' => route('guestBooking.start'),
+        'bookSubmitLabel' => 'Continue',
         'bookWeeks' => $bookWeeks,
         'bookCurrent' => $bookCurrent,
         'bookSchedules' => $bookSchedules,

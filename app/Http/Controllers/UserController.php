@@ -78,7 +78,14 @@ class UserController extends Controller
         $counts = $this->appointmentCounts($patientId);
         $current = $this->currentAppointment($patientId);
 
-        return view('users.user-appointment', compact('counts', 'current'));
+        // Upcoming appointments you booked for someone else (your child…).
+        $forOthers = $this->othersQuery($patientId)
+            ->with(['patientInfo', 'service', 'dentist.staffInfo', 'patientRecord.odontogramTeeth', 'attachments', 'pendingReschedule.dentist.staffInfo'])
+            ->upcoming()
+            ->orderBy('AppointmentDate')->orderBy('AppointmentTime')
+            ->get();
+
+        return view('users.user-appointment', compact('counts', 'current', 'forOthers'));
     }
 
     // Patient Portal — Book Appointment (the dentist-schedule calendar).
@@ -88,12 +95,20 @@ class UserController extends Controller
 
         $current = $this->currentAppointment($patientId);
 
+        // "Book for Someone Else" (?for=other) — a child, parent, spouse…
+        // Your own upcoming appointment doesn't block booking for them.
+        $forOther = $request->query('for') === 'other';
+        $user = UserAccount::find(session('user_id'));
+
         // Always load the calendar — even with an active appointment, the
         // patient may want to check availability before deciding whether to
         // reschedule. Booking a second slot is still blocked server-side.
         $bookingData = $booking->calendarData($request);
 
-        return view('users.user-appointment-book', array_merge($bookingData, compact('current')));
+        return view('users.user-appointment-book', array_merge($bookingData, compact('current', 'forOther'), [
+            'bookDependents' => $forOther ? \App\Models\PatientInfo::dependentsOf($user)->with('latestMedicalHistory')->orderBy('FirstName')->get() : collect(),
+            'bookSelfMedical' => $forOther ? null : \App\Models\PatientInfo::find($patientId)?->latestMedicalHistory,
+        ]));
     }
 
     // Patient Portal — Appointment History (searchable/filterable past visits).
@@ -103,13 +118,17 @@ class UserController extends Controller
         $status = $request->query('status');
         $search = $request->query('search');
 
-        $history = Appointment::with(['service', 'dentist.staffInfo', 'patientRecord.odontogramTeeth'])->where('PatientID', $patientId)
+        // Your own visits plus the ones you booked for someone else.
+        $othersIds = $this->othersQuery($patientId)->pluck('AppointmentID');
+
+        $history = Appointment::with(['patientInfo', 'service', 'dentist.staffInfo', 'patientRecord.odontogramTeeth', 'attachments'])
+            ->where(fn ($q) => $q->where('PatientID', $patientId)->orWhereIn('AppointmentID', $othersIds))
             ->when($status, fn ($q) => $q->where('Status', $status))
             ->when($search, fn ($q) => $q->whereHas('service', fn ($s) => $s->where('ServiceName', 'like', "%{$search}%")))
             ->orderByDesc('AppointmentDate')->orderByDesc('AppointmentTime')
             ->paginate(10)->withQueryString();
 
-        return view('users.user-appointment-history', compact('history', 'status', 'search'));
+        return view('users.user-appointment-history', compact('history', 'status', 'search') + ['ownPatientId' => $patientId]);
     }
 
     // The 'auth.session' middleware on these routes already guarantees a
@@ -122,11 +141,24 @@ class UserController extends Controller
         return $user->patientInfo->PatientID;
     }
 
+    /**
+     * Appointments for other people that the signed-in patient manages:
+     * ones they booked for someone else, and any for the people they're
+     * the guardian of (e.g. booked as a guest before they signed up).
+     */
+    protected function othersQuery(int $patientId)
+    {
+        $user = UserAccount::findOrFail(session('user_id'));
+        $dependentIds = \App\Models\PatientInfo::dependentsOf($user)->pluck('PatientID');
+
+        return Appointment::where('PatientID', '!=', $patientId)
+            ->where(fn ($q) => $q->where('BookedByUserID', $user->UserID)->orWhereIn('PatientID', $dependentIds));
+    }
+
     protected function currentAppointment(int $patientId): ?Appointment
     {
-        return Appointment::with(['service', 'dentist.staffInfo', 'patientRecord.odontogramTeeth'])->where('PatientID', $patientId)
-            ->whereIn('Status', ['Pending', 'Approved'])
-            ->whereDate('AppointmentDate', '>=', today())
+        return Appointment::with(['service', 'dentist.staffInfo', 'patientRecord.odontogramTeeth', 'attachments', 'pendingReschedule.dentist.staffInfo'])->where('PatientID', $patientId)
+            ->upcoming()
             ->orderBy('AppointmentDate')->orderBy('AppointmentTime')->first();
     }
 
@@ -136,9 +168,9 @@ class UserController extends Controller
         $base = Appointment::where('PatientID', $patientId);
 
         return [
-            'upcoming' => (clone $base)->whereIn('Status', ['Pending', 'Approved'])->count(),
+            'upcoming' => (clone $base)->upcoming()->count(),
             'completed' => (clone $base)->where('Status', 'Completed')->count(),
-            'cancelled' => (clone $base)->where('Status', 'Declined')->count(),
+            'cancelled' => (clone $base)->whereIn('Status', ['Cancelled', 'Declined', 'No Show'])->count(),
             'total' => (clone $base)->count(),
         ];
     }
@@ -147,7 +179,8 @@ class UserController extends Controller
     {
         if (!session('user_id')) return redirect()->route('login');
         $user = UserAccount::with('patientInfo')->findOrFail(session('user_id'));
-        abort_unless($user->patientInfo && $appointment->PatientID === $user->patientInfo->PatientID, 403);
+        // Their own appointment, or one they booked for someone else.
+        abort_unless($appointment->isManagedBy($user), 403);
 
         $isReschedule = $request->input('action') === 'reschedule';
 
@@ -169,15 +202,16 @@ class UserController extends Controller
 
         $timeLabel = Carbon::createFromFormat('H:i', $appointment->AppointmentTime)->format('g:i A');
         $dateLabel = $appointment->AppointmentDate->format('F j, Y');
-        $patientName = trim(($user->patientInfo->FirstName ?? '') . ' ' . ($user->patientInfo->LastName ?? ''));
+        $patientName = $appointment->patientInfo?->full_name ?: 'A patient';
+        $forOther = $appointment->PatientID !== $user->patientInfo?->PatientID;
+        $byLine = $forOther ? ' (cancelled by ' . ($user->patientInfo?->full_name ?: $user->Email) . ')' : '';
 
         if ($isReschedule) {
-            $this->notifications->notifyUser(
-                $user,
+            $this->notifications->notifyPatient(
+                $appointment,
                 'Appointment Rescheduled',
                 "Your appointment on {$dateLabel} at {$timeLabel} has been cancelled at your request so that you may select a new schedule.",
                 'warning',
-                $appointment->AppointmentID,
                 'Cancelled'
             );
             $this->notifications->notifyAdmins(
@@ -188,17 +222,16 @@ class UserController extends Controller
                 'Cancelled'
             );
         } else {
-            $this->notifications->notifyUser(
-                $user,
+            $this->notifications->notifyPatient(
+                $appointment,
                 'Appointment Cancelled',
                 "Your appointment on {$dateLabel} at {$timeLabel} has been cancelled as requested.",
                 'danger',
-                $appointment->AppointmentID,
                 'Cancelled'
             );
             $this->notifications->notifyAdmins(
                 'Appointment Cancelled',
-                "{$patientName} has cancelled their appointment.",
+                "{$patientName}'s appointment was cancelled by the patient{$byLine}.",
                 'danger',
                 $appointment->AppointmentID,
                 'Cancelled'

@@ -378,9 +378,16 @@
                             <div class="row g-3 mb-3">
                                 <div class="col-md-6">
                                     <label class="form-label">Email address</label>
-                                    <div class="input-icon {{ $eErr('email') }}"><i class="bi bi-envelope"></i><input type="email" name="email"
-                                            class="form-control" value="{{ $ev('email', $acc->Email) }}" required /></div>
-                                    @if ($eMsg('email')) <div class="field-error"><i class="bi bi-exclamation-circle-fill"></i> {{ $eMsg('email') }}</div> @endif
+                                    {{-- Changed only through the code-verified "Change email" modal. --}}
+                                    <div class="d-flex gap-2">
+                                        <div class="input-icon flex-grow-1"><i class="bi bi-envelope"></i><input type="email"
+                                                class="form-control" value="{{ $acc->Email }}" disabled /></div>
+                                        <button type="button" class="btn btn-outline-secondary px-3" data-email-change
+                                            data-user-id="{{ $acc->UserID }}" data-current-email="{{ $acc->Email }}"
+                                            data-account-label="{{ $acc->AccountType === 'Staff' ? $acc->display_name : trim(($acc->patientInfo->FirstName ?? '') . ' ' . ($acc->patientInfo->LastName ?? '')) }}">
+                                            <i class="bi bi-pencil-square"></i> Change</button>
+                                    </div>
+                                    <div class="small text-muted-2 mt-1">A verification code is sent to the new email before it changes.</div>
                                 </div>
                                 <div class="col-md-6">
                                     <label class="form-label">Cell/Mobile number</label>
@@ -432,6 +439,7 @@
 
     @include('partials.admin-notif-modal')
     @include('partials.confirm-action-modal')
+    @include('partials.email-change-modal')
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
     <script src="{{ asset('js/field-restrictions.js') }}"></script>

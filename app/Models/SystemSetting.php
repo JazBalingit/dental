@@ -26,9 +26,12 @@ class SystemSetting extends Model
         return $value !== null ? $value : $default;
     }
 
-    public static function set(string $key, $value): void
+    /** Saves the setting; returns true only when the stored value actually changed. */
+    public static function set(string $key, $value): bool
     {
-        static::updateOrCreate(['SettingKey' => $key], ['SettingValue' => $value]);
+        $row = static::updateOrCreate(['SettingKey' => $key], ['SettingValue' => $value]);
+
+        return $row->wasRecentlyCreated || $row->wasChanged('SettingValue');
     }
 
     public static function forget(string $key): void

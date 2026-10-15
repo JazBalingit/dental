@@ -18,7 +18,15 @@ class Appointment extends Model
         'AppointmentDate',
         'AppointmentTime',
         'TypeOfAppointment',
+        'PatientNotes',
+        'MedicalHistoryID',
         'Source',
+        'BookedByUserID',
+        'BookedByEmail',
+        'BookedByName',
+        'BookedByPhone',
+        'BookedForOther',
+        'ManageToken',
         'Status',
         'DurationHours',
         'DeclineReason',
@@ -29,6 +37,7 @@ class Appointment extends Model
         'AppointmentDate' => 'date:Y-m-d',
         'ApprovedAt' => 'datetime',
         'DurationHours' => 'float',
+        'BookedForOther' => 'boolean',
     ];
 
     /**
@@ -38,10 +47,22 @@ class Appointment extends Model
      * by when it last changed — ApprovedAt for approved rows, updated_at
      * (the moment it was completed/cancelled/declined) for the rest.
      */
+    /**
+     * A patient's live appointment: Pending/Approved AND dated today or
+     * later. A past Approved visit that staff never marked Completed is
+     * left alone for staff to close out — but it mustn't count as
+     * "upcoming" or stop the patient from booking again.
+     */
+    public function scopeUpcoming($query)
+    {
+        return $query->whereIn('Status', ['Pending', 'Approved'])
+            ->whereDate('AppointmentDate', '>=', today());
+    }
+
     public function scopeWorkflowOrder($query)
     {
         return $query
-            ->orderByRaw("FIELD(Status, 'Pending', 'Approved', 'Completed', 'Cancelled', 'Declined')")
+            ->orderByRaw("FIELD(Status, 'Pending', 'Approved', 'Completed', 'No Show', 'Cancelled', 'Declined')")
             ->orderByRaw("CASE WHEN Status = 'Pending' THEN AppointmentDate END ASC")
             ->orderByRaw("CASE WHEN Status = 'Pending' THEN AppointmentTime END ASC")
             ->orderByRaw("CASE WHEN Status = 'Approved' THEN COALESCE(ApprovedAt, updated_at) ELSE updated_at END DESC");
@@ -90,6 +111,115 @@ class Appointment extends Model
     public function services()
     {
         return $this->belongsToMany(Service::class, 'tbl_appointment_services', 'AppointmentID', 'ServiceID');
+    }
+
+    /** Photos the patient attached when booking (metadata only — bytes aren't selected). */
+    public function attachments()
+    {
+        return $this->hasMany(AppointmentAttachment::class, 'AppointmentID', 'AppointmentID')
+            ->select(['AttachmentID', 'AppointmentID', 'FileName', 'MimeType', 'SizeBytes', 'created_at']);
+    }
+
+    /**
+     * However an appointment stops being active (cancelled, declined,
+     * completed, no-show — from any screen), close its open reschedule
+     * proposal and free the slot that proposal was holding.
+     */
+    protected static function booted(): void
+    {
+        static::saved(function (Appointment $appointment) {
+            if ($appointment->wasChanged('Status') && !in_array($appointment->Status, ['Pending', 'Approved'], true)) {
+                app(\App\Services\RescheduleService::class)->closeForAppointment($appointment);
+            }
+        });
+    }
+
+    /** The medical history version confirmed for this visit. */
+    public function medicalHistory()
+    {
+        return $this->belongsTo(MedicalHistory::class, 'MedicalHistoryID', 'MedicalHistoryID');
+    }
+
+    /** The account that made this booking (the patient, or a parent booking for a child). */
+    public function bookedBy()
+    {
+        return $this->belongsTo(UserAccount::class, 'BookedByUserID', 'UserID');
+    }
+
+    /** Booked online without an account — managed by email and the manage link. */
+    public function getIsGuestAttribute(): bool
+    {
+        return $this->Source === 'Online' && !$this->BookedByUserID && $this->BookedByEmail
+            && !($this->patientInfo?->UserID);
+    }
+
+    /** Who booked an appointment made for someone else ("Maria Santos"), else null. */
+    public function getBookedByLabelAttribute(): ?string
+    {
+        if (!$this->BookedForOther) {
+            return null;
+        }
+
+        return $this->BookedByName ?: ($this->bookedBy?->patientInfo?->full_name ?: $this->BookedByEmail);
+    }
+
+    /**
+     * May this signed-in account manage (view, cancel, reschedule) this
+     * appointment? Their own, one they booked for someone else, or one for
+     * a patient they're the guardian of.
+     */
+    public function isManagedBy(?UserAccount $user): bool
+    {
+        if (!$user) {
+            return false;
+        }
+
+        $patient = $this->patientInfo;
+
+        return ($patient && $patient->UserID === $user->UserID)
+            || $this->BookedByUserID === $user->UserID
+            || ($patient && $patient->GuardianUserID === $user->UserID);
+    }
+
+    /** The secret behind this appointment's "Manage my appointment" link — created on first use. */
+    public function ensureManageToken(): string
+    {
+        if ($this->ManageToken) {
+            return $this->ManageToken;
+        }
+
+        // Another copy of this appointment (e.g. the one the email was built
+        // from) may already have made one — reuse it so emailed links stay valid.
+        $existing = static::whereKey($this->getKey())->value('ManageToken');
+        if ($existing) {
+            return $this->ManageToken = $existing;
+        }
+
+        $token = bin2hex(random_bytes(24));
+        // Only set it if still empty, so two racing copies can't overwrite each other.
+        static::whereKey($this->getKey())->whereNull('ManageToken')->update(['ManageToken' => $token]);
+
+        return $this->ManageToken = static::whereKey($this->getKey())->value('ManageToken') ?? $token;
+    }
+
+    public function getManageUrlAttribute(): string
+    {
+        return route('manage.show', $this->ensureManageToken());
+    }
+
+    /** The staff reschedule proposal still waiting for the patient, if any. */
+    public function pendingReschedule()
+    {
+        return $this->hasOne(RescheduleRequest::class, 'AppointmentID', 'AppointmentID')
+            ->where('Status', 'Pending')
+            ->latestOfMany('RescheduleID');
+    }
+
+    /** Can staff (or the patient) still move this appointment? Pending/Approved and not started yet. */
+    public function getCanRescheduleAttribute(): bool
+    {
+        return in_array($this->Status, ['Pending', 'Approved'], true)
+            && \Carbon\Carbon::parse($this->AppointmentDate->format('Y-m-d') . ' ' . $this->AppointmentTime)->isFuture();
     }
 
     public function patientRecord()

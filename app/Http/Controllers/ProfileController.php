@@ -33,7 +33,11 @@ class ProfileController extends Controller
             'last_name' => ['required', 'string', 'max:100', $nameRule],
             'first_name' => ['required', 'string', 'max:100', $nameRule],
             'middle_name' => ['nullable', 'string', 'max:100', $nameRule],
-            'birthdate' => 'required|date|before_or_equal:2023-12-31',
+            // Accounts are 18+. An existing birthdate is left alone, but it
+            // can't be changed to one under 18.
+            'birthdate' => 'required|date|before_or_equal:' . ($request->input('birthdate') === $patientInfo->DateOfBirth?->format('Y-m-d')
+                ? '2023-12-31'
+                : \App\Services\BookingService::adultCutoff()),
             'gender' => 'required|string',
             'religion' => ['nullable', 'string', 'max:100', $nameRule],
             'nationality' => ['required', 'string', 'max:100', $nameRule],
@@ -44,6 +48,7 @@ class ProfileController extends Controller
             'guardian_occupation' => ['nullable', 'string', 'max:150', $nameRule],
             'photo' => 'nullable|image|mimes:jpg,jpeg,png|max:5120',
         ], [
+            'birthdate.before_or_equal' => 'Accounts are for patients 18 or older.',
             'phone.digits' => 'Mobile number must be exactly 11 digits.',
             'last_name.regex' => 'Last name may only contain letters.',
             'first_name.regex' => 'First name may only contain letters.',

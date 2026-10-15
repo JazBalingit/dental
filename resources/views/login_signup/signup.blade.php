@@ -46,7 +46,6 @@
               'nationality' => 'personal', 'occupation' => 'personal',
               'address' => 'address', 'addr_street' => 'address', 'addr_barangay' => 'address',
               'addr_city' => 'address', 'addr_province' => 'address', 'email' => 'address', 'phone' => 'address',
-              'guardian_name' => 'minor', 'guardian_occupation' => 'minor',
               'password' => 'password', 'password_confirmation' => 'password', 'agree_terms' => 'password',
             ];
             $initialStep = 'personal';
@@ -92,11 +91,11 @@
                 <div class="col-md-6 col-lg-3">
                   <label class="form-label">Birthdate</label>
                   <div class="input-icon @error('birthdate') has-error @enderror"><i class="bi bi-calendar-event"></i><input type="date" name="birthdate"
-                      id="signupBirthdate" class="form-control" value="{{ old('birthdate') }}" max="2023-12-31" required
+                      id="signupBirthdate" class="form-control" value="{{ old('birthdate') }}" max="{{ \App\Services\BookingService::adultCutoff() }}" required
                       data-age-target="#signupAge" />
                   </div>
                   @error('birthdate') <div class="field-error"><i class="bi bi-exclamation-circle-fill"></i> {{ $message }}</div> @enderror
-                  <div class="small text-muted-2 mt-1">Must be born on or before Dec 31, 2023.</div>
+                  <div class="small text-muted-2 mt-1">You must be 18 or older. Booking for a child? Sign up yourself, then use <strong>Book for Someone Else</strong>.</div>
                 </div>
                 <div class="col-md-6 col-lg-3">
                   <label class="form-label">Age</label>
@@ -176,7 +175,7 @@
                 <div class="col-sm-6">
                   <label class="form-label">Email address</label>
                   <div class="input-icon @error('email') has-error @enderror"><i class="bi bi-envelope"></i><input type="email" name="email"
-                      class="form-control" value="{{ old('email') }}" placeholder="you@clinic.com" required /></div>
+                      class="form-control" value="{{ old('email', request('email')) }}" placeholder="you@clinic.com" required /></div>
                   @error('email') <div class="field-error"><i class="bi bi-exclamation-circle-fill"></i> {{ $message }}</div> @enderror
                 </div>
                 <div class="col-sm-6">
@@ -188,28 +187,7 @@
               </div>
             </div>
 
-            {{-- ===================== STEP 3: FOR MINORS (only if under 18) ===================== --}}
-            <div class="wizard-step" data-step="minor" hidden>
-              <div class="section-label">For Minors</div>
-              <p class="text-muted small mb-3">The patient is under 18 based on the birthdate provided — a parent or guardian needs to be on file.</p>
-              <div class="row g-3 mb-3">
-                <div class="col-sm-6">
-                  <label class="form-label">Parent/Guardian's name</label>
-                  <div class="input-icon @error('guardian_name') has-error @enderror"><i class="bi bi-person-heart"></i><input name="guardian_name"
-                      class="form-control" value="{{ old('guardian_name') }}" placeholder="Guardian's name" />
-                  </div>
-                  @error('guardian_name') <div class="field-error"><i class="bi bi-exclamation-circle-fill"></i> {{ $message }}</div> @enderror
-                </div>
-                <div class="col-sm-6">
-                  <label class="form-label">Guardian's occupation <span class="text-muted">(optional)</span></label>
-                  <div class="input-icon @error('guardian_occupation') has-error @enderror"><i class="bi bi-briefcase"></i><input name="guardian_occupation"
-                      class="form-control" value="{{ old('guardian_occupation') }}" placeholder="Occupation" /></div>
-                  @error('guardian_occupation') <div class="field-error"><i class="bi bi-exclamation-circle-fill"></i> {{ $message }}</div> @enderror
-                </div>
-              </div>
-            </div>
-
-            {{-- ===================== STEP 4: PASSWORD ===================== --}}
+            {{-- ===================== STEP 3: PASSWORD ===================== --}}
             <div class="wizard-step" data-step="password" hidden>
               <div class="section-label">Credentials</div>
               <div class="row g-3 mb-2">
@@ -283,7 +261,7 @@
       var form = document.getElementById('signupWizard');
       if (!form) return;
 
-      var STEP_ORDER = ['personal', 'address', 'minor', 'password'];
+      var STEP_ORDER = ['personal', 'address', 'password'];
       var steps = Array.prototype.slice.call(form.querySelectorAll('.wizard-step'));
       var backBtn = document.getElementById('wizardBackBtn');
       var nextBtn = document.getElementById('wizardNextBtn');
@@ -297,21 +275,8 @@
       var currentStepId = form.dataset.initialStep || 'personal';
       if (STEP_ORDER.indexOf(currentStepId) === -1) currentStepId = 'personal';
 
-      function isMinor() {
-        if (!birthdateInput.value) return false;
-        var dob = new Date(birthdateInput.value);
-        if (isNaN(dob.getTime())) return false;
-        var today = new Date();
-        var age = today.getFullYear() - dob.getFullYear();
-        var m = today.getMonth() - dob.getMonth();
-        if (m < 0 || (m === 0 && today.getDate() < dob.getDate())) age--;
-        return age < 18;
-      }
-
       function activeStepIds() {
-        return STEP_ORDER.filter(function (id) {
-          return id !== 'minor' || isMinor();
-        });
+        return STEP_ORDER;
       }
 
       function syncAddress() {

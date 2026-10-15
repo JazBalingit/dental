@@ -10,6 +10,9 @@ class Service extends Model
     protected $table = 'tbl_services';
     protected $primaryKey = 'ServiceID';
 
+    /** Most services one appointment can cover (patient booking, walk-in, follow-up). */
+    public const MAX_PER_APPOINTMENT = 3;
+
     protected $fillable = [
         'ServiceName',
         'CategoryID',

@@ -38,6 +38,7 @@
         .booking-status-booked { background: #fff0f1; color: #c93645; border: 1px solid #f2aeb6; }
         .booking-status-pending { background: #fff8e6; color: #8a6100; border: 1px solid #f0d78c; }
     </style>
+    <link rel="stylesheet" href="{{ asset('css/medical-history.css') }}">
     <link rel="stylesheet" href="{{ asset('css/modals.css') }}">
     <link rel="stylesheet" href="{{ asset('css/mobile.css') }}">
 </head>
@@ -374,6 +375,17 @@
                                             </div>
                                         </div>
                                     </div>
+
+                                    {{-- Medical history — from the paper Patient Information Record --}}
+                                    <div class="mt-3" id="wiMedical" data-mh-step>
+                                        <div class="section-label mt-2"><i class="bi bi-heart-pulse me-1"></i> Medical History <span class="text-danger">*</span></div>
+                                        <p class="text-muted small mb-2">Copy the answers from the patient's paper form. Blood pressure and bleeding time are recorded on the visit's dental record.</p>
+                                        <input type="hidden" name="mh_status" value="new">
+                                        <div data-mh-form>
+                                            @include('partials.medical-history-form', ['mhf' => ['name' => 'mh', 'id' => 'wi', 'values' => [], 'staff' => true]])
+                                        </div>
+                                        <div class="invalid-feedback" id="wiMedicalFeedback">Please answer every Yes/No question in the medical history.</div>
+                                    </div>
                                 </div>
                             </div>
 
@@ -400,7 +412,7 @@
                                     </div>
 
                                     <div class="section-label mb-3">Services <span class="text-danger">*</span></div>
-                                    <div class="row g-2">
+                                    <div class="row g-2" data-service-group>
                                         @foreach ($services as $svc)
                                             <div class="col-md-6">
                                                 <label class="d-flex align-items-center gap-2 p-2 border rounded-3" style="cursor:pointer;">
@@ -502,6 +514,7 @@
     @include('partials.admin-notif-modal')
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="{{ asset('js/booking-forms.js') }}"></script>
     <script src="{{ asset('js/field-restrictions.js') }}"></script>
     <script src="{{ asset('js/address-sync.js') }}"></script>
     <script src="{{ asset('js/birthdate-age.js') }}"></script>
@@ -675,6 +688,13 @@
                     missing[0].focus();
                     return;
                 }
+                const unanswered = Array.from(newPane.querySelectorAll('#wiMedical [data-mh-q]'))
+                    .filter(q => !q.querySelector('input[type="radio"]:checked'));
+                document.getElementById('wiMedicalFeedback').classList.toggle('d-block', unanswered.length > 0);
+                if (unanswered.length) {
+                    unanswered[0].scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    return;
+                }
             }
             showStep(2);
         });
@@ -752,7 +772,7 @@
             const btn = e.target.closest('[data-wi-date][data-wi-time]');
             if (!btn) return;
 
-            const slotRow = btn.closest('.d-flex');
+            const slotRow = btn.closest('.book-picker') || btn.closest('.d-flex');
             const wrapper = slotRow ? slotRow.querySelector('.wi-slot-service') : null;
             const checked = wrapper ? Array.from(wrapper.querySelectorAll('.wi-slot-service-option:checked')) : [];
 
@@ -874,7 +894,7 @@
         const SERVER_NOW = {
             minutes: {{ now()->hour * 60 + now()->minute }},
             date: '{{ today()->toDateString() }}',
-            dow: {{ now()->dayOfWeek }},
+            closedToday: @json(\App\Models\ClosedDate::isClosedWeekday(today()) || \App\Models\ClosedDate::isClosed(today())),
             loadedAt: Date.now(),
         };
         function serverMinutesNow() {
@@ -907,7 +927,7 @@
             wiTimeDisplay.value = '';
 
             if (!boxes.length) { setPreview('success', 'Pick the services to see the visit time.'); return; }
-            if (SERVER_NOW.dow === 0 || !walkinStartTime()) { setPreview('danger', CLOSED_MSG); return; }
+            if (SERVER_NOW.closedToday || !walkinStartTime()) { setPreview('danger', CLOSED_MSG); return; }
             const start = walkinStartTime();
             const end = computeEndTimeLabel(start, wiTotalMinutes);
             const [sh, sm] = start.split(':').map(Number);
@@ -920,7 +940,7 @@
 
         function updateWalkinClosed() {
             if (!IS_WALKIN) return;
-            const closed = SERVER_NOW.dow === 0 || !walkinStartTime();
+            const closed = SERVER_NOW.closedToday || !walkinStartTime();
             document.getElementById('wkClosedBanner').hidden = !closed;
             document.getElementById('wkClosedText').textContent = CLOSED_MSG;
             document.getElementById('toStep2Btn').disabled = closed;
@@ -1095,7 +1115,7 @@
         form.addEventListener('input', saveDraft);
         form.addEventListener('change', saveDraft);
 
-        // A successful confirm redirects to Appointment Approval (not back to this
+        // A successful confirm redirects to Appointment Requests (not back to this
         // page), so this script never runs again to know it worked — mark the draft
         // "submitted" instead of deleting it outright, so a validation/business-logic
         // failure (which DOES redirect back here) still has everything to restore.
@@ -1142,6 +1162,7 @@
         }
     })();
     </script>
+    @include('partials.service-limit-script')
 </body>
 
 </html>

@@ -22,6 +22,10 @@ class AppointmentExpiryService
      */
     public function expireStalePending(): int
     {
+        // Unanswered reschedule proposals expire first (by the original
+        // visit's start at the latest), releasing their held slots.
+        app(RescheduleService::class)->expireStale();
+
         $stale = Appointment::with(['patientInfo.userAccount'])
             ->where('Status', 'Pending')
             ->get()
@@ -42,18 +46,13 @@ class AppointmentExpiryService
 
             $this->releaseSlotBlock($appointment);
 
-            $user = $appointment->patientInfo->userAccount ?? null;
-
-            if ($user) {
-                $this->notifications->notifyUser(
-                    $user,
-                    'Appointment Cancelled',
-                    'We regret to inform you that your appointment was not approved before its scheduled time and has therefore been automatically cancelled. You are welcome to book another appointment at your convenience.',
-                    'danger',
-                    $appointment->AppointmentID,
-                    'Cancelled'
-                );
-            }
+            $this->notifications->notifyPatient(
+                $appointment,
+                'Appointment Cancelled',
+                'We regret to inform you that your appointment was not approved before its scheduled time and has therefore been automatically cancelled. You are welcome to book another appointment at your convenience.',
+                'danger',
+                'Cancelled'
+            );
         }
 
         return $stale->count();

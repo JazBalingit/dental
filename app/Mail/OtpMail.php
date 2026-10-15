@@ -13,9 +13,13 @@ class OtpMail extends Mailable
 
     public string $code;
 
-    public function __construct(string $code)
+    /** What the code is for, finishing "Use the code below to …". */
+    public string $purpose;
+
+    public function __construct(string $code, string $purpose = 'verify your email address and finish creating your account')
     {
         $this->code = $code;
+        $this->purpose = $purpose;
     }
 
     public function build()

@@ -64,12 +64,22 @@ class LoginController extends Controller
                 ->with('login_error', 'This account has been deactivated. Please contact the clinic.');
         }
 
-        if (!$user || $user->IsArchived || !Hash::check($data['password'], $user->Password)) {
+        // No account with this email at all — point them to sign up rather
+        // than letting them retry passwords that can never work.
+        if (!$user) {
+            RateLimiter::hit($throttleKey, 60);
+            $this->activityLog->failedLogin($data['email'], null);
+            return redirect()->route('login')
+                ->withInput($request->only('email'))
+                ->with('login_error', "No account exists with this email. Check the spelling or sign up to create one.");
+        }
+
+        if ($user->IsArchived || !Hash::check($data['password'], $user->Password)) {
             RateLimiter::hit($throttleKey, 60);
             $this->activityLog->failedLogin($data['email'], $user?->UserID);
             return redirect()->route('login')
                 ->withInput($request->only('email', 'password'))
-                ->with('login_error', 'Incorrect email or password.');
+                ->with('login_error', 'Wrong email or password.');
         }
 
         RateLimiter::clear($throttleKey);
@@ -170,6 +180,10 @@ class LoginController extends Controller
             'is_super_admin', 'super_admin_setup',
             'super_admin_setup_email', 'super_admin_setup_password', 'show_super_admin_verify',
             'super_admin_verify_attempts', 'show_super_admin_release', 'super_admin_release_attempts',
+            // Booking-without-an-account state, so the next person on this
+            // browser can't book or look up bookings under this email.
+            'guest_booking', 'guest_book_email', 'guest_verified_email', 'guest_verified_at',
+            'manage_lookup_email', 'manage_verified_email', 'manage_verified_at',
         ]);
         $request->session()->regenerate();
 

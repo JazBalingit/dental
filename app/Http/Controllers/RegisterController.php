@@ -8,6 +8,7 @@ use App\Mail\OtpMail;
 use App\Models\PatientInfo;
 use App\Models\SystemSetting;
 use App\Models\UserAccount;
+use App\Services\BookingService;
 use App\Services\ActivityLogService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
@@ -46,7 +47,9 @@ class RegisterController extends Controller
             'last_name' => ['required', 'string', 'max:100', $nameRule],
             'first_name' => ['required', 'string', 'max:100', $nameRule],
             'middle_name' => ['nullable', 'string', 'max:100', $nameRule],
-            'birthdate' => 'required|date|before_or_equal:2023-12-31',
+            // Accounts are for adults — a parent books for their child from
+            // their own account ("Book for Someone Else").
+            'birthdate' => 'required|date|before_or_equal:' . BookingService::adultCutoff(),
             'gender' => 'required|string',
             'religion' => ['nullable', 'string', 'max:100', $nameRule],
             'nationality' => ['required', 'string', 'max:100', $nameRule],
@@ -54,13 +57,11 @@ class RegisterController extends Controller
             'address' => 'required|string|max:255',
             'email' => 'required|email|unique:tbl_useraccount,Email',
             'phone' => 'required|digits:11',
-            'guardian_name' => ['nullable', 'string', 'max:150', $nameRule],
-            'guardian_occupation' => ['nullable', 'string', 'max:150', $nameRule],
             // 'confirmed' automatically checks password === password_confirmation
             'password' => ['required', 'confirmed', Password::defaults()],
             'agree_terms' => 'accepted',
         ], [
-            'birthdate.before_or_equal' => 'Patients must be born on or before December 31, 2023 to sign up for their own account.',
+            'birthdate.before_or_equal' => 'You must be 18 or older to create an account. A parent or guardian can book for you from their account using "Book for Someone Else".',
             'phone.digits' => 'Mobile number must be exactly 11 digits.',
             'agree_terms.accepted' => 'You must agree to the Privacy Policy and Terms to create an account.',
             'last_name.regex' => 'Last name may only contain letters.',
@@ -69,8 +70,6 @@ class RegisterController extends Controller
             'religion.regex' => 'Religion may only contain letters.',
             'nationality.regex' => 'Nationality may only contain letters.',
             'occupation.regex' => 'Occupation may only contain letters.',
-            'guardian_name.regex' => "Guardian's name may only contain letters.",
-            'guardian_occupation.regex' => "Guardian's occupation may only contain letters.",
         ]);
 
         $throttleKey = 'signup-otp:' . strtolower($data['email']);
@@ -97,8 +96,6 @@ class RegisterController extends Controller
             'Nationality' => $data['nationality'],
             'Address' => $data['address'],
             'Occupation' => $data['occupation'] ?? null,
-            'ParentsName' => $data['guardian_name'] ?? null,
-            'ParentsOccupation' => $data['guardian_occupation'] ?? null,
         ];
 
         $code = $this->issueOtp('otp');
@@ -161,12 +158,11 @@ class RegisterController extends Controller
             'DateCreated' => now(),
         ]);
 
-        PatientInfo::create(array_merge(
-            collect($pending)->except(['Email', 'Password'])->toArray(),
-            ['UserID' => $user->UserID]
-        ));
+        $details = collect($pending)->except(['Email', 'Password'])->toArray();
+        $linked = $this->linkExistingRecords($user, $details);
 
-        $this->activityLog->log('Create', "Registered a new patient account ({$user->Email}).", $user->UserID);
+        $this->activityLog->log('Create', "Registered a new patient account ({$user->Email})."
+            . ($linked ? " Linked {$linked} existing record(s) booked with this email." : ''), $user->UserID);
 
         session()->forget(['pending_registration', 'otp_email', 'otp_attempts', 'show_otp']);
         $this->clearOtp('otp');
@@ -222,5 +218,54 @@ class RegisterController extends Controller
         $this->clearOtp('otp');
 
         return redirect()->route('signup');
+    }
+    /**
+     * The email was just verified, so everything booked with it becomes
+     * this account's:
+     *
+     *  - the patient record that IS this person (a guest booking or walk-in
+     *    with this email and the same name or birthdate) gets the account
+     *    attached and their signup details — no duplicate patient, and their
+     *    past visits, records and odontogram are in the portal right away;
+     *  - people booked under this email (their children…) get this account as
+     *    their guardian, so they show up under "Book for Someone Else";
+     *  - appointments booked with this email are marked as booked by them.
+     *
+     * Returns how many existing records were linked.
+     */
+
+    protected function linkExistingRecords(UserAccount $user, array $details): int
+    {
+        $email = strtolower($user->Email);
+        $candidates = PatientInfo::underEmail($email)->get();
+
+        $self = $candidates
+            ->filter(fn ($p) => !$p->isDependentOf($email))
+            ->sortByDesc(fn ($p) => (int) (
+                ($p->DateOfBirth?->format('Y-m-d') === $details['DateOfBirth'])
+                + (strcasecmp($p->FirstName, $details['FirstName']) === 0 && strcasecmp($p->LastName, $details['LastName']) === 0)
+            ))
+            ->first(fn ($p) => $p->DateOfBirth?->format('Y-m-d') === $details['DateOfBirth']
+                || (strcasecmp($p->FirstName, $details['FirstName']) === 0 && strcasecmp($p->LastName, $details['LastName']) === 0));
+
+        if ($self) {
+            $self->fill($details + ['UserID' => $user->UserID, 'Email' => $user->Email, 'IsWalkIn' => $self->IsWalkIn]);
+            $self->save();
+        } else {
+            $self = PatientInfo::create($details + ['UserID' => $user->UserID]);
+        }
+
+        $dependents = $candidates->filter(fn ($p) => $p->PatientID !== $self->PatientID && $p->isDependentOf($email));
+        foreach ($dependents as $dependent) {
+            $dependent->GuardianUserID = $user->UserID;
+            $dependent->GuardianEmail = $dependent->GuardianEmail ?: $user->Email;
+            $dependent->save();
+        }
+
+        \App\Models\Appointment::whereNull('BookedByUserID')
+            ->whereRaw('LOWER(BookedByEmail) = ?', [$email])
+            ->update(['BookedByUserID' => $user->UserID]);
+
+        return ($self->wasRecentlyCreated ? 0 : 1) + $dependents->count();
     }
 }

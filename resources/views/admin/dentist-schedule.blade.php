@@ -47,7 +47,7 @@
                 <div class="page-head">
                     <div>
                         <h2>{{ ($viewerIsDentist ?? false) ? 'My Schedule' : 'Dentist Schedule' }}</h2>
-                        <div class="crumbs">View and manage availability for all dentists.</div>
+                        <div class="crumbs">{{ ($viewerIsDentist ?? false) ? 'View and manage your own availability.' : 'View and manage availability for all dentists.' }}</div>
                     </div>
                 </div>
 
@@ -64,7 +64,9 @@
                                 @endif
                             </div>
                             <div class="small text-muted-2">
-                                @if ($dentists->isEmpty())
+                                @if ($viewerIsDentist ?? false)
+                                    Your own availability grid.
+                                @elseif ($dentists->isEmpty())
                                     No dentist accounts yet — add one under Staff Accounts.
                                 @else
                                     Each dentist keeps an independent availability grid.
@@ -73,8 +75,8 @@
                         </div>
 
                         <div class="d-flex align-items-center gap-2 flex-wrap">
-                            {{-- Dentist filter --}}
-                            @if ($dentists->isNotEmpty())
+                            {{-- Dentist filter — staff / super admin only; a dentist only ever sees their own grid --}}
+                            @if (!($viewerIsDentist ?? false) && $dentists->isNotEmpty())
                                 <select class="form-select form-select-sm" style="width: 190px;"
                                     onchange="window.location.href='{{ route('dentistSchedule') }}?month={{ $current->format('Y-m') }}&dentist=' + this.value">
                                     @foreach ($dentists as $dentist)
@@ -132,7 +134,7 @@
                                 @php
                                     $dateStr = $d->format('Y-m-d');
                                     $inMonth = $d->month === $current->month;
-                                    $isSunday = $d->isSunday();
+                                    $isWeeklyOff = \App\Models\ClosedDate::isClosedWeekday($d);
                                     $isClinicClosed = \App\Models\ClosedDate::isClosed($d);
                                     $clinicClosedReason = \App\Models\ClosedDate::reasonFor($d);
                                     $isPast = $d->lt(\Carbon\Carbon::parse($today));
@@ -151,7 +153,7 @@
                                     }
                                 @endphp
 
-                                @if ($inMonth && !$isSunday && !$isClinicClosed && $isPast)
+                                @if ($inMonth && !$isWeeklyOff && !$isClinicClosed && $isPast)
                                     {{-- The day is done — no slots to manage anymore. Show it plainly
                                          as passed, and roll the per-slot "Completed" chips into one line. --}}
                                     <button type="button"
@@ -163,7 +165,7 @@
                                             <span class="ev ev-completed">{{ $completedThatDay }} appointment{{ $completedThatDay === 1 ? '' : 's' }} completed</span>
                                         @endif
                                     </button>
-                                @elseif ($inMonth && !$isSunday && !$isClinicClosed)
+                                @elseif ($inMonth && !$isWeeklyOff && !$isClinicClosed)
                                     <button type="button"
                                         class="day-cell border-0 text-start p-0 w-100 d-block {{ $dateStr === $today ? 'today' : '' }}"
                                         data-bs-toggle="modal" data-bs-target="#{{ $modalId }}">
@@ -198,13 +200,13 @@
                                             @endforeach
                                         @endif
                                     </button>
-                                @elseif ($inMonth && ($isSunday || $isClinicClosed))
+                                @elseif ($inMonth && ($isWeeklyOff || $isClinicClosed))
                                     <button type="button" class="day-cell day-off border-0 text-start p-0 w-100 d-block" disabled>
                                         <div class="n" style="margin-left: 8px;">{{ $d->day }}</div>
                                         @if ($isClinicClosed)
                                             <span class="ev ev-unavailable">Closed{{ $clinicClosedReason ? ' — ' . $clinicClosedReason : '' }}</span>
                                         @else
-                                            <span class="ev ev-unavailable">Day Off</span>
+                                            <span class="ev ev-unavailable">Day Closed</span>
                                         @endif
                                     </button>
                                 @else
@@ -222,7 +224,7 @@
                             <span><span class="dot" style="background: #b9ffbd;"></span>Available slots a day</span>
                             <span><span class="dot" style="background: #ffe69bbd !important;"></span>Day with Unavailable Slots</span>
                             <span><span class="dot" style="background: #dc3545;"></span>Has Unavailable Slots</span>
-                            <span><span class="dot" style="background: #e9ecef;"></span>Day Off (Sunday)</span>
+                            <span><span class="dot" style="background: #e9ecef;"></span>Day Closed{{ ($closedDaysLabel = \App\Models\ClosedDate::closedWeekdaysLabel()) !== '' ? ' (' . $closedDaysLabel . ')' : '' }}</span>
                         </div>
                         <div class="small text-muted-2">Available schedule this month: {{ $totalAvailableThisMonth }}
                             schedules</div>
@@ -232,7 +234,52 @@
         </main>
     </div>
 
-    {{-- ===================== ONE MODAL PER DAY IN THE CURRENT MONTH (SUNDAYS SKIPPED) ===================== --}}
+    {{-- Compact day window (hour chips + merged appointment rows). --}}
+    <style>
+        .ds-day { max-width: 560px; margin: 0 auto; }
+        .ds-stats { display: flex; flex-wrap: wrap; align-items: center; gap: .4rem; margin-bottom: .9rem; }
+        .ds-stat { font-size: .78rem; font-weight: 600; padding: .25rem .6rem; border-radius: 999px; }
+        .ds-stat b { font-weight: 800; }
+        .ds-stat.is-open { background: #dcfce7; color: #15803d; }
+        .ds-stat.is-closed { background: #fee2e2; color: #b91c1c; }
+        .ds-stat.is-booked { background: #e3ecff; color: #1d4ed8; }
+        .ds-stat.is-pending { background: #fff4d6; color: #8a6100; }
+        .ds-stat.is-completed { background: #efe7ff; color: #6d28d9; }
+        .ds-label { font-size: .7rem; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; color: var(--ink-500); margin: .9rem 0 .45rem; }
+        .ds-hint { font-size: .72rem; font-weight: 500; text-transform: none; letter-spacing: 0; }
+        .ds-blocks { display: flex; flex-direction: column; gap: .4rem; }
+        .ds-block { border-radius: .6rem; padding: .55rem .8rem; border-left: 4px solid transparent; font-size: .85rem; }
+        .ds-block-time { font-weight: 700; }
+        .ds-block-main { display: flex; flex-wrap: wrap; align-items: center; gap: .4rem; margin-top: .1rem; }
+        .ds-block-status { font-size: .68rem; font-weight: 700; text-transform: uppercase; letter-spacing: .03em; padding: .1rem .45rem; border-radius: 999px; background: rgba(255,255,255,.7); }
+        .ds-block-id { font-size: .75rem; opacity: .75; }
+        .ds-block-svc { font-size: .78rem; opacity: .85; margin-top: .1rem; }
+        .ds-block.is-booked { background: #eef3ff; border-left-color: #1d4ed8; color: #1e3a8a; }
+        .ds-block.is-pending { background: #fff8e6; border-left-color: #d4a017; color: #6b4b00; }
+        .ds-block.is-completed { background: #f4efff; border-left-color: #6d28d9; color: #4c1d95; }
+        .ds-group-label { font-size: .7rem; font-weight: 700; color: var(--ink-500); margin: .5rem 0 .35rem; display: flex; align-items: center; gap: .35rem; }
+        .ds-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(96px, 1fr)); gap: .4rem; }
+        .ds-grid form { display: contents; }
+        .ds-chip {
+            display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0;
+            width: 100%; border-radius: .55rem; padding: .4rem .3rem; border: 1px solid transparent;
+            font-size: .84rem; font-weight: 700; line-height: 1.2; transition: transform .1s ease, box-shadow .1s ease;
+        }
+        .ds-chip small { font-size: .66rem; font-weight: 600; opacity: .85; }
+        button.ds-chip:not(:disabled):hover { transform: translateY(-1px); box-shadow: 0 4px 10px -6px rgba(15,23,42,.35); }
+        button.ds-chip:disabled { cursor: not-allowed; opacity: .6; }
+        .ds-chip.is-open { background: #f0fdf4; border-color: #86efac; color: #15803d; }
+        .ds-chip.is-closed { background: #fef2f2; border-color: #fca5a5; color: #b91c1c; }
+        /* Confirm popup stacks above the open day window. */
+        #appConfirmModal { z-index: 1070; }
+        .modal-backdrop.show + .modal-backdrop.show { z-index: 1065; }
+        .ds-chip.is-booked { background: #eef3ff; border-color: #bfd0ff; color: #1d4ed8; cursor: default; }
+        .ds-chip.is-pending { background: #fff8e6; border-color: #f5d784; color: #8a6100; cursor: default; }
+        .ds-chip.is-completed { background: #f4efff; border-color: #d8c7ff; color: #6d28d9; cursor: default; }
+        .ds-note { margin-top: 1rem; font-size: .78rem; color: var(--ink-500); background: #f8fafc; border-radius: .55rem; padding: .55rem .75rem; }
+    </style>
+
+    {{-- ===================== ONE MODAL PER DAY IN THE CURRENT MONTH (WEEKLY CLOSED DAYS SKIPPED) ===================== --}}
     {{-- Closing (or trying to close) a date/time slot flashes `openDay` back
     from the controller so the admin lands back inside that same day's modal
     instead of on the bare calendar — server-rendered "open" state, same
@@ -243,7 +290,7 @@
     @foreach ($weeks as $week)
         @foreach ($week as $d)
             @continue($d->month !== $current->month)
-            @continue($d->isSunday())
+            @continue(\App\Models\ClosedDate::isClosedWeekday($d))
             @php
                 $dateStr = $d->format('Y-m-d');
                 $modalId = 'modalDay' . $d->format('Ymd');
@@ -259,8 +306,11 @@
                 $completedTimesForDay = collect($slotTimesForDay)
                     ->filter(fn ($t) => ($occupiedSlots[$dateStr . '_' . $t] ?? null)?->Status === 'Completed');
                 $editableTimesForDay = collect($slotTimesForDay)->diff($completedTimesForDay);
+                // Distinct appointments (one appointment spans several slots).
                 $openBookingsForDay = collect($slotTimesForDay)
-                    ->filter(fn ($t) => in_array(($occupiedSlots[$dateStr . '_' . $t] ?? null)?->Status, ['Pending', 'Approved'], true))
+                    ->map(fn ($t) => $occupiedSlots[$dateStr . '_' . $t] ?? null)
+                    ->filter(fn ($a) => in_array($a?->Status, ['Pending', 'Approved'], true))
+                    ->unique(fn ($a) => $a->AppointmentID)
                     ->count();
                 $dayFullyClosed = $editableTimesForDay->isNotEmpty()
                     && $editableTimesForDay->every(fn ($t) =>
@@ -269,7 +319,7 @@
             @endphp
             <div class="modal fade {{ $isReopened ? 'show' : '' }}" id="{{ $modalId }}" tabindex="-1"
                 aria-hidden="{{ $isReopened ? 'false' : 'true' }}" style="{{ $isReopened ? 'display:block;' : '' }}">
-                <div class="modal-dialog modal-dialog-centered modal-xl">
+                <div class="modal-dialog modal-dialog-centered modal-lg modal-fullscreen-sm-down">
                     <div class="modal-content">
                         <div class="modal-header">
                             <div>
@@ -278,9 +328,16 @@
                             @if (!$isPast && $editableTimesForDay->isNotEmpty())
                                 <form method="POST" action="{{ route('dentistSchedule.toggleDay') }}"
                                     class="d-flex align-items-center gap-2 m-0 ms-auto me-3"
-                                    @if (!$dayFullyClosed && $openBookingsForDay > 0)
-                                        data-confirm-title="Close this day?"
-                                        data-confirm-message="Closing this day will cancel {{ $openBookingsForDay }} pending/booked appointment(s) and notify the patient(s). Continue?"
+                                    @if (!$dayFullyClosed)
+                                        data-ds-confirm-title="Make the whole day unavailable?"
+                                        data-ds-confirm-message="{{ $openBookingsForDay > 0
+                                            ? 'Every hour on ' . $d->format('F j, Y') . ' becomes unavailable, and ' . $openBookingsForDay . ' pending/booked appointment(s) will be cancelled with the patient(s) notified. Continue?'
+                                            : 'Every hour on ' . $d->format('F j, Y') . ' becomes unavailable, so patients can\'t book this day. You can make it available again anytime.' }}"
+                                        data-ds-confirm-label="Make Unavailable" data-ds-confirm-class="btn-pill-cancel"
+                                    @else
+                                        data-ds-confirm-title="Make the whole day available again?"
+                                        data-ds-confirm-message="Every hour on {{ $d->format('F j, Y') }} becomes available, so patients can book this day with {{ $selectedDentist?->display_name ?? 'this dentist' }} again."
+                                        data-ds-confirm-label="Make Available" data-ds-confirm-class="btn-pill-archive"
                                     @endif>
                                     @csrf
                                     <input type="hidden" name="date" value="{{ $dateStr }}">
@@ -288,8 +345,8 @@
                                     <input type="hidden" name="dentist_id" value="{{ $selectedDentistId }}">
                                     <label class="form-check form-switch d-flex align-items-center gap-2 m-0" style="cursor:pointer;">
                                         <input class="form-check-input" type="checkbox" role="switch" style="cursor:pointer;"
-                                            {{ !$dayFullyClosed ? 'checked' : '' }} onchange="this.closest('form').requestSubmit()">
-                                        <span class="small text-muted-2">{{ $dayFullyClosed ? 'Day closed' : 'Day open' }}</span>
+                                            {{ !$dayFullyClosed ? 'checked' : '' }} onchange="dsToggleDay(this)">
+                                        <span class="small text-muted-2">{{ $dayFullyClosed ? 'Day unavailable' : 'Day available' }}</span>
                                     </label>
                                 </form>
                             @endif
@@ -297,76 +354,125 @@
                         </div>
 
                         <div class="modal-body">
-                            <div class="schedule-wrap mb-0">
-                                <div class="week-grid">
-                                    <div class="wh">Time</div>
-                                    <div class="wh day">{{ $d->format('D') }} <span class="num">{{ $d->day }}</span></div>
+                            @php
+                                // Compact day view: merged appointment rows + an hour-chip grid.
+                                $dsBlocks = [];
+                                $dsLast = null;
+                                $dsCounts = ['open' => 0, 'closed' => 0, 'booked' => 0, 'pending' => 0, 'completed' => 0];
+                                $dsChips = [];
+                                foreach ($slots as $time => $label) {
+                                    $appt = $occupiedSlots[$dateStr . '_' . $time] ?? null;
+                                    $row = $daySlots[$time] ?? null;
+                                    if ($appt) {
+                                        $kind = $appt->Status === 'Completed' ? 'completed' : ($appt->Status === 'Approved' ? 'booked' : 'pending');
+                                        $dsChips[$time] = ['label' => $label, 'kind' => $kind, 'name' => trim(($appt->patientInfo->FirstName ?? '') . ' ' . ($appt->patientInfo->LastName ?? ''))];
+                                        $end = \Carbon\Carbon::parse($dateStr . ' ' . $time)->addMinutes(\App\Models\DentistSchedule::SLOT_MINUTES);
+                                        if ($dsLast !== null && $dsBlocks[$dsLast]['id'] === $appt->AppointmentID) {
+                                            $dsBlocks[$dsLast]['end'] = $end;
+                                        } else {
+                                            $dsBlocks[] = ['id' => $appt->AppointmentID, 'kind' => $kind, 'appt' => $appt,
+                                                'start' => \Carbon\Carbon::parse($dateStr . ' ' . $time), 'end' => $end];
+                                            $dsLast = array_key_last($dsBlocks);
+                                            $dsCounts[$kind]++;
+                                        }
+                                    } else {
+                                        $dsLast = null;
+                                        $kind = ($row->Status ?? 'Available') === 'Not Available' ? 'closed' : 'open';
+                                        $dsCounts[$kind]++;
+                                        $dsChips[$time] = ['label' => $label, 'kind' => $kind];
+                                    }
+                                }
+                                $dsGroups = [
+                                    ['label' => 'Morning', 'icon' => 'bi-sunrise', 'times' => array_filter($dsChips, fn ($t) => (int) substr($t, 0, 2) < 12, ARRAY_FILTER_USE_KEY)],
+                                    ['label' => 'Afternoon', 'icon' => 'bi-sun', 'times' => array_filter($dsChips, fn ($t) => (int) substr($t, 0, 2) >= 12, ARRAY_FILTER_USE_KEY)],
+                                ];
+                                $dsHours = \App\Models\DentistSchedule::clinicHours();
+                                $dsKindText = ['booked' => 'Booked', 'pending' => 'Pending', 'completed' => 'Completed'];
+                            @endphp
+                            <div class="ds-day">
+                                <div class="ds-stats">
+                                    <span class="ds-stat is-open"><b>{{ $dsCounts['open'] }}</b> available</span>
+                                    @if ($dsCounts['closed'])<span class="ds-stat is-closed"><b>{{ $dsCounts['closed'] }}</b> unavailable</span>@endif
+                                    @if ($dsCounts['booked'])<span class="ds-stat is-booked"><b>{{ $dsCounts['booked'] }}</b> booked</span>@endif
+                                    @if ($dsCounts['pending'])<span class="ds-stat is-pending"><b>{{ $dsCounts['pending'] }}</b> pending</span>@endif
+                                    @if ($dsCounts['completed'])<span class="ds-stat is-completed"><b>{{ $dsCounts['completed'] }}</b> completed</span>@endif
+                                    @if ($selectedDentist)<span class="small text-muted-2 ms-auto">{{ $selectedDentist->display_name }}</span>@endif
+                                </div>
 
-                                    @php $lunchTimes = \App\Models\DentistSchedule::lunchSlotTimes(); @endphp
-                                    @foreach (\App\Models\DentistSchedule::slotLabelsWithLunch() as $time => $label)
-                                        @if (in_array($time, $lunchTimes, true))
-                                            <div class="time">{{ $label }}</div>
-                                            <div class="slot">
-                                                <div class="slot-btn w-100 booking-status-lunch text-center px-3 py-2" aria-disabled="true" title="Clinic lunch break — set in Configuration"><i class="bi bi-cup-hot me-1"></i> Lunch Break</div>
-                                            </div>
-                                            @continue
-                                        @endif
-                                        @php
-                                            $row = $daySlots[$time] ?? null;
-                                            $appointmentForSlot = $occupiedSlots[$dateStr . '_' . $time] ?? null;
-                                            $isHeld = $appointmentForSlot !== null;
-                                            $status = $isHeld
-                                                ? ($appointmentForSlot->Status === 'Completed' ? 'Completed' : ($appointmentForSlot->Status === 'Approved' ? 'Booked' : 'Pending'))
-                                                : ($row->Status ?? 'Available');
-                                            $isUnavailable = $status === 'Not Available' || $isHeld;
-                                            $patientName = $isHeld ? trim(($appointmentForSlot->patientInfo->FirstName ?? '') . ' ' . ($appointmentForSlot->patientInfo->LastName ?? '')) : '';
-                                            $heldClass = match ($status) {
-                                                'Booked' => 'is-booked',
-                                                'Pending' => 'is-pending',
-                                                'Completed' => 'is-completed',
-                                                default => 'is-unavailable',
-                                            };
-                                        @endphp
-                                        <div class="time">{{ $label }}</div>
-                                        <div class="slot">
-                                            @if ($isHeld)
-                                                <div class="slot-btn w-100 {{ $heldClass }} text-start px-3 py-2" title="Appointment slots cannot be edited">
-                                                    <div class="fw-semibold">{{ $status }}</div>
-                                                    <small>{{ $status === 'Booked' ? 'Booked by:' : ($status === 'Completed' ? 'Patient:' : 'Pending:') }} {{ $patientName ?: 'Patient' }}</small>
+                                @if (!empty($dsBlocks))
+                                    <div class="ds-label">Appointments</div>
+                                    <div class="ds-blocks">
+                                        @foreach ($dsBlocks as $b)
+                                            @php $bp = $b['appt']->patientInfo; @endphp
+                                            <div class="ds-block is-{{ $b['kind'] }}">
+                                                <div class="ds-block-time">{{ $b['start']->format('g:i A') }} – {{ $b['end']->format('g:i A') }}</div>
+                                                <div class="ds-block-main">
+                                                    <span class="ds-block-status">{{ $dsKindText[$b['kind']] }}</span>
+                                                    <span class="fw-semibold">{{ $bp ? trim($bp->FirstName . ' ' . $bp->LastName) : 'Patient' }}</span>
+                                                    @if ($bp)<span class="ds-block-id">PT-{{ str_pad($bp->PatientID, 4, '0', STR_PAD_LEFT) }}</span>@endif
                                                 </div>
-                                            @else
-                                                <form method="POST" action="{{ route('dentistSchedule.toggle') }}" class="w-100">
+                                                <div class="ds-block-svc">{{ $b['appt']->TypeOfAppointment ?: ($b['appt']->service?->ServiceName ?? '') }}</div>
+                                            </div>
+                                        @endforeach
+                                    </div>
+                                @endif
+
+                                <div class="ds-label d-flex justify-content-between align-items-baseline">
+                                    <span>Hours</span>
+                                    @unless ($isPast)<span class="ds-hint">Click an hour to make it unavailable · click again to make it available</span>@endunless
+                                </div>
+                                @foreach ($dsGroups as $group)
+                                    @continue(empty($group['times']))
+                                    <div class="ds-group-label"><i class="bi {{ $group['icon'] }}"></i> {{ $group['label'] }}</div>
+                                    <div class="ds-grid">
+                                        @foreach ($group['times'] as $time => $chip)
+                                            @if (in_array($chip['kind'], ['open', 'closed'], true))
+                                                <form method="POST" action="{{ route('dentistSchedule.toggle') }}" class="m-0"
+                                                    @if ($chip['kind'] === 'open')
+                                                        data-confirm-title="Make {{ $chip['label'] }} unavailable?"
+                                                        data-confirm-message="Patients won't be able to book {{ $chip['label'] }} on {{ $d->format('F j, Y') }} with {{ $selectedDentist?->display_name ?? 'this dentist' }}. You can make it available again anytime."
+                                                        data-confirm-label="Make Unavailable" data-confirm-class="btn-pill-cancel"
+                                                    @else
+                                                        data-confirm-title="Make {{ $chip['label'] }} available again?"
+                                                        data-confirm-message="Patients will be able to book {{ $chip['label'] }} on {{ $d->format('F j, Y') }} with {{ $selectedDentist?->display_name ?? 'this dentist' }} again."
+                                                        data-confirm-label="Make Available" data-confirm-class="btn-pill-archive"
+                                                    @endif>
                                                     @csrf
                                                     <input type="hidden" name="date" value="{{ $dateStr }}">
                                                     <input type="hidden" name="time" value="{{ $time }}">
                                                     <input type="hidden" name="month" value="{{ $current->format('Y-m') }}">
                                                     <input type="hidden" name="dentist_id" value="{{ $selectedDentistId }}">
-                                                    <button type="submit"
-                                                        class="slot-btn w-100 {{ $isUnavailable ? 'is-unavailable' : 'is-available' }}"
-                                                        {{ $isPast ? 'disabled' : '' }}>
-                                                        {{ $status }}
+                                                    <button type="submit" class="ds-chip is-{{ $chip['kind'] }}" {{ $isPast ? 'disabled' : '' }}
+                                                        title="{{ $isPast ? 'This date has passed' : ($chip['kind'] === 'open' ? 'Available — click to make this hour unavailable' : 'Unavailable — click to make this hour available again') }}">
+                                                        <span>{{ $chip['label'] }}</span>
+                                                        <small>{{ $chip['kind'] === 'open' ? 'Available' : 'Unavailable' }}</small>
                                                     </button>
                                                 </form>
+                                            @else
+                                                <span class="ds-chip is-{{ $chip['kind'] }}" title="{{ $dsKindText[$chip['kind']] }}: {{ $chip['name'] ?: 'Patient' }} — appointment hours can't be toggled">
+                                                    <span>{{ $chip['label'] }}</span>
+                                                    <small>{{ $dsKindText[$chip['kind']] }}</small>
+                                                </span>
                                             @endif
-                                        </div>
-                                    @endforeach
-                                </div>
-
-                                <div class="p-3 d-flex justify-content-between flex-wrap gap-2">
-                                    <div class="small text-muted-2">
-                                        @if ($isPast)
-                                            This date has already passed — slots are locked.
-                                        @else
-                                            Individual slots holding an appointment can't be toggled. To clear the
-                                            whole day, use the <strong>Day open</strong> switch above — it cancels
-                                            every pending/booked appointment for this dentist that day and notifies
-                                            the patient(s).
-                                        @endif
+                                        @endforeach
                                     </div>
+                                @endforeach
+
+                                @if ($dsHours['lunchEnabled'])
+                                    <div class="small text-muted-2 mt-3"><i class="bi bi-cup-hot me-1"></i> Lunch break
+                                        {{ \Carbon\Carbon::createFromFormat('H:i', $dsHours['lunchStart'])->format('g:i A') }} – {{ \Carbon\Carbon::createFromFormat('H:i', $dsHours['lunchEnd'])->format('g:i A') }}</div>
+                                @endif
+
+                                <div class="ds-note">
+                                    @if ($isPast)
+                                        <i class="bi bi-lock me-1"></i> This date has already passed — hours are locked.
+                                    @else
+                                        <i class="bi bi-info-circle me-1"></i> Hours with an appointment can't be changed. To make the whole day unavailable, use the
+                                        <strong>Day available</strong> switch above — it cancels this dentist's pending/booked appointments that day and notifies the patient(s).
+                                    @endif
                                 </div>
                             </div>
                         </div>
-
                         <div class="modal-footer">
                             <button type="button" class="btn btn-ghost" data-bs-dismiss="modal">Close</button>
                         </div>
@@ -381,6 +487,24 @@
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
     <script src="{{ asset('js/reopen-modal.js') }}"></script>
     @include('partials.confirm-action-modal')
+<script>
+        // Day available/unavailable switch: either direction asks first;
+        // cancelling flips the switch back.
+        async function dsToggleDay(cb) {
+            var form = cb.closest('form');
+            var title = form.dataset.dsConfirmTitle;
+            if (title && window.appConfirm) {
+                var ok = await window.appConfirm({
+                    title: title,
+                    message: form.dataset.dsConfirmMessage,
+                    confirmLabel: form.dataset.dsConfirmLabel || 'Confirm',
+                    confirmClass: form.dataset.dsConfirmClass || 'btn-pill-archive',
+                });
+                if (!ok) { cb.checked = !cb.checked; return; }
+            }
+            form.submit();
+        }
+    </script>
 </body>
 
 </html>

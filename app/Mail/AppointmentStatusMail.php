@@ -15,11 +15,15 @@ class AppointmentStatusMail extends Mailable
     public string $body;
     public ?Appointment $appointment;
 
-    public function __construct(string $heading, string $body, ?Appointment $appointment = null)
+    /** "Manage my appointment" link — only for people without an account (guests / walk-ins). */
+    public ?string $manageUrl;
+
+    public function __construct(string $heading, string $body, ?Appointment $appointment = null, ?string $manageUrl = null)
     {
         $this->heading = $heading;
         $this->body = $body;
         $this->appointment = $appointment;
+        $this->manageUrl = $manageUrl;
     }
 
     /**
@@ -40,7 +44,8 @@ class AppointmentStatusMail extends Mailable
             ?: ($a->services->pluck('ServiceName')->implode(', ') ?: ($a->service->ServiceName ?? null));
 
         $rows = [
-            'Patient' => $patient,
+            'Patient' => $patient . ($a->BookedForOther && $a->patientInfo?->Relationship ? " ({$a->patientInfo->Relationship})" : ''),
+            'Booked by' => $a->booked_by_label,
             'Date' => $a->AppointmentDate?->format('l, F j, Y'),
             'Time' => $a->AppointmentTime ? $a->time_range_label : null,
             'Service' => $services,
@@ -49,7 +54,7 @@ class AppointmentStatusMail extends Mailable
             'Status' => $a->Status === 'Approved' ? 'Approved' : $a->Status,
         ];
 
-        if (in_array($a->Status, ['Declined', 'Cancelled'], true) && $a->DeclineReason) {
+        if (in_array($a->Status, ['Declined', 'Cancelled', 'No Show'], true) && $a->DeclineReason) {
             $rows['Reason'] = $a->DeclineReason;
         }
 
@@ -81,6 +86,16 @@ class AppointmentStatusMail extends Mailable
         }
 
         return $this->subject($subject)
-            ->view('users.appointment-status', ['details' => $this->details(), 'schedule' => $schedule]);
+            ->view('users.appointment-status', [
+                'details' => $this->details(),
+                'schedule' => $schedule,
+                'forOther' => $this->appointment?->BookedForOther ? $this->appointment->patientInfo?->full_name : null,
+                // Guests can turn their booking into an account; only offered
+                // while nobody has signed up with that email yet.
+                'signupUrl' => $this->manageUrl && $this->appointment?->BookedByEmail
+                    && !\App\Models\UserAccount::where('Email', $this->appointment->BookedByEmail)->exists()
+                    ? route('signup', ['email' => $this->appointment->BookedByEmail])
+                    : null,
+            ]);
     }
 }

@@ -26,9 +26,9 @@ class AppointmentsController extends Controller
         $status = $request->query('status');
         $search = $request->query('search');
 
-        $query = Appointment::with(['patientInfo.userAccount', 'service', 'dentist.staffInfo'])->workflowOrder();
+        $query = Appointment::with(['patientInfo.userAccount', 'service', 'dentist.staffInfo', 'attachments', 'pendingReschedule'])->workflowOrder();
 
-        if ($status && in_array($status, ['Pending', 'Approved', 'Declined', 'Completed', 'Cancelled'])) {
+        if ($status && in_array($status, ['Pending', 'Approved', 'Declined', 'Completed', 'Cancelled', 'No Show'])) {
             $query->where('Status', $status);
         }
 
@@ -52,6 +52,7 @@ class AppointmentsController extends Controller
             'pending' => Appointment::where('Status', 'Pending')->count(),
             'declined' => Appointment::where('Status', 'Declined')->count(),
             'cancelled' => Appointment::where('Status', 'Cancelled')->count(),
+            'noShow' => Appointment::where('Status', 'No Show')->count(),
         ];
 
         return $this->panelView('appointments', [
@@ -98,17 +99,13 @@ class AppointmentsController extends Controller
             'Status' => 'Completed',
         ]);
 
-        $user = $appointment->patientInfo->userAccount ?? null;
-        if ($user) {
-            $this->notifications->notifyUser(
-                $user,
-                'Appointment Completed',
-                'Your appointment has been completed. Thank you for choosing Pus-Pus Britanico Dental Clinic.',
-                'success',
-                $appointment->AppointmentID,
-                'Completed'
-            );
-        }
+        $this->notifications->notifyPatient(
+            $appointment,
+            'Appointment Completed',
+            'Your appointment has been completed. Thank you for choosing Pus-Pus Britanico Dental Clinic.',
+            'success',
+            'Completed'
+        );
 
         $p = $appointment->patientInfo;
         $patientName = $p ? trim($p->FirstName . ' ' . $p->LastName) : 'A patient';
@@ -125,11 +122,30 @@ class AppointmentsController extends Controller
         return redirect()->route('appointments')->with('success', 'Appointment marked as completed.');
     }
 
+    /**
+     * What happened to the appointment — picked from the Cancel modal's
+     * dropdown. 'reason' says whether the message to the patient is
+     * required / optional / not asked for; 'default' is what the patient
+     * sees when an optional note is left blank.
+     */
+    public const CANCEL_OUTCOMES = [
+        'clinic' => ['label' => 'Cancelled by the clinic', 'status' => 'Cancelled', 'reason' => 'required', 'default' => null],
+        'patient_request' => ['label' => 'Patient asked to cancel', 'status' => 'Cancelled', 'reason' => 'optional', 'default' => 'Cancelled at the patient\'s request.'],
+        'dentist_unavailable' => ['label' => 'Dentist unavailable', 'status' => 'Cancelled', 'reason' => 'optional', 'default' => 'The dentist is unavailable for this appointment.'],
+        'no_show' => ['label' => 'No Show — patient didn\'t arrive', 'status' => 'No Show', 'reason' => 'none', 'default' => 'The patient did not arrive for this appointment, so it was marked as a no-show.'],
+    ];
+
     public function cancel(Request $request, $id)
     {
+        $outcomeKey = $request->input('outcome', 'clinic');
+        $outcome = self::CANCEL_OUTCOMES[$outcomeKey] ?? null;
+        if (!$outcome) {
+            return redirect()->route('appointments')->with('error', 'Please choose what happened to this appointment.');
+        }
+
         $data = $request->validate([
-            'reason' => 'required|string|max:500',
-        ]);
+            'reason' => [$outcome['reason'] === 'required' ? 'required' : 'nullable', 'string', 'max:500'],
+        ], ['reason.required' => 'Please write a message to the patient explaining the cancellation.']);
 
         $appointment = Appointment::with(['patientInfo.userAccount'])
             ->whereIn('Status', ['Pending', 'Approved'])
@@ -140,37 +156,50 @@ class AppointmentsController extends Controller
                 ->with('error', 'That appointment can no longer be cancelled — its status has already changed.');
         }
 
+        $isNoShow = $outcome['status'] === 'No Show';
+
+        // You can only miss an appointment whose start time has come.
+        if ($isNoShow && \Carbon\Carbon::parse($appointment->AppointmentDate->format('Y-m-d') . ' ' . $appointment->AppointmentTime)->isFuture()) {
+            return redirect()->route('appointments')
+                ->with('error', 'An appointment can only be marked as a no-show once its scheduled time has passed.');
+        }
+
+        $reason = $outcome['reason'] === 'none'
+            ? $outcome['default']
+            : (trim((string) ($data['reason'] ?? '')) ?: $outcome['default']);
+
         $this->releaseAppointmentSlots($appointment);
 
-        $appointment->Status = 'Cancelled';
-        $appointment->DeclineReason = $data['reason'];
+        $appointment->Status = $outcome['status'];
+        $appointment->DeclineReason = $reason;
         $appointment->save();
 
-        $user = $appointment->patientInfo->userAccount ?? null;
-        if ($user) {
-            $this->notifications->notifyUser(
-                $user,
-                'Appointment Cancelled',
-                'We regret to inform you that your appointment has been cancelled by the clinic. Please refer to the reason provided, and feel free to book another schedule at your convenience.',
-                'danger',
-                $appointment->AppointmentID,
-                'Cancelled'
-            );
-        }
+        $dateLabel = $appointment->AppointmentDate->format('F j, Y');
+        $this->notifications->notifyPatient(
+            $appointment,
+            $isNoShow ? 'Missed Appointment' : 'Appointment Cancelled',
+            $isNoShow
+                ? "We missed you at your appointment on {$dateLabel}, so it has been marked as a no-show. You're welcome to book a new appointment at your convenience."
+                : 'We regret to inform you that your appointment has been cancelled by the clinic. Please refer to the reason provided, and feel free to book another schedule at your convenience.',
+            $isNoShow ? 'warning' : 'danger',
+            $outcome['status']
+        );
 
         $p = $appointment->patientInfo;
         $patientName = $p ? trim($p->FirstName . ' ' . $p->LastName) : 'A patient';
         $this->notifications->notifyAdmins(
-            'Appointment Cancelled',
-            "{$patientName}'s appointment has been cancelled.",
-            'danger',
+            $isNoShow ? 'Appointment Marked No Show' : 'Appointment Cancelled',
+            $isNoShow ? "{$patientName} didn't arrive for their appointment on {$dateLabel} — marked as a no-show." : "{$patientName}'s appointment has been cancelled.",
+            $isNoShow ? 'warning' : 'danger',
             $appointment->AppointmentID,
-            'Cancelled'
+            $outcome['status']
         );
 
-        $this->activityLog->log('Cancel', "Cancelled {$patientName}'s appointment. Reason: {$data['reason']}");
+        $this->activityLog->log('Cancel', $isNoShow
+            ? "Marked {$patientName}'s appointment on {$dateLabel} as a no-show."
+            : "Cancelled {$patientName}'s appointment ({$outcome['label']}). Reason: {$reason}");
 
-        return redirect()->route('appointments')->with('success', 'Appointment cancelled.');
+        return redirect()->route('appointments')->with('success', $isNoShow ? 'Appointment marked as a no-show.' : 'Appointment cancelled.');
     }
 
     /**

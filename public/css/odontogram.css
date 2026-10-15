@@ -165,8 +165,9 @@
   max-width: 34px;
 }
 
+/* Uncharted teeth default to the "Healthy" colour (OdontogramTooth::CONDITION_COLORS). */
 .odontogram-tooth-shape {
-  fill: #fff;
+  fill: #22c55e;
   stroke: #cbd5e1;
   stroke-width: 1.5;
   transition: fill .15s, stroke .15s;

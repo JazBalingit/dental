@@ -105,7 +105,8 @@ class UserAccountController extends Controller
             'address' => 'required|string|max:255',
             'guardian_name' => ['nullable', 'string', 'max:150', $nameRule],
             'guardian_occupation' => ['nullable', 'string', 'max:150', $nameRule],
-            'email' => 'required|email|unique:tbl_useraccount,Email,' . $account->UserID . ',UserID',
+            // Email isn't edited here — it only changes through the
+            // code-verified "Change email" flow (EmailChangeController).
             'phone' => 'required|digits:11',
             'photo' => 'nullable|image|mimes:jpg,jpeg,png|max:5120',
         ], [
@@ -119,9 +120,6 @@ class UserAccountController extends Controller
             'guardian_name.regex' => "Guardian's name may only contain letters.",
             'guardian_occupation.regex' => "Guardian's occupation may only contain letters.",
         ]);
-
-        $account->Email = $data['email'];
-        $account->save();
 
         $updates = [
             'LastName' => $data['last_name'],
@@ -148,7 +146,11 @@ class UserAccountController extends Controller
 
         $info->update($updates);
 
-        $this->activityLog->log('Edit', "Edited user account: {$data['first_name']} {$data['last_name']} ({$data['email']}).");
+        if (!$info->wasChanged()) {
+            return redirect()->route('userAcc')->with('success', 'No changes to save.');
+        }
+
+        $this->activityLog->log('Edit', "Edited user account: {$data['first_name']} {$data['last_name']} ({$account->Email}).");
 
         return redirect()->route('userAcc')->with('success', 'User account updated successfully.');
     }

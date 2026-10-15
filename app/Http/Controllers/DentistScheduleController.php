@@ -28,9 +28,17 @@ class DentistScheduleController extends Controller
      * The dentist whose grid we're viewing/editing. Reads ?dentist=ID (or
      * a dentist_id form field), falling back to the first active dentist.
      * Returns null only when the clinic has no dentist accounts at all.
+     *
+     * A logged-in dentist is always pinned to their own grid — whatever
+     * ?dentist= or dentist_id says — so they can never view or edit
+     * another dentist's schedule. Staff and the super admin can pick any.
      */
     protected function resolveDentist(Request $request): ?UserAccount
     {
+        if (UserAccount::currentIsDentist()) {
+            return UserAccount::dentists()->where('UserID', session('user_id'))->first();
+        }
+
         $dentists = UserAccount::dentists()->get();
         $requested = (int) ($request->input('dentist_id') ?: $request->query('dentist'));
 
@@ -77,8 +85,13 @@ class DentistScheduleController extends Controller
             }
         }
 
-        $dentists = UserAccount::dentists()->get();
+        $viewerIsDentist = UserAccount::currentIsDentist();
         $selectedDentist = $this->resolveDentist($request);
+        // A dentist's dropdown would only ever hold themselves — the view
+        // hides it for them, so don't hand it the other dentists at all.
+        $dentists = $viewerIsDentist
+            ? collect([$selectedDentist])->filter()
+            : UserAccount::dentists()->get();
         $selectedDentistId = $selectedDentist?->UserID;
 
         $startDay = $current->copy()->startOfMonth()->startOfWeek(Carbon::MONDAY);
@@ -118,11 +131,11 @@ class DentistScheduleController extends Controller
             $weeks[] = $week;
         }
 
-        // total AVAILABLE slots across the whole month (Sundays excluded — clinic closed)
+        // total AVAILABLE slots across the whole month (weekly closed days excluded)
         $totalAvailableThisMonth = 0;
         $monthCursor = $current->copy();
         while ($monthCursor->month === $current->month) {
-            if (!$monthCursor->isSunday()) {
+            if (!ClosedDate::isClosedWeekday($monthCursor)) {
                 $dStr = $monthCursor->format('Y-m-d');
                 $rows = $schedules[$dStr] ?? collect();
                 $occupiedCount = collect($this->slots())->filter(fn($_, $time) => isset($occupiedSlots[$dStr . '_' . $time]))->count();
@@ -131,8 +144,6 @@ class DentistScheduleController extends Controller
             }
             $monthCursor->addDay();
         }
-
-        $viewer = UserAccount::find(session('user_id'));
 
         return $this->panelView('dentist-schedule', [
             'weeks' => $weeks,
@@ -150,7 +161,7 @@ class DentistScheduleController extends Controller
             // A dentist viewing their own grid sees "My Schedule"; staff and
             // the super admin (who manage every dentist's grid) still see
             // "Dentist Schedule".
-            'viewerIsDentist' => $viewer?->Position === 'Dentist',
+            'viewerIsDentist' => $viewerIsDentist,
         ]);
     }
 
@@ -172,8 +183,8 @@ class DentistScheduleController extends Controller
 
         $date = Carbon::parse($request->date);
 
-        if ($date->isSunday()) {
-            return $this->redirectToSchedule($request, $dentistId, $request->date)->with('error', 'Sundays are not available for scheduling.');
+        if (ClosedDate::isClosedWeekday($date)) {
+            return $this->redirectToSchedule($request, $dentistId, $request->date)->with('error', 'The clinic is closed on this day of the week.');
         }
 
         if (ClosedDate::isClosed($date)) {
@@ -199,7 +210,7 @@ class DentistScheduleController extends Controller
 
         $this->activityLog->log('Edit', "Set {$dentist->display_name}'s {$request->date} {$request->time} slot to {$schedule->Status}.");
 
-        return $this->redirectToSchedule($request, $dentistId, $request->date)->with('success', 'Schedule updated.');
+        return $this->redirectToSchedule($request, $dentistId, $request->date)->with('success', Carbon::createFromFormat('H:i', $request->time)->format('g:i A') . ($schedule->Status === 'Available' ? ' is available again.' : ' is now unavailable.'));
     }
 
     protected function occupiedSlots($appointments): array
@@ -253,8 +264,8 @@ class DentistScheduleController extends Controller
 
         $date = Carbon::parse($request->date);
 
-        if ($date->isSunday()) {
-            return $this->redirectToSchedule($request, $dentistId, $request->date)->with('error', 'Sundays are not available for scheduling.');
+        if (ClosedDate::isClosedWeekday($date)) {
+            return $this->redirectToSchedule($request, $dentistId, $request->date)->with('error', 'The clinic is closed on this day of the week.');
         }
 
         if (ClosedDate::isClosed($date)) {
@@ -306,18 +317,13 @@ class DentistScheduleController extends Controller
                 $cancelledCount++;
 
                 $timeLabel = Carbon::createFromFormat('H:i', $appointment->AppointmentTime)->format('g:i A');
-                $patientUser = $appointment->patientInfo->userAccount ?? null;
-
-                if ($patientUser) {
-                    $this->notifications->notifyUser(
-                        $patientUser,
-                        'Appointment Cancelled — Dentist Unavailable',
-                        "We regret to inform you that your appointment with {$dentist->display_name} on {$dateLabel} at {$timeLabel} has been cancelled, as the dentist will not be available on that day. Please book another date at your convenience.",
-                        'danger',
-                        $appointment->AppointmentID,
-                        'Cancelled'
-                    );
-                }
+                $this->notifications->notifyPatient(
+                    $appointment,
+                    'Appointment Cancelled — Dentist Unavailable',
+                    "We regret to inform you that your appointment with {$dentist->display_name} on {$dateLabel} at {$timeLabel} has been cancelled, as the dentist will not be available on that day. Please book another date at your convenience.",
+                    'danger',
+                    'Cancelled'
+                );
             }
 
             if ($cancelledCount > 0) {
@@ -329,8 +335,20 @@ class DentistScheduleController extends Controller
             }
         }
 
+        // Making the day available must never free an hour a Pending/Approved
+        // appointment still holds — that would let it be double-booked.
+        // (Making it unavailable already cancelled those appointments above.)
+        $heldTimes = $newStatus === 'Available'
+            ? array_map(fn ($key) => explode('_', $key, 2)[1], array_keys($this->occupiedSlots(
+                Appointment::where('DentistID', $dentistId)
+                    ->whereDate('AppointmentDate', $request->date)
+                    ->whereIn('Status', ['Pending', 'Approved'])
+                    ->get()
+            )))
+            : [];
+
         // Apply the new status to every editable slot for this dentist.
-        foreach ($editableTimes as $time) {
+        foreach (array_diff($editableTimes, $heldTimes) as $time) {
             $slot = DentistSchedule::firstOrCreate(
                 ['DentistID' => $dentistId, 'Date' => $request->date, 'Time' => $time],
                 ['Status' => 'Available']
@@ -346,8 +364,8 @@ class DentistScheduleController extends Controller
         );
 
         $message = $newStatus === 'Not Available'
-            ? ('Day closed.' . ($cancelledCount > 0 ? " {$cancelledCount} appointment(s) were cancelled and the patient(s) notified." : ''))
-            : 'Day reopened — every slot is available again.';
+            ? ('Day marked unavailable.' . ($cancelledCount > 0 ? " {$cancelledCount} appointment(s) were cancelled and the patient(s) notified." : ''))
+            : 'Day is available again — every hour is open for booking.';
 
         return $this->redirectToSchedule($request, $dentistId, $request->date)->with('success', $message);
     }

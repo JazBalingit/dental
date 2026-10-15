@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Http\Controllers\Concerns\HandlesArchiveReason;
 use App\Models\Appointment;
 use App\Models\ClosedDate;
+use App\Models\SystemSetting;
 use App\Services\ActivityLogService;
 use App\Services\NotificationService;
 use Carbon\Carbon;
@@ -108,6 +109,10 @@ class ClosedDateController extends Controller
         ClosedDate::flushCache();
         $this->notifyIfCancelled($cancelledCount, $closedDate->Date);
 
+        if (!$closedDate->wasChanged()) {
+            return back()->with('success', 'No changes to save.');
+        }
+
         $this->activityLog->log('Edit', "Edited closed date: now {$closedDate->Date->format('F j, Y')}."
             . ($cancelledCount > 0 ? " Cancelled {$cancelledCount} appointment(s)." : ''));
 
@@ -164,6 +169,73 @@ class ClosedDateController extends Controller
     }
 
     /**
+     * Saves the clinic's weekly closed days (e.g. every Sunday). Any day
+     * newly closed gets the same guarantee a closed date does: every
+     * upcoming Pending/Approved appointment on it is cancelled and the
+     * patient notified.
+     */
+    public function updateWeekdays(Request $request)
+    {
+        $data = $request->validate([
+            'closed_weekdays' => ['nullable', 'array', 'max:6'],
+            'closed_weekdays.*' => ['integer', 'between:0,6'],
+        ], [
+            'closed_weekdays.max' => 'The clinic has to stay open at least one day a week.',
+        ]);
+
+        $newDays = collect($data['closed_weekdays'] ?? [])->map(fn ($d) => (int) $d)->unique()->sort()->values();
+        $oldDays = collect(ClosedDate::closedWeekdays());
+        $addedDays = $newDays->diff($oldDays)->values()->all();
+
+        if ($newDays->sort()->values()->all() === $oldDays->sort()->values()->all()) {
+            return back()->with('success', 'No changes to save.');
+        }
+
+        $cancelledCount = 0;
+
+        DB::beginTransaction();
+        try {
+            if (!empty($addedDays)) {
+                $affected = Appointment::with('patientInfo.userAccount')
+                    ->whereDate('AppointmentDate', '>=', today())
+                    ->whereIn('Status', ['Pending', 'Approved'])
+                    ->get()
+                    ->filter(fn ($a) => in_array($a->AppointmentDate->dayOfWeek, $addedDays, true));
+
+                $cancelledCount = $this->cancelAppointments($affected, null);
+            }
+
+            SystemSetting::set('closed_weekdays', $newDays->implode(','));
+
+            DB::commit();
+        } catch (\Throwable $e) {
+            DB::rollBack();
+
+            return back()->with('error', 'Could not save the weekly closed days. Please try again.');
+        }
+
+        ClosedDate::flushCache();
+
+        if ($cancelledCount > 0) {
+            $this->notifications->notifyAdmins(
+                'Appointments Cancelled — Clinic Closed',
+                "{$cancelledCount} upcoming appointment(s) were cancelled because the clinic is now closed every " . ClosedDate::closedWeekdaysLabel() . '.',
+                'warning'
+            );
+        }
+
+        $label = ClosedDate::closedWeekdaysLabel();
+        $this->activityLog->log(
+            'Edit',
+            ($label !== '' ? "Set the clinic's weekly closed days to {$label}." : 'Opened the clinic every day of the week.')
+                . ($cancelledCount > 0 ? " Cancelled {$cancelledCount} appointment(s)." : '')
+        );
+
+        return back()->with('success', 'Weekly closed days saved.'
+            . ($cancelledCount > 0 ? " {$cancelledCount} appointment(s) were cancelled and the patient(s) notified." : ''));
+    }
+
+    /**
      * Cancels every Pending/Approved appointment (any dentist) on $date and
      * notifies each patient — the same guarantee DentistScheduleController::
      * toggleDay() gives a single dentist's closed day, applied clinic-wide.
@@ -176,7 +248,12 @@ class ClosedDateController extends Controller
             ->whereIn('Status', ['Pending', 'Approved'])
             ->get();
 
-        $dateLabel = Carbon::parse($date)->format('F j, Y');
+        return $this->cancelAppointments($affected, $reason);
+    }
+
+    /** Cancels + notifies each given appointment. Inside a DB transaction. */
+    private function cancelAppointments(iterable $affected, ?string $reason): int
+    {
         $cancelledCount = 0;
 
         foreach ($affected as $appointment) {
@@ -185,19 +262,15 @@ class ClosedDateController extends Controller
             $appointment->save();
             $cancelledCount++;
 
+            $dateLabel = $appointment->AppointmentDate->format('F j, Y');
             $timeLabel = Carbon::createFromFormat('H:i', $appointment->AppointmentTime)->format('g:i A');
-            $patientUser = $appointment->patientInfo->userAccount ?? null;
-
-            if ($patientUser) {
-                $this->notifications->notifyUser(
-                    $patientUser,
-                    'Appointment Cancelled — Clinic Closed',
-                    "We regret to inform you that your appointment on {$dateLabel} at {$timeLabel} has been cancelled, as the clinic will be closed that day. Please book another date at your convenience.",
-                    'danger',
-                    $appointment->AppointmentID,
-                    'Cancelled'
-                );
-            }
+            $this->notifications->notifyPatient(
+                $appointment,
+                'Appointment Cancelled — Clinic Closed',
+                "We regret to inform you that your appointment on {$dateLabel} at {$timeLabel} has been cancelled, as the clinic will be closed that day. Please book another date at your convenience.",
+                'danger',
+                'Cancelled'
+            );
         }
 
         return $cancelledCount;

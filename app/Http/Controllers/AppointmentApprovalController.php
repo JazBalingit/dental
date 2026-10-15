@@ -26,12 +26,14 @@ class AppointmentApprovalController extends Controller
     {
         $this->appointmentExpiry->expireStalePending();
 
-        $status = $request->query('status');
+        // Appointment Requests opens on what needs a decision (Pending);
+        // choosing "All Status" sends status= (empty) and shows everything.
+        $status = $request->has('status') ? $request->query('status') : 'Pending';
         $search = $request->query('search');
 
-        $query = Appointment::with(['patientInfo', 'service', 'schedule', 'dentist.staffInfo'])->workflowOrder();
+        $query = Appointment::with(['patientInfo', 'service', 'schedule', 'dentist.staffInfo', 'attachments', 'pendingReschedule'])->workflowOrder();
 
-        if ($status && in_array($status, ['Pending', 'Approved', 'Declined', 'Completed', 'Cancelled'])) {
+        if ($status && in_array($status, ['Pending', 'Approved', 'Declined', 'Completed', 'Cancelled', 'No Show'])) {
             $query->where('Status', $status);
         }
 
@@ -57,7 +59,15 @@ class AppointmentApprovalController extends Controller
             'declined' => Appointment::where('Status', 'Declined')->count(),
         ];
 
+        // Duration choices + the dentist's day at a glance, for each pending
+        // request's "Approve" confirmation.
+        $pending = $appointments->getCollection()->where('Status', 'Pending');
+        $durationOptions = $pending->mapWithKeys(fn ($a) => [$a->AppointmentID => $this->durationOptions($a)]);
+        $dayOverviews = $pending->mapWithKeys(fn ($a) => [$a->AppointmentID => $this->slotStates($a)]);
+
         return $this->panelView('appointment-approval', [
+            'durationOptions' => $durationOptions,
+            'dayOverviews' => $dayOverviews,
             'appointments' => $appointments,
             'stats' => $stats,
             'status' => $status,
@@ -65,8 +75,112 @@ class AppointmentApprovalController extends Controller
         ]);
     }
 
+    /**
+     * Every duration a pending appointment could be approved with, in slots:
+     * slots => ['label', 'end' (e.g. "11:30 AM"), 'available', 'reason', 'current'].
+     * Shorter is always possible; longer only while the next slots are free
+     * (not another booking, not a dentist-unavailable hour) and before closing.
+     */
+    public function durationOptions(Appointment $appointment): array
+    {
+        $times = DentistSchedule::slotTimes();
+        $start = array_search($appointment->AppointmentTime, $times, true);
+        if ($start === false) {
+            return [];
+        }
+
+        $current = $appointment->duration_slots;
+        $states = $this->slotStates($appointment);
+
+        $options = [];
+        $blockedReason = null;
+        for ($slots = 1; $start + $slots - 1 < count($times); $slots++) {
+            $lastTime = $times[$start + $slots - 1];
+            $state = $states[$lastTime];
+            // The first busy hour after this visit caps how far it can grow;
+            // every longer option says exactly what's in the way.
+            if ($slots > $current && $blockedReason === null && !in_array($state['kind'], ['free', 'this'], true)) {
+                $blockedReason = $state['reason'];
+            }
+            $end = Carbon::createFromFormat('H:i', $lastTime)->addMinutes(DentistSchedule::SLOT_MINUTES)->format('g:i A');
+            $options[$slots] = [
+                'label' => DentistSchedule::formatSlotDuration($slots),
+                'end' => $end,
+                'available' => $slots <= $current || $blockedReason === null,
+                'reason' => $slots > $current ? $blockedReason : null,
+                'current' => $slots === $current,
+            ];
+        }
+
+        return $options;
+    }
+
+    /**
+     * What every hour of this appointment's day looks like for its dentist:
+     * time => ['label', 'kind' (this|free|booked|pending|unavailable|passed),
+     * 'reason' (why it can't be used), 'who' (patient, for booked/pending)].
+     */
+    public function slotStates(Appointment $appointment): array
+    {
+        $times = DentistSchedule::slotTimes();
+        $labels = DentistSchedule::slotLabels();
+        $date = $appointment->AppointmentDate->format('Y-m-d');
+        $rows = DentistSchedule::where('DentistID', $appointment->DentistID)->where('Date', $date)->get()->keyBy('Time');
+
+        $own = [];
+        $start = array_search($appointment->AppointmentTime, $times, true);
+        if ($start !== false) {
+            $own = array_slice($times, $start, $appointment->duration_slots);
+        }
+
+        // time => the other appointment holding it
+        $others = [];
+        Appointment::with('patientInfo')
+            ->where('DentistID', $appointment->DentistID)
+            ->whereDate('AppointmentDate', $date)
+            ->whereIn('Status', ['Pending', 'Approved'])
+            ->whereKeyNot($appointment->AppointmentID)
+            ->get()
+            ->each(function ($other) use ($times, &$others) {
+                $s = array_search($other->AppointmentTime, $times, true);
+                if ($s !== false) {
+                    foreach (array_slice($times, $s, $other->duration_slots) as $t) {
+                        $others[$t] = $other;
+                    }
+                }
+            });
+
+        $states = [];
+        foreach ($times as $time) {
+            $label = $labels[$time] ?? $time;
+            $passed = $date === now()->format('Y-m-d') && Carbon::parse($date . ' ' . $time)->lt(now());
+            if (in_array($time, $own, true)) {
+                $states[$time] = ['label' => $label, 'kind' => 'this', 'reason' => null, 'who' => null];
+            } elseif (isset($others[$time])) {
+                $o = $others[$time];
+                $range = $o->time_range_label;
+                $who = $o->patientInfo ? trim($o->patientInfo->FirstName . ' ' . $o->patientInfo->LastName) : 'another patient';
+                $isBooked = $o->Status === 'Approved';
+                $states[$time] = ['label' => $label, 'kind' => $isBooked ? 'booked' : 'pending', 'who' => $who,
+                    'reason' => $range . ($isBooked ? ' is booked' : ' has a pending request')];
+            } elseif (($rows[$time]->Status ?? 'Available') !== 'Available') {
+                $states[$time] = ['label' => $label, 'kind' => 'unavailable', 'reason' => $label . ' is unavailable', 'who' => null];
+            } elseif ($passed) {
+                $states[$time] = ['label' => $label, 'kind' => 'passed', 'reason' => $label . ' has passed', 'who' => null];
+            } else {
+                $states[$time] = ['label' => $label, 'kind' => 'free', 'reason' => null, 'who' => null];
+            }
+        }
+
+        return $states;
+    }
+
     public function approve(Request $request, $id)
     {
+        $data = $request->validate([
+            'duration_slots' => 'nullable|integer|min:1|max:48',
+        ]);
+
         $appointment = Appointment::with(['patientInfo.userAccount'])->find($id);
 
         if (!$appointment || $appointment->Status !== 'Pending') {
@@ -74,15 +188,35 @@ class AppointmentApprovalController extends Controller
                 ->with('error', 'That request is no longer pending — it may have already been actioned.');
         }
 
-        // The full block of slots this appointment needs was already
-        // reserved (Not Available) the moment it was booked — DurationHours
-        // is computed from its services at that point, not chosen here.
-        // Approving just flips the status; nothing to (re)block.
-        $appointment->Status = 'Approved';
-        $appointment->ApprovedAt = now();
-        $appointment->save();
+        // The slots the booked duration needs were reserved at booking time.
+        // Approving can optionally lengthen (claim the next free slots) or
+        // shorten (release the tail) the visit — e.g. once the dentist sees
+        // the patient's photos. Leaving it unchanged just flips the status.
+        $oldSlots = $appointment->duration_slots;
+        $newSlots = (int) ($data['duration_slots'] ?? $oldSlots);
 
-        $this->notifyPatient($appointment, 'Appointment Approved', 'We are pleased to inform you that your appointment has been approved. We look forward to welcoming you at the clinic.', 'success');
+        try {
+            \Illuminate\Support\Facades\DB::transaction(function () use ($appointment, $oldSlots, $newSlots) {
+                if ($newSlots !== $oldSlots) {
+                    $this->resizeSlotBlock($appointment, $oldSlots, $newSlots);
+                    $appointment->DurationHours = round($newSlots * DentistSchedule::SLOT_MINUTES / 60, 1);
+                }
+                $appointment->Status = 'Approved';
+                $appointment->ApprovedAt = now();
+                $appointment->save();
+            });
+        } catch (\RuntimeException $e) {
+            return redirect()->route('appointmentApproval')->with('error', $e->getMessage());
+        }
+
+        $changed = $newSlots !== $oldSlots;
+        $this->notifyPatient(
+            $appointment,
+            'Appointment Approved',
+            'We are pleased to inform you that your appointment has been approved. We look forward to welcoming you at the clinic.'
+                . ($changed ? ' Please note that your dentist adjusted the visit to ' . $appointment->duration_label . ' (' . $appointment->time_range_label . ').' : ''),
+            'success'
+        );
         $this->notifyAdminsOfStatus($appointment, 'has been approved', 'Approved');
 
         // If this appointment is already inside a reminder window the moment
@@ -94,9 +228,73 @@ class AppointmentApprovalController extends Controller
 
         $p = $appointment->patientInfo;
         $patientName = $p ? trim($p->FirstName . ' ' . $p->LastName) : 'A patient';
-        $this->activityLog->log('Approve', "Approved {$patientName}'s appointment.");
+        $this->activityLog->log('Approve', "Approved {$patientName}'s appointment."
+            . ($changed ? ' Duration adjusted from ' . DentistSchedule::formatSlotDuration($oldSlots) . ' to ' . DentistSchedule::formatSlotDuration($newSlots) . '.' : ''));
 
-        return redirect()->route('appointmentApproval')->with('success', 'Appointment approved.');
+        return redirect()->route('appointmentApproval')->with('success', 'Appointment approved.'
+            . ($changed ? ' Duration set to ' . $appointment->duration_label . ' (' . $appointment->time_range_label . ').' : ''));
+    }
+
+    /** Slot times that OTHER pending/approved appointments with this dentist hold that day. */
+    protected function timesHeldByOtherAppointments(Appointment $appointment): array
+    {
+        $times = DentistSchedule::slotTimes();
+        $held = [];
+        Appointment::where('DentistID', $appointment->DentistID)
+            ->whereDate('AppointmentDate', $appointment->AppointmentDate)
+            ->whereIn('Status', ['Pending', 'Approved'])
+            ->whereKeyNot($appointment->AppointmentID)
+            ->get()
+            ->each(function ($other) use ($times, &$held) {
+                $start = array_search($other->AppointmentTime, $times, true);
+                if ($start !== false) {
+                    $held = array_merge($held, array_slice($times, $start, $other->duration_slots));
+                }
+            });
+
+        return array_values(array_unique($held));
+    }
+
+    /**
+     * Grow or shrink the block of schedule slots an appointment holds,
+     * from $oldSlots to $newSlots (both counted from its start time).
+     * Growing locks and claims the next slots, refusing if any is taken or
+     * the visit would run past closing. Must run inside a transaction.
+     */
+    protected function resizeSlotBlock(Appointment $appointment, int $oldSlots, int $newSlots): void
+    {
+        $times = DentistSchedule::slotTimes();
+        $start = array_search($appointment->AppointmentTime, $times, true);
+        if ($start === false) {
+            throw new \RuntimeException('This appointment\'s start time is not a valid slot, so its duration can\'t be changed.');
+        }
+
+        $date = $appointment->AppointmentDate->format('Y-m-d');
+        $dentistId = $appointment->DentistID;
+
+        if ($newSlots > $oldSlots) {
+            if ($start + $newSlots > count($times)) {
+                throw new \RuntimeException('That duration runs past closing time. Please choose a shorter duration.');
+            }
+            $heldByOthers = $this->timesHeldByOtherAppointments($appointment);
+            foreach (array_slice($times, $start + $oldSlots, $newSlots - $oldSlots) as $time) {
+                $row = DentistSchedule::where('DentistID', $dentistId)->where('Date', $date)->where('Time', $time)->lockForUpdate()->first();
+                if (!$row) {
+                    $row = DentistSchedule::create(['DentistID' => $dentistId, 'Date' => $date, 'Time' => $time, 'Status' => 'Available']);
+                }
+                if ($row->Status !== 'Available' || in_array($time, $heldByOthers, true)) {
+                    $label = Carbon::createFromFormat('H:i', $time)->format('g:i A');
+                    throw new \RuntimeException("Couldn't extend the visit: {$label} is already taken. Please choose a shorter duration.");
+                }
+                $row->Status = 'Not Available';
+                $row->save();
+            }
+        } else {
+            // Shorter: free the slots this appointment no longer needs.
+            DentistSchedule::where('DentistID', $dentistId)->where('Date', $date)
+                ->whereIn('Time', array_slice($times, $start + $newSlots, $oldSlots - $newSlots))
+                ->update(['Status' => 'Available']);
+        }
     }
 
     public function decline(Request $request, $id)
@@ -171,13 +369,9 @@ class AppointmentApprovalController extends Controller
 
     protected function notifyPatient(Appointment $appointment, string $title, string $message, string $type): void
     {
-        $user = $appointment->patientInfo->userAccount ?? null;
-
-        if (!$user) {
-            return;
-        }
-
-        $this->notifications->notifyUser($user, $title, $message, $type, $appointment->AppointmentID, $appointment->Status);
+        // Account holders get the bell + email; guests and walk-ins with an
+        // email get the email (with their manage link).
+        $this->notifications->notifyPatient($appointment, $title, $message, $type);
     }
 
     /**

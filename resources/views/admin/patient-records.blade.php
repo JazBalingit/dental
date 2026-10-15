@@ -81,7 +81,7 @@
             </div>
             <div class="right">
               <input type="hidden" name="tab" id="activeTabField" value="{{ $tab }}">
-              <select class="form-select" name="type" style="min-width:140px; height:40px;" onchange="this.form.submit()"><option value="">All Patients</option><option value="registered" {{ ($type ?? null) === 'registered' ? 'selected' : '' }}>Registered</option><option value="walkin" {{ ($type ?? null) === 'walkin' ? 'selected' : '' }}>Walk-in</option></select>
+              <select class="form-select" name="type" style="min-width:140px; height:40px;" onchange="this.form.submit()"><option value="">All Patients</option><option value="registered" {{ ($type ?? null) === 'registered' ? 'selected' : '' }}>Registered</option><option value="walkin" {{ ($type ?? null) === 'walkin' ? 'selected' : '' }}>Walk-in</option><option value="guest" {{ ($type ?? null) === 'guest' ? 'selected' : '' }}>Guest (no account)</option></select>
               <div class="d-flex align-items-center gap-1 flex-wrap" title="Filter by visit date">
                 <span class="small text-muted-2">Visit</span>
                 <input type="date" class="form-control" name="from" value="{{ $from ?? '' }}" style="width:auto; height:40px;" aria-label="Visit date from" onchange="this.form.submit()">
@@ -127,8 +127,8 @@
                             <div class="d-flex align-items-center gap-2">
                               <span><img class="avatar-initials" src="{{ $p->photo_url }}" alt=""></span>
                               <span class="fw-semibold">{{ $fullName }}</span>
-                              @if ($p->IsWalkIn)
-                                <span class="pill pill-muted">Walk-in</span>
+                              @if ($p->patient_type !== 'Registered')
+                                <span class="pill pill-muted">{{ $p->patient_type }}</span>
                               @endif
                             </div>
                           </td>

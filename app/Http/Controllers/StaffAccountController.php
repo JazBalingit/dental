@@ -157,7 +157,8 @@ class StaffAccountController extends Controller
             'nationality' => ['required', 'string', 'max:100', $nameRule],
             'role' => 'required|in:Dentist,Staff',
             'address' => 'required|string|max:255',
-            'email' => 'required|email|unique:tbl_useraccount,Email,' . $account->UserID . ',UserID',
+            // Email isn't edited here — it only changes through the
+            // code-verified "Change email" flow (EmailChangeController).
             'phone' => 'required|digits:11',
             'photo' => 'nullable|image|mimes:jpg,jpeg,png|max:5120',
         ], [
@@ -169,9 +170,9 @@ class StaffAccountController extends Controller
             'nationality.regex' => 'Nationality may only contain letters.',
         ]);
 
-        $account->Email = $data['email'];
         $account->Position = $data['role'];
         $account->save();
+        $accountChanged = $account->wasChanged();
 
         $updates = [
             'LastName' => $data['last_name'],
@@ -195,7 +196,11 @@ class StaffAccountController extends Controller
 
         $info->update($updates);
 
-        $this->activityLog->log('Edit', "Edited staff account: {$data['first_name']} {$data['last_name']} ({$data['email']}).");
+        if (!$accountChanged && !$info->wasChanged()) {
+            return redirect()->route('staffAcc')->with('success', 'No changes to save.');
+        }
+
+        $this->activityLog->log('Edit', "Edited staff account: {$data['first_name']} {$data['last_name']} ({$account->Email}).");
 
         return redirect()->route('staffAcc')->with('success', 'Staff account updated successfully.');
     }

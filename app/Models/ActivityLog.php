@@ -59,6 +59,29 @@ class ActivityLog extends Model
         return $this->ActivityType === 'Login';
     }
 
+    /**
+     * Routine noise the trail no longer records (and hides if older rows
+     * still exist): sign-ins/outs, failed attempts, contact-form messages.
+     * The trail keeps only real changes — edits, creates, archives,
+     * approvals, bookings, password/email changes.
+     */
+    public const IGNORED_TYPES = [
+        'Login',
+        'Logout',
+        'Failed Login',
+        'Failed Password Change',
+        'Failed Booking',
+        'Failed Super Admin Activation',
+        'Failed Super Admin Release',
+        'Contact Message',
+    ];
+
+    /** Only the meaningful entries — what every activity list shows. */
+    public function scopeMeaningful($query)
+    {
+        return $query->whereNotIn('ActivityType', self::IGNORED_TYPES);
+    }
+
     public function userAccount()
     {
         return $this->belongsTo(UserAccount::class, 'UserID', 'UserID');

@@ -10,9 +10,13 @@
     shared default avatar). Fall back defensively if the composer didn't run.
 --}}
 @php
-    $accountRole = session('is_super_admin')
-        ? 'Super Admin'
-        : (session('account_type') === 'staff' ? 'Staff' : 'Administrator');
+    // A Dentist account shows as "Admin"; a Staff-role account as "Staff".
+    $accountRole = match (true) {
+        (bool) session('is_super_admin') => 'Super Admin',
+        \App\Models\UserAccount::currentIsDentist() => 'Admin',
+        session('account_type') === 'staff' => 'Staff',
+        default => 'Administrator',
+    };
 
     $displayName = $adminAccountName ?? session('user_email', 'Account');
     $accountEmail = $adminAccountEmail ?? session('user_email');

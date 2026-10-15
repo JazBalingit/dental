@@ -3,14 +3,21 @@
 namespace App\Http\Controllers;
 
 use App\Models\Appointment;
-use App\Models\DentistSchedule;
 use App\Models\PatientInfo;
+use App\Models\PatientRecord;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 
 class ReportController extends Controller
 {
-    protected const TYPES = ['appointments', 'patients', 'schedule', 'summary'];
+    protected const TYPES = ['appointments', 'patients', 'summary'];
+
+    /** tbl_appointments.Source value => label shown on reports. */
+    public const SOURCES = [
+        'Online' => 'Online Appointment',
+        'Walk-in' => 'Walk-in',
+        'Follow-up' => 'Follow-up',
+    ];
 
     // Access control (logged-in admin only) is the 'admin' route middleware.
 
@@ -33,56 +40,79 @@ class ReportController extends Controller
             'generatedAt' => now(),
         ];
 
+        // Reports count COMPLETED visits only — the ones that actually
+        // happened: every completed appointment (online, walk-in or
+        // follow-up), plus completed walk-in visits staff recorded straight
+        // into Patient Records without an appointment. Pending / approved /
+        // cancelled / declined are left out.
+        $completed = $this->completedVisits($start, $end);
+
         if (in_array($type, ['appointments', 'summary'], true)) {
-            $appointments = $this->appointmentsQuery($start, $end);
+            // Categorize by the services each visit covered. A visit with
+            // several services is listed under each of them.
+            $byService = [];
+            foreach ($completed as $appointment) {
+                foreach ($this->serviceNames($appointment) as $name) {
+                    $byService[$name][] = $appointment;
+                }
+            }
+            uksort($byService, fn ($a, $b) => count($byService[$b]) <=> count($byService[$a]) ?: strcasecmp($a, $b));
 
             $data['appointmentStats'] = [
-                'total' => (clone $appointments)->count(),
-                'pending' => (clone $appointments)->where('Status', 'Pending')->count(),
-                'approved' => (clone $appointments)->where('Status', 'Approved')->count(),
-                'completed' => (clone $appointments)->where('Status', 'Completed')->count(),
-                'cancelled' => (clone $appointments)->where('Status', 'Cancelled')->count(),
-                'declined' => (clone $appointments)->where('Status', 'Declined')->count(),
+                'completed' => $completed->count(),
+                'patients' => $completed->pluck('PatientID')->unique()->count(),
+                'services' => count($byService),
             ];
+            $data['appointmentsByService'] = $byService;
+
+            // Every booking type is always listed, even at zero, so the report
+            // shows Online, Walk-in and Follow-up side by side.
+            $bySource = collect(self::SOURCES)->mapWithKeys(fn ($label, $source) => [
+                $label => $completed->where('Source', $source)->count(),
+            ]);
+            $data['appointmentsBySource'] = $bySource->all();
 
             if ($includeCharts) {
-                $data['dailyChart'] = $this->appointmentsTimeSeries($start, $end);
-            }
-
-            if ($includePatientDetails) {
-                $data['appointmentsList'] = (clone $appointments)
-                    ->with(['patientInfo.userAccount', 'service'])
-                    // Completed > Approved > Pending > Declined > Cancelled,
-                    // then newest-first within each status group.
-                    ->orderByRaw("FIELD(Status, 'Completed', 'Approved', 'Pending', 'Declined', 'Cancelled')")
-                    ->orderByDesc('AppointmentDate')
-                    ->orderByDesc('AppointmentTime')
-                    ->get();
+                $data['sourceChart'] = $this->barRows($bySource, true);
+                $data['dailyChart'] = $this->visitsTimeSeries($completed, $start, $end);
+                $data['completedServiceChart'] = $this->barRows(collect($byService)->map(fn ($rows) => count($rows)));
             }
         }
 
         if (in_array($type, ['patients', 'summary'], true)) {
-            $patients = PatientInfo::with('userAccount')->get();
+            // Every patient (registered or walk-in) with at least one
+            // completed visit in range.
+            $byPatient = $completed->groupBy('PatientID');
 
-            if ($start && $end) {
-                $idsWithAppointment = (clone $this->appointmentsQuery($start, $end))->pluck('PatientID')->unique();
-                $patients = $patients->filter(function ($patient) use ($idsWithAppointment, $start, $end) {
-                    if ($idsWithAppointment->contains($patient->PatientID)) {
-                        return true;
-                    }
-                    $registered = $patient->userAccount?->DateCreated;
-                    return $registered && Carbon::parse($registered)->between($start, $end);
-                })->values();
-            }
+            $patients = PatientInfo::with('userAccount')
+                ->whereIn('PatientID', $byPatient->keys())
+                ->orderBy('LastName')
+                ->orderBy('FirstName')
+                ->get()
+                ->each(function ($patient) use ($byPatient) {
+                    $rows = $byPatient[$patient->PatientID];
+                    $patient->completedVisits = $rows->count();
+                    $patient->lastCompletedVisit = $rows->max('AppointmentDate');
+                });
 
             $data['patientStats'] = [
                 'total' => $patients->count(),
+                'registered' => $patients->filter(fn ($p) => $p->patient_type === 'Registered')->count(),
+                'guest' => $patients->filter(fn ($p) => $p->patient_type === 'Guest')->count(),
+                'walkin' => $patients->filter(fn ($p) => $p->patient_type === 'Walk-in')->count(),
                 'male' => $patients->where('Gender', 'Male')->count(),
                 'female' => $patients->where('Gender', 'Female')->count(),
             ];
 
             if ($includeCharts) {
-                $data['treatmentBreakdown'] = $this->serviceBreakdown($start, $end, true);
+                // Distinct patients per treatment.
+                $perService = [];
+                foreach ($completed as $appointment) {
+                    foreach ($this->serviceNames($appointment) as $name) {
+                        $perService[$name][$appointment->PatientID] = true;
+                    }
+                }
+                $data['treatmentBreakdown'] = $this->barRows(collect($perService)->map(fn ($ids) => count($ids))->sortDesc());
             }
 
             if ($includePatientDetails) {
@@ -90,32 +120,16 @@ class ReportController extends Controller
             }
         }
 
-        if (in_array($type, ['schedule', 'summary'], true)) {
-            $schedule = $this->scheduleQuery($start, $end);
-
-            $data['scheduleStats'] = [
-                'total' => (clone $schedule)->count(),
-                'available' => (clone $schedule)->where('Status', 'Available')->count(),
-                'booked' => (clone $schedule)->where('Status', '!=', 'Available')->count(),
-            ];
-
-            if ($includeCharts) {
-                $data['scheduleBreakdown'] = $this->scheduleBreakdown($start, $end);
-                $data['scheduleByDentist'] = $this->scheduleByDentist($start, $end);
-            }
-
-            if ($includePatientDetails) {
-                $data['scheduleList'] = (clone $schedule)
-                    ->with('dentist.staffInfo')
-                    ->orderBy('Date')
-                    ->orderBy('Time')
-                    ->get();
-            }
-        }
-
         if ($type === 'summary' && $includeCharts) {
-            $data['serviceBreakdown'] = $this->serviceBreakdown($start, $end, false);
+            $perService = [];
+            foreach ($completed as $appointment) {
+                foreach ($this->serviceNames($appointment) as $name) {
+                    $perService[$name] = ($perService[$name] ?? 0) + 1;
+                }
+            }
+            $data['serviceBreakdown'] = $this->barRows(collect($perService)->sortDesc());
         }
+
 
         return view('superAdmin.report', $data);
     }
@@ -126,6 +140,20 @@ class ReportController extends Controller
     protected function resolveRange(string $range, ?string $from, ?string $to): array
     {
         $today = today();
+
+        // Same calendar periods as the dashboard filter (Daily = this week,
+        // Monthly = this year by month, Quarterly = this year by quarter,
+        // Yearly = every year on record).
+        if (in_array($range, ['daily', 'monthly', 'quarterly', 'yearly'], true)) {
+            $p = app(AdminController::class)->periodRange($range);
+            $label = match ($range) {
+                'monthly' => $p['label'] . ' (by month)',
+                'yearly' => 'All years (' . $p['label'] . ')',
+                default => $p['label'],
+            };
+
+            return [$p['start'], $p['end'], $label];
+        }
 
         return match ($range) {
             'today' => [$today->copy(), $today->copy(), 'Today (' . $today->format('M j, Y') . ')'],
@@ -149,124 +177,97 @@ class ReportController extends Controller
         return [$start, $end, $start->format('M j, Y') . ' – ' . $end->format('M j, Y')];
     }
 
-    protected function appointmentsQuery(?Carbon $start, ?Carbon $end)
+    /**
+     * Every completed visit within the range, oldest first, as Appointment
+     * models: completed appointments, plus completed Patient Records entries
+     * with no appointment behind them (walk-ins recorded directly by staff).
+     * Those are built as unsaved Appointments with Source "Walk-in" so every
+     * report section can treat them the same way.
+     */
+    protected function completedVisits(?Carbon $start, ?Carbon $end)
     {
-        return Appointment::query()
+        $appointments = Appointment::query()
+            ->where('Status', 'Completed')
             ->when($start, fn ($q) => $q->whereDate('AppointmentDate', '>=', $start))
-            ->when($end, fn ($q) => $q->whereDate('AppointmentDate', '<=', $end));
+            ->when($end, fn ($q) => $q->whereDate('AppointmentDate', '<=', $end))
+            ->with(['patientInfo.userAccount', 'service', 'services', 'dentist.staffInfo'])
+            ->get();
+
+        $walkInRecords = PatientRecord::query()
+            ->whereNull('AppointmentID')
+            ->where('Status', 'Completed')
+            ->when($start, fn ($q) => $q->whereDate('VisitDate', '>=', $start))
+            ->when($end, fn ($q) => $q->whereDate('VisitDate', '<=', $end))
+            ->with(['patientInfo.userAccount', 'service'])
+            ->get()
+            ->map(function ($record) {
+                $visit = new Appointment([
+                    'PatientID' => $record->PatientID,
+                    'ServiceID' => $record->ServiceID,
+                    'AppointmentDate' => $record->VisitDate,
+                    'AppointmentTime' => $record->VisitTime ? substr($record->VisitTime, 0, 5) : null,
+                    'TypeOfAppointment' => $record->Service,
+                    'Source' => 'Walk-in',
+                    'Status' => 'Completed',
+                ]);
+                $visit->fromRecord = true;
+                $visit->setRelation('patientInfo', $record->getRelation('patientInfo'));
+                $visit->setRelation('service', $record->getRelation('service'));
+                $visit->setRelation('services', collect());
+                $visit->setRelation('dentist', null);
+
+                return $visit;
+            });
+
+        return $appointments->toBase()->concat($walkInRecords)
+            ->sortBy(fn ($a) => $a->AppointmentDate->format('Y-m-d') . ' ' . $a->AppointmentTime)
+            ->values();
     }
 
-    protected function scheduleQuery(?Carbon $start, ?Carbon $end)
+    /** The service names a visit covered — never empty. */
+    protected function serviceNames(Appointment $appointment): array
     {
-        return DentistSchedule::query()
-            ->when($start, fn ($q) => $q->whereDate('Date', '>=', $start))
-            ->when($end, fn ($q) => $q->whereDate('Date', '<=', $end));
+        $names = $appointment->services->pluck('ServiceName')->unique()->values()->all();
+        if ($names) {
+            return $names;
+        }
+
+        // "Cleaning, Tooth Extraction" → ['Cleaning', 'Tooth Extraction']
+        $raw = $appointment->TypeOfAppointment ?: ($appointment->service->ServiceName ?? '');
+        $names = array_values(array_unique(array_filter(array_map('trim', explode(',', $raw)))));
+
+        return $names ?: ['Unspecified service'];
+    }
+
+    /** label => count  →  bar-chart rows with a width percentage. */
+    protected function barRows($counts, bool $keepZeros = false): array
+    {
+        $max = max(1, $counts->max() ?? 1);
+
+        return $counts->map(fn ($count, $label) => [
+            'label' => $label,
+            'count' => $count,
+            'pct' => ($keepZeros && !$count) ? 0 : max(4, (int) round($count / $max * 100)),
+        ])->values()->all();
     }
 
     /**
-     * Bucket appointment counts by day (short ranges) or by month (long/all-time ranges).
+     * Bucket visit counts by day (short ranges) or by month (long/all-time ranges).
      */
-    protected function appointmentsTimeSeries(?Carbon $start, ?Carbon $end): array
+    protected function visitsTimeSeries($visits, ?Carbon $start, ?Carbon $end): array
     {
         if (!$start || !$end || $start->diffInDays($end) > 31) {
-            $query = Appointment::query()
-                ->when($start, fn ($q) => $q->whereDate('AppointmentDate', '>=', $start))
-                ->when($end, fn ($q) => $q->whereDate('AppointmentDate', '<=', $end));
-
-            $rows = $query->selectRaw("DATE_FORMAT(AppointmentDate, '%Y-%m') as period, COUNT(*) as cnt")
-                ->groupBy('period')
-                ->orderBy('period')
-                ->get();
-
-            $series = $rows->map(fn ($r) => [
-                'label' => Carbon::createFromFormat('Y-m', $r->period)->format('M Y'),
-                'count' => (int) $r->cnt,
-            ]);
+            $counts = $visits->groupBy(fn ($a) => $a->AppointmentDate->format('Y-m'))
+                ->sortKeys()
+                ->mapWithKeys(fn ($rows, $period) => [Carbon::createFromFormat('Y-m', $period)->format('M Y') => $rows->count()]);
         } else {
-            $series = collect();
+            $perDay = $visits->countBy(fn ($a) => $a->AppointmentDate->format('Y-m-d'));
+            $counts = collect();
             for ($d = $start->copy(); $d->lte($end); $d->addDay()) {
-                $series->push([
-                    'label' => $d->format('M j'),
-                    'count' => Appointment::whereDate('AppointmentDate', $d)->count(),
-                ]);
+                $counts[$d->format('M j')] = $perDay[$d->format('Y-m-d')] ?? 0;
             }
         }
 
-        $max = max(1, $series->max('count') ?? 1);
-
-        return $series->map(fn ($s) => array_merge($s, ['pct' => max(4, (int) round($s['count'] / $max * 100))]))
-            ->values()
-            ->all();
-    }
-
-    /**
-     * Appointment volume per service within the range, optionally counted by distinct patient.
-     */
-    protected function serviceBreakdown(?Carbon $start, ?Carbon $end, bool $byDistinctPatient): array
-    {
-        $select = $byDistinctPatient
-            ? 'ServiceID, COUNT(DISTINCT PatientID) as cnt'
-            : 'ServiceID, COUNT(*) as cnt';
-
-        $rows = Appointment::query()
-            ->when($start, fn ($q) => $q->whereDate('AppointmentDate', '>=', $start))
-            ->when($end, fn ($q) => $q->whereDate('AppointmentDate', '<=', $end))
-            ->whereNotNull('ServiceID')
-            ->selectRaw($select)
-            ->groupBy('ServiceID')
-            ->orderByDesc('cnt')
-            ->with('service')
-            ->get();
-
-        $max = max(1, $rows->max('cnt') ?? 1);
-
-        return $rows->map(fn ($r) => [
-            'label' => $r->service->ServiceName ?? 'Service',
-            'count' => (int) $r->cnt,
-            'pct' => max(4, (int) round($r->cnt / $max * 100)),
-        ])->values()->all();
-    }
-
-    /**
-     * Dentist schedule slots grouped by status within the range.
-     */
-    protected function scheduleBreakdown(?Carbon $start, ?Carbon $end): array
-    {
-        $rows = $this->scheduleQuery($start, $end)
-            ->selectRaw('Status, COUNT(*) as cnt')
-            ->groupBy('Status')
-            ->orderByDesc('cnt')
-            ->get();
-
-        $max = max(1, $rows->max('cnt') ?? 1);
-
-        return $rows->map(fn ($r) => [
-            'label' => $r->Status,
-            'count' => (int) $r->cnt,
-            'pct' => max(4, (int) round($r->cnt / $max * 100)),
-        ])->values()->all();
-    }
-
-    /**
-     * Slot counts per dentist within the range — how many total slots each
-     * dentist has on their schedule, and how many of those are booked.
-     */
-    protected function scheduleByDentist(?Carbon $start, ?Carbon $end): array
-    {
-        $rows = $this->scheduleQuery($start, $end)
-            ->selectRaw('DentistID, COUNT(*) as cnt, SUM(Status <> "Available") as booked')
-            ->groupBy('DentistID')
-            ->orderByDesc('cnt')
-            ->with('dentist.staffInfo')
-            ->get();
-
-        $max = max(1, $rows->max('cnt') ?? 1);
-
-        return $rows->map(fn ($r) => [
-            'label' => $r->dentist?->display_name ?? 'Unassigned',
-            'count' => (int) $r->cnt,
-            'booked' => (int) $r->booked,
-            'pct' => max(4, (int) round($r->cnt / $max * 100)),
-        ])->values()->all();
+        return $this->barRows($counts);
     }
 }

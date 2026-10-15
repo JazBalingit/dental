@@ -96,7 +96,7 @@
                         <p>Every completed visit on your file, with the dentist's chart and notes</p>
                     </div>
                 </div>
-                <form method="GET" class="history-filters"><div class="history-search"><button type="submit" class="history-search-btn" aria-label="Search"><i class="fas fa-search"></i></button><input class="form-control" name="search" value="{{ $search ?? '' }}" placeholder="Search treatment"></div>@if(($dentistOptions ?? collect())->isNotEmpty())<select class="form-select" name="dentist" onchange="this.form.submit()"><option value="">All dentists</option>@foreach($dentistOptions as $dr)<option value="{{ $dr->UserID }}" @selected((string) ($dentistId ?? '') === (string) $dr->UserID)>{{ $dr->display_name }}</option>@endforeach</select>@endif</form>
+                <form method="GET" class="history-filters">@if(($people ?? collect())->count() > 1)<select class="form-select" name="patient" onchange="this.form.submit()" aria-label="Whose records">@foreach($people as $person)<option value="{{ $person->PatientID }}" @selected($viewingPatientId === $person->PatientID)>{{ $loop->first ? "My records" : $person->full_name . ($person->Relationship ? " (" . $person->Relationship . ")" : "") }}</option>@endforeach</select>@endif<div class="history-search"><button type="submit" class="history-search-btn" aria-label="Search"><i class="fas fa-search"></i></button><input class="form-control" name="search" value="{{ $search ?? '' }}" placeholder="Search treatment"></div>@if(($dentistOptions ?? collect())->isNotEmpty())<select class="form-select" name="dentist" onchange="this.form.submit()"><option value="">All dentists</option>@foreach($dentistOptions as $dr)<option value="{{ $dr->UserID }}" @selected((string) ($dentistId ?? '') === (string) $dr->UserID)>{{ $dr->display_name }}</option>@endforeach</select>@endif</form>
             </div>
 
             <div style="overflow-x:auto">
@@ -128,6 +128,10 @@
                                 <td class="text-end">
                                     <button type="button" class="btn-view-appt" data-bs-toggle="modal" data-bs-target="#recModal{{ $record->RecordID }}">
                                         <i class="fas fa-eye"></i> View
+                                    </button>
+                                    <button type="button" class="btn-view-appt ms-1" data-print-preview="{{ route('myRecords.print', $record->RecordID) }}"
+                                        data-print-title="Dental record · {{ $record->VisitDate->format('M j, Y') }}">
+                                        <i class="fas fa-print"></i> Print
                                     </button>
                                 </td>
                             </tr>
@@ -164,6 +168,8 @@
                             <div class="appt-info-cell"><span class="appt-info-lbl">Date</span><span class="appt-info-val">{{ $record->VisitDate->format('F j, Y') }}</span></div>
                             <div class="appt-info-cell"><span class="appt-info-lbl">Time</span><span class="appt-info-val">{{ $record->VisitTime ? \Carbon\Carbon::createFromFormat('H:i', $record->VisitTime)->format('g:i A') : '—' }}</span></div>
                             <div class="appt-info-cell"><span class="appt-info-lbl">Status</span><span class="appt-info-val"><span class="badge-pill badge-completed">{{ $record->Status ?: 'Completed' }}</span></span></div>
+                            <div class="appt-info-cell"><span class="appt-info-lbl">Blood Pressure</span><span class="appt-info-val">{{ $record->BloodPressure ?: '—' }}</span></div>
+                            <div class="appt-info-cell"><span class="appt-info-lbl">Bleeding Time</span><span class="appt-info-val">{{ $record->BleedingTime ?: '—' }}</span></div>
                         </div>
 
                         <div class="appt-info-divider"></div>
@@ -175,6 +181,10 @@
                     </div>
                     <div class="modal-footer">
                         <button class="btn-sec" data-bs-dismiss="modal">Close</button>
+                        <button type="button" class="btn-view-appt" data-print-preview="{{ route('myRecords.print', $record->RecordID) }}"
+                            data-print-title="Dental record · {{ $record->VisitDate->format('M j, Y') }}">
+                            <i class="fas fa-print"></i> Print Record
+                        </button>
                     </div>
                 </div>
             </div>
@@ -182,6 +192,7 @@
     @endforeach
 
     @include('partials.user-notif-modal')
+    @include('partials.print-preview-modal')
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js"></script>
     <script src="/js/odontogram.js"></script>

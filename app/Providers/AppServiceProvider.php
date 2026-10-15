@@ -42,7 +42,11 @@ class AppServiceProvider extends ServiceProvider
         // real puspusdentalclinic.online domain. Forcing the root keeps
         // every generated URL consistent no matter which front door it came
         // through.
-        if (config('app.url')) {
+        // Production only: locally the app is opened as localhost:8000,
+        // 127.0.0.1:8000 or via XAMPP, and forcing APP_URL there sends the
+        // login form to a different host than the page — the session cookie
+        // doesn't follow, so the first sign-in fails with "session expired".
+        if (config('app.url') && $this->app->isProduction()) {
             URL::forceRootUrl(config('app.url'));
             URL::forceScheme(str_starts_with(config('app.url'), 'https://') ? 'https' : 'http');
 
@@ -73,6 +77,7 @@ class AppServiceProvider extends ServiceProvider
             'superAdmin.*',
             'admin.*',
             'patient-records.history',
+            'appointments.reschedule-staff',
             'staff.staff-userprofile',
         ], AdminNotificationComposer::class);
 
@@ -80,6 +85,7 @@ class AppServiceProvider extends ServiceProvider
             'users.landing-page',
             'users.user-appointment',
             'users.user-appointment-book',
+            'users.user-appointment-reschedule',
             'users.user-appointment-history',
             'users.settings',
             'users.my-records',

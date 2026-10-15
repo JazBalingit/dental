@@ -2,6 +2,7 @@
 
 use App\Http\Middleware\EnsureAdmin;
 use App\Http\Middleware\EnsureAuthenticated;
+use App\Http\Middleware\EnsureConfigurationAccess;
 use App\Http\Middleware\EnsureStaffIsVerified;
 use App\Http\Middleware\EnsureSuperAdmin;
 use App\Http\Middleware\EnsureSuperAdminClaimed;
@@ -35,6 +36,7 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->alias([
             'admin' => EnsureAdmin::class,
             'superadmin' => EnsureSuperAdmin::class,
+            'config.access' => EnsureConfigurationAccess::class,
             'auth.session' => EnsureAuthenticated::class,
         ]);
     })

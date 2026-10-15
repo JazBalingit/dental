@@ -13,6 +13,7 @@ use App\Http\Controllers\AppointmentBookingController;
 use App\Http\Controllers\StaffAccountController;
 use App\Http\Controllers\StaffProfileController;
 use App\Http\Controllers\AppointmentApprovalController;
+use App\Http\Controllers\AppointmentAttachmentController;
 use App\Http\Controllers\UserAccountController;
 use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\AppointmentsController;
@@ -22,8 +23,13 @@ use App\Http\Controllers\ConfigurationController;
 use App\Http\Controllers\WalkInController;
 use App\Http\Controllers\ReportController;
 use App\Http\Controllers\ContactController;
+use App\Http\Controllers\EmailChangeController;
+use App\Http\Controllers\RescheduleController;
 use App\Http\Controllers\SuperAdminSetupController;
 use App\Http\Controllers\ClosedDateController;
+use App\Http\Controllers\GuestBookingController;
+use App\Http\Controllers\ManageAppointmentController;
+use App\Http\Controllers\MedicalHistoryController;
 
 /*
 |--------------------------------------------------------------------------
@@ -47,6 +53,28 @@ Route::get('landing-page', [UserController::class, 'showLandingPage'])->name('la
 
 // Landing-page "Contact Us" form — open to guests and signed-in patients alike.
 Route::post('/contact', [ContactController::class, 'send'])->name('contact.send');
+
+// ---- Booking without an account (landing-page calendar → email code → details) ----
+Route::post('/book/start', [GuestBookingController::class, 'start'])->name('guestBooking.start');
+Route::get('/book', [GuestBookingController::class, 'show'])->name('guestBooking.show');
+Route::post('/book/email', [GuestBookingController::class, 'sendCode'])->name('guestBooking.email');
+Route::post('/book/resend', [GuestBookingController::class, 'resend'])->name('guestBooking.resend');
+Route::post('/book/verify', [GuestBookingController::class, 'verify'])->name('guestBooking.verify');
+Route::post('/book/change-email', [GuestBookingController::class, 'changeEmail'])->name('guestBooking.changeEmail');
+Route::post('/book/confirm', [GuestBookingController::class, 'confirm'])->name('guestBooking.confirm');
+Route::post('/book/cancel', [GuestBookingController::class, 'cancel'])->name('guestBooking.cancel');
+
+// ---- Manage an appointment without an account (the emailed link, or look it up by email code) ----
+Route::get('/appointment/manage/{token}', [ManageAppointmentController::class, 'show'])->name('manage.show');
+Route::post('/appointment/manage/{token}/cancel', [ManageAppointmentController::class, 'cancel'])->name('manage.cancel');
+Route::get('/appointment/manage/{token}/reschedule', [ManageAppointmentController::class, 'reschedulePage'])->name('manage.reschedule');
+Route::post('/appointment/manage/{token}/reschedule', [ManageAppointmentController::class, 'reschedule'])->name('manage.reschedule.store');
+Route::post('/appointment/manage/{token}/proposal/accept', [ManageAppointmentController::class, 'acceptProposal'])->name('manage.proposal.accept');
+Route::post('/appointment/manage/{token}/proposal/decline', [ManageAppointmentController::class, 'declineProposal'])->name('manage.proposal.decline');
+Route::get('/manage-booking', [ManageAppointmentController::class, 'lookup'])->name('manage.lookup');
+Route::post('/manage-booking/send', [ManageAppointmentController::class, 'lookupSend'])->name('manage.lookup.send');
+Route::post('/manage-booking/verify', [ManageAppointmentController::class, 'lookupVerify'])->name('manage.lookup.verify');
+Route::post('/manage-booking/reset', [ManageAppointmentController::class, 'lookupReset'])->name('manage.lookup.reset');
 
 // ---- Signup + OTP verification ----
 Route::get('/signup', [RegisterController::class, 'create'])->name('signup');
@@ -80,14 +108,34 @@ Route::middleware('auth.session')->group(function () {
     Route::get('user-appointment/history', [UserController::class, 'showAppointmentHistory'])->name('userAppointment.history');
     Route::post('/user-appointment/{appointment}/remove', [UserController::class, 'removeAppointment'])->name('userAppointment.remove');
 
+    // Patient — reschedule: pick your own new time, or answer a clinic proposal
+    Route::get('/user-appointment/{appointment}/reschedule', [RescheduleController::class, 'patientPage'])->whereNumber('appointment')->name('userAppointment.reschedule');
+    Route::post('/user-appointment/{appointment}/reschedule', [RescheduleController::class, 'patientMove'])->whereNumber('appointment')->name('userAppointment.reschedule.store');
+    Route::post('/my-reschedules/{id}/accept', [RescheduleController::class, 'patientAccept'])->whereNumber('id')->name('myReschedules.accept');
+    Route::post('/my-reschedules/{id}/decline', [RescheduleController::class, 'patientDecline'])->whereNumber('id')->name('myReschedules.decline');
+
     // Patient — my dental records (read-only view of my own completed visits)
     Route::get('/my-records', [PatientRecordsController::class, 'mine'])->name('myRecords');
+    Route::get('/my-records/{id}/print', [PatientRecordsController::class, 'printMine'])->whereNumber('id')->name('myRecords.print');
+
+    // Patient — medical history (yours, or someone you book for)
+    Route::get('/my-medical-history', [MedicalHistoryController::class, 'show'])->name('myMedicalHistory');
+    Route::post('/my-medical-history', [MedicalHistoryController::class, 'update'])->name('myMedicalHistory.update');
 
     // Patient — book an appointment
     Route::post('/book-appointment', [AppointmentBookingController::class, 'store'])->name('booking.store');
 
-    // Profile (patient edits their own info; UserID / DateCreated / Email are never editable)
+    // Booking photos (patient's own, or any clinic staff) — access-checked in-controller
+    Route::get('/appointment-attachments/{id}', [AppointmentAttachmentController::class, 'show'])->whereNumber('id')->name('appointmentAttachments.show');
+
+    // Profile (patient edits their own info; UserID / DateCreated are never editable)
     Route::post('/profile', [ProfileController::class, 'update'])->name('userProfile.update');
+
+    // Change an account's email — a code is sent to the NEW address and must
+    // be entered first. Your own account (patients + admins), plus patient
+    // accounts (any admin) and staff accounts (super admin), checked in-controller.
+    Route::post('/email-change/send', [EmailChangeController::class, 'send'])->name('emailChange.send');
+    Route::post('/email-change/verify', [EmailChangeController::class, 'verify'])->name('emailChange.verify');
 
     // Settings / Change Password (+ the "Configuration" activity-trail tab: /settings?tab=configuration)
     Route::get('/settings', [SettingsController::class, 'edit'])->name('settings');
@@ -136,6 +184,11 @@ Route::middleware('admin')->group(function () {
     Route::post('/appointments/{id}/complete', [AppointmentsController::class, 'complete'])->name('appointments.complete');
     Route::post('/appointments/{id}/cancel', [AppointmentsController::class, 'cancel'])->name('appointments.cancel');
 
+    // Reschedule (page reached from the Reschedule buttons; not in the menu)
+    Route::get('/appointments/{id}/reschedule', [RescheduleController::class, 'staffPage'])->whereNumber('id')->name('appointments.reschedule');
+    Route::post('/appointments/{id}/reschedule', [RescheduleController::class, 'staffPropose'])->whereNumber('id')->name('appointments.reschedule.propose');
+    Route::post('/reschedules/{id}/withdraw', [RescheduleController::class, 'staffWithdraw'])->whereNumber('id')->name('reschedules.withdraw');
+
     // User (patient) accounts
     Route::get('/user-accounts', [UserAccountController::class, 'index'])->name('userAcc');
     Route::post('/user-accounts/{id}/update', [UserAccountController::class, 'update'])->name('userAcc.update');
@@ -146,11 +199,11 @@ Route::middleware('admin')->group(function () {
     Route::get('/patient-records', [PatientRecordsController::class, 'index'])->name('patientRecords');
     Route::get('/patient-records/patient/{patientId}', [PatientRecordsController::class, 'history'])->whereNumber('patientId')->name('patientRecords.history');
     Route::post('/patient-records/patient/{patientId}/update', [PatientRecordsController::class, 'updatePatient'])->whereNumber('patientId')->name('patientRecords.patient.update');
+    Route::post('/patient-records/patient/{patientId}/medical-history', [PatientRecordsController::class, 'updateMedical'])->whereNumber('patientId')->name('patientRecords.medical.update');
     Route::post('/patient-records/patient/{patientId}/archive', [PatientRecordsController::class, 'archivePatient'])->whereNumber('patientId')->name('patientRecords.patient.archive');
     Route::post('/patient-records/patient/{patientId}/unarchive', [PatientRecordsController::class, 'unarchivePatient'])->whereNumber('patientId')->name('patientRecords.patient.unarchive');
+    Route::get('/patient-records/{id}/print', [PatientRecordsController::class, 'printRecord'])->whereNumber('id')->name('patientRecords.print');
     Route::post('/patient-records/{id}/update', [PatientRecordsController::class, 'updateNotes'])->name('patientRecords.update');
-    Route::post('/patient-records/{id}/archive', [PatientRecordsController::class, 'archive'])->name('patientRecords.archive');
-    Route::post('/patient-records/{id}/unarchive', [PatientRecordsController::class, 'unarchive'])->name('patientRecords.unarchive');
     Route::post('/patient-records/{id}/odontogram', [OdontogramController::class, 'save'])->name('patientRecords.odontogram.save');
 
     // Staff self-service profile (view info, verify email, change password)
@@ -183,7 +236,7 @@ Route::middleware('admin')->group(function () {
 
     /*
     |----------------------------------------------------------------------
-    | Super admin only — Staff Accounts + Configuration
+    | Super admin only — Staff Accounts + Configuration → Activity Logs
     |----------------------------------------------------------------------
     */
     Route::middleware('superadmin')->group(function () {
@@ -196,7 +249,19 @@ Route::middleware('admin')->group(function () {
         Route::post('/staff-accounts/{id}/unarchive', [StaffAccountController::class, 'unarchive'])->name('staffAcc.unarchive');
         Route::post('/staff-accounts/{id}/password/update', [StaffAccountController::class, 'updatePassword'])->name('staffAcc.password.update');
 
-        // Configuration: branding, services, categories, legal content, appointment steps, activity logs
+        // Configuration → Activity Logs
+        Route::post('/configuration/activity-logs/{id}/archive', [ConfigurationController::class, 'archiveActivityLog'])->name('configuration.activityLogs.archive');
+        Route::post('/configuration/activity-logs/{id}/unarchive', [ConfigurationController::class, 'unarchiveActivityLog'])->name('configuration.activityLogs.unarchive');
+    });
+
+    /*
+    |----------------------------------------------------------------------
+    | Configuration — the super admin and Staff-role accounts (never a
+    | Dentist): branding, closed dates/weekdays, services, categories,
+    | legal content, appointment steps
+    |----------------------------------------------------------------------
+    */
+    Route::middleware('config.access')->group(function () {
         Route::get('/configuration', [ConfigurationController::class, 'index'])->name('configuration');
         Route::post('/configuration/services', [ConfigurationController::class, 'storeService'])->name('configuration.services.store');
         Route::post('/configuration/services/{id}/update', [ConfigurationController::class, 'updateService'])->name('configuration.services.update');
@@ -206,8 +271,6 @@ Route::middleware('admin')->group(function () {
         Route::post('/configuration/categories/{id}/update', [ConfigurationController::class, 'updateCategory'])->name('configuration.categories.update');
         Route::post('/configuration/categories/{id}/archive', [ConfigurationController::class, 'archiveCategory'])->name('configuration.categories.archive');
         Route::post('/configuration/categories/{id}/unarchive', [ConfigurationController::class, 'unarchiveCategory'])->name('configuration.categories.unarchive');
-        Route::post('/configuration/activity-logs/{id}/archive', [ConfigurationController::class, 'archiveActivityLog'])->name('configuration.activityLogs.archive');
-        Route::post('/configuration/activity-logs/{id}/unarchive', [ConfigurationController::class, 'unarchiveActivityLog'])->name('configuration.activityLogs.unarchive');
         Route::post('/configuration/about', [ConfigurationController::class, 'updateAboutInfo'])->name('configuration.about.update');
         Route::post('/configuration/privacy-legal', [ConfigurationController::class, 'updatePrivacyLegal'])->name('configuration.privacyLegal.update');
         Route::post('/configuration/appointment-steps', [ConfigurationController::class, 'storeAppointmentStep'])->name('configuration.appointmentSteps.store');
@@ -218,5 +281,6 @@ Route::middleware('admin')->group(function () {
         Route::post('/configuration/closed-dates/{id}/update', [ClosedDateController::class, 'update'])->name('configuration.closedDates.update');
         Route::post('/configuration/closed-dates/{id}/archive', [ClosedDateController::class, 'archive'])->name('configuration.closedDates.archive');
         Route::post('/configuration/closed-dates/{id}/unarchive', [ClosedDateController::class, 'unarchive'])->name('configuration.closedDates.unarchive');
+        Route::post('/configuration/closed-weekdays', [ClosedDateController::class, 'updateWeekdays'])->name('configuration.closedWeekdays.update');
     });
 });

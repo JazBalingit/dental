@@ -28,12 +28,11 @@ class ConfigurationController extends Controller
      * both the sign-in and its later sign-out on the same row.
      */
     protected array $actionTypes = [
-        'Login', 'Logout', 'Failed Login',
-        'Password Changed', 'Failed Password Change',
-        'Appointment Booked', 'Appointment Cancelled', 'Appointment Rescheduled', 'Failed Booking',
-        'Profile Updated',
-        'Super Admin Activated', 'Super Admin Released', 'Failed Super Admin Activation', 'Failed Super Admin Release',
         'Create', 'Edit', 'Archive', 'Unarchive', 'Approve', 'Decline', 'Complete', 'Cancel',
+        'Appointment Booked', 'Appointment Cancelled', 'Appointment Rescheduled',
+        'Reschedule Proposed', 'Reschedule Accepted', 'Reschedule Declined',
+        'Profile Updated', 'Email Changed', 'Password Changed',
+        'Super Admin Activated', 'Super Admin Released',
     ];
 
     public function index(Request $request)
@@ -63,6 +62,7 @@ class ConfigurationController extends Controller
         // logins, password changes, and every admin/staff/patient action.
         $buildActivity = function (bool $archived) use ($activitySearch, $activityType) {
             $q = ActivityLog::with(['userAccount.patientInfo', 'userAccount.staffInfo'])
+                ->meaningful()
                 ->where('IsArchived', $archived);
 
             if ($activityType) {
@@ -103,11 +103,25 @@ class ConfigurationController extends Controller
 
         $logoPath = public_path('images/puspus_logo.png');
 
-        $settingsTab = in_array($request->query('settingsTab'), ['about', 'services', 'privacy', 'appointment', 'activity'], true)
+        // Staff-role accounts share this page with the super admin, but the
+        // Activity Logs tab stays super-admin only.
+        $canViewActivityLogs = (bool) session('is_super_admin');
+        if (!$canViewActivityLogs) {
+            $activeActivity->whereRaw('1 = 0');
+            $archivedActivity->whereRaw('1 = 0');
+        }
+
+        $tabs = ['about', 'services', 'privacy', 'appointment'];
+        if ($canViewActivityLogs) {
+            $tabs[] = 'activity';
+        }
+        $settingsTab = in_array($request->query('settingsTab'), $tabs, true)
             ? $request->query('settingsTab')
             : 'about';
 
         return view('superAdmin.configuration', [
+            'canViewActivityLogs' => $canViewActivityLogs,
+            'closedWeekdays' => ClosedDate::closedWeekdays(),
             'serviceCategory' => $serviceCategory,
             'settingsTab' => $settingsTab,
             'aboutInfo' => SystemSetting::aboutInfo(),
@@ -185,34 +199,37 @@ class ConfigurationController extends Controller
             && !empty($data['booking_lunch_start'])
             && !empty($data['booking_lunch_end']);
 
-        SystemSetting::set('booking_open_time', $data['booking_open_time']);
-        SystemSetting::set('booking_close_time', $data['booking_close_time']);
-        SystemSetting::set('booking_lunch_enabled', $lunchEnabled ? '1' : '0');
+        // Only a save that actually changes something is logged.
+        $changed = false;
+        $changed = SystemSetting::set('booking_open_time', $data['booking_open_time']) || $changed;
+        $changed = SystemSetting::set('booking_close_time', $data['booking_close_time']) || $changed;
+        $changed = SystemSetting::set('booking_lunch_enabled', $lunchEnabled ? '1' : '0') || $changed;
         if (!empty($data['booking_lunch_start']) && !empty($data['booking_lunch_end'])) {
-            SystemSetting::set('booking_lunch_start', $data['booking_lunch_start']);
-            SystemSetting::set('booking_lunch_end', $data['booking_lunch_end']);
+            $changed = SystemSetting::set('booking_lunch_start', $data['booking_lunch_start']) || $changed;
+            $changed = SystemSetting::set('booking_lunch_end', $data['booking_lunch_end']) || $changed;
         }
 
         DentistSchedule::flushClinicHoursCache();
 
-        SystemSetting::set('about_address', $data['address']);
-        SystemSetting::set('about_operating_days', $data['operating_days']);
+        $changed = SystemSetting::set('about_address', $data['address']) || $changed;
+        $changed = SystemSetting::set('about_operating_days', $data['operating_days']) || $changed;
         // Keep the public "Operating Hours" line in step with the booking window.
-        SystemSetting::set('about_operating_hours', DentistSchedule::clinicHoursLabel());
-        SystemSetting::set('hero_title', $data['hero_title'] ?? '');
-        SystemSetting::set('hero_subtitle', $data['hero_subtitle'] ?? '');
-        SystemSetting::set('hero_description', $data['hero_description'] ?? '');
-        SystemSetting::set('about_description', $data['about_description'] ?? '');
-        SystemSetting::set('footer_description', $data['footer_description'] ?? '');
-        SystemSetting::set('footer_copyright', $data['footer_copyright'] ?? '');
-        SystemSetting::set('contact_phone', $data['contact_phone'] ?? '');
-        SystemSetting::set('contact_mobile', $data['contact_mobile'] ?? '');
-        SystemSetting::set('contact_email', $data['contact_email']);
+        $changed = SystemSetting::set('about_operating_hours', DentistSchedule::clinicHoursLabel()) || $changed;
+        $changed = SystemSetting::set('hero_title', $data['hero_title'] ?? '') || $changed;
+        $changed = SystemSetting::set('hero_subtitle', $data['hero_subtitle'] ?? '') || $changed;
+        $changed = SystemSetting::set('hero_description', $data['hero_description'] ?? '') || $changed;
+        $changed = SystemSetting::set('about_description', $data['about_description'] ?? '') || $changed;
+        $changed = SystemSetting::set('footer_description', $data['footer_description'] ?? '') || $changed;
+        $changed = SystemSetting::set('footer_copyright', $data['footer_copyright'] ?? '') || $changed;
+        $changed = SystemSetting::set('contact_phone', $data['contact_phone'] ?? '') || $changed;
+        $changed = SystemSetting::set('contact_mobile', $data['contact_mobile'] ?? '') || $changed;
+        $changed = SystemSetting::set('contact_email', $data['contact_email']) || $changed;
 
         // Clinic logo — fixed filename so every <img src="…/puspus_logo.png">
         // across the app picks it up (cache-busted by filemtime in the view).
         if ($request->hasFile('logo')) {
             $request->file('logo')->move(public_path('images'), 'puspus_logo.png');
+            $changed = true;
         }
 
         // Landing-page hero background + About-section photo — timestamped
@@ -223,7 +240,12 @@ class ConfigurationController extends Controller
                 $filename = $prefix . time() . '.' . $file->getClientOriginalExtension();
                 $file->move(public_path('images'), $filename);
                 SystemSetting::set($field === 'hero_image' ? 'hero_image' : 'about_image', '/images/' . $filename);
+                $changed = true;
             }
+        }
+
+        if (!$changed) {
+            return back()->with('success', 'No changes to save.');
         }
 
         $this->activityLog->log('Edit', 'Updated the clinic branding and system information.');
@@ -238,8 +260,12 @@ class ConfigurationController extends Controller
             'legal_terms' => 'nullable|string',
         ]);
 
-        SystemSetting::set('privacy_policy_content', $data['privacy_policy'] ?? '');
-        SystemSetting::set('legal_terms_content', $data['legal_terms'] ?? '');
+        $changed = SystemSetting::set('privacy_policy_content', $data['privacy_policy'] ?? '');
+        $changed = SystemSetting::set('legal_terms_content', $data['legal_terms'] ?? '') || $changed;
+
+        if (!$changed) {
+            return back()->with('success', 'No changes to save.');
+        }
 
         $this->activityLog->log('Edit', 'Updated the Privacy Policy and Legal Terms.');
 
@@ -277,6 +303,10 @@ class ConfigurationController extends Controller
             'Title' => $data['title'],
             'Description' => $data['description'],
         ]);
+
+        if (!$step->wasChanged()) {
+            return back()->with('success', 'No changes to save.');
+        }
 
         $this->activityLog->log('Edit', "Edited appointment-process step: {$data['title']}.");
 
@@ -343,6 +373,10 @@ class ConfigurationController extends Controller
             'DurationMinutes' => $data['duration_minutes'],
         ]);
 
+        if (!$service->wasChanged()) {
+            return back()->with('success', 'No changes to save.');
+        }
+
         $this->activityLog->log('Edit', "Edited service: {$data['service_name']}.");
 
         return back()->with('success', 'Service updated.');
@@ -399,6 +433,10 @@ class ConfigurationController extends Controller
             'Name' => $data['name'],
             'Icon' => $data['icon'] ?? null,
         ]);
+
+        if (!$category->wasChanged()) {
+            return back()->with('success', 'No changes to save.');
+        }
 
         $this->activityLog->log('Edit', "Edited service category: {$data['name']}.");
 

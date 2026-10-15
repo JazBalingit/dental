@@ -9,7 +9,6 @@
     $typeTitles = [
         'appointments' => 'Appointments Report',
         'patients' => 'Patients Report',
-        'schedule' => 'Dentist Schedule Report',
         'summary' => 'Full Summary Report',
     ];
     $reportTitle = $typeTitles[$type] ?? 'Report';
@@ -23,23 +22,21 @@
     $withDetails = $includePatientDetails ?? false;
 
     $descriptions = [
-        'appointments' => "This report covers appointments {$rangePhrase}. It shows the total number of appointments and how many are completed, approved, pending, declined or cancelled"
-            . ($withCharts ? ', along with the number of appointments booked over time' : '')
-            . ($withDetails ? ', followed by the full list of appointments with each patient\'s name, contact, service and status.' : '.'),
-        'patients' => 'This report covers patients who had an appointment or registered ' . $rangePhrase . '. It shows the total number of patients and their gender breakdown'
+        'appointments' => "This report covers completed visits {$rangePhrase}, including walk-ins and follow-ups. It shows how many visits were completed, how many patients were served, how many services were performed and how many visits came from online appointments, walk-ins and follow-ups"
+            . ($withCharts ? ', along with completed visits over time, per booking type and per service' : '')
+            . ', followed by every completed visit grouped by service, with each patient\'s ID, name, booking type and appointment details'
+            . ($withDetails ? ' including their contact.' : '.'),
+        'patients' => 'This report covers every patient, registered or walk-in, who had a completed visit ' . $rangePhrase . '. It shows the total number of patients, how many are registered or walk-in, and their gender breakdown'
             . ($withCharts ? ', along with the number of patients per treatment' : '')
-            . ($withDetails ? ', followed by the full list of patients with each one\'s age, gender, phone and address.' : '.'),
-        'schedule' => "This report covers dentist schedule slots {$rangePhrase}. It shows the total number of slots and how many are still available versus already booked"
-            . ($withCharts ? ', along with a breakdown of slots by status and by dentist' : '')
-            . ($withDetails ? ', followed by the full list of slots with their date, time, dentist and status.' : '.'),
+            . ($withDetails ? ', followed by the full list of patients with each one\'s type, age, gender, phone, address and visits.' : '.'),
         'services' => "This section shows how many appointments were booked for each service {$rangePhrase}.",
     ];
-    $summaryIntro = "This summary combines the appointments, patients and dentist schedule reports {$rangePhrase} into a single document.";
+    $summaryIntro = "This summary combines the appointments and patients reports {$rangePhrase} into a single document.";
     $statusPill = fn ($status) => match ($status) {
         'Completed' => 'good',
         'Approved' => 'info',
         'Pending' => 'warn',
-        'Cancelled', 'Declined' => 'bad',
+        'Cancelled', 'Declined', 'No Show' => 'bad',
         'Available' => 'good',
         default => 'info',
     };
@@ -101,6 +98,11 @@
     .pill-mini.warn { background: #fff8e1; color: #b45309; }
     .pill-mini.bad { background: #fdecea; color: #c0392b; }
     .report-empty { color: var(--ink-500); font-size: .85rem; font-style: italic; }
+    .report-service-group { margin-top: 1.25rem; }
+    .report-service-head { display: flex; justify-content: space-between; align-items: baseline; gap: 1rem; font-weight: 700; color: var(--brand-900); font-size: .92rem; padding: 0 0 .4rem; border-bottom: 1px solid var(--brand-100); margin-bottom: .25rem; }
+    .report-service-count { font-weight: 600; font-size: .78rem; color: var(--ink-500); white-space: nowrap; }
+    /* Standard document margins: 1 inch on every side of every printed page. */
+    @page { size: A4; margin: 1in; }
     .report-signature { display: flex; justify-content: flex-end; margin-top: 3rem; }
     .report-signature-block { width: 260px; text-align: center; }
     .report-signature-label { font-size: .8rem; color: var(--ink-500); text-align: left; }
@@ -132,7 +134,10 @@
       .report-stats,
       .report-bar-row,
       .report-signature { page-break-inside: avoid; }
-      .report-section h2 { page-break-after: avoid; }
+      .report-section h2,
+      .report-subtitle,
+      .report-service-head { page-break-after: avoid; }
+      thead { display: table-header-group; } /* repeat column headers on each page */
       table.report-table { page-break-inside: auto; }
       tr { page-break-inside: avoid; }
     }
@@ -164,18 +169,21 @@
 
       @if (in_array($type, ['appointments', 'summary']))
         <div class="report-section">
-          <h2><i class="bi bi-calendar-check"></i> Appointments</h2>
+          <h2><i class="bi bi-calendar-check"></i> Completed Appointments</h2>
           <p class="report-desc">{{ $descriptions['appointments'] }}</p>
           <div class="report-stats">
-            <div class="report-stat"><div class="label">Total</div><div class="value">{{ $appointmentStats['total'] }}</div></div>
-            <div class="report-stat"><div class="label">Completed</div><div class="value">{{ $appointmentStats['completed'] }}</div></div>
-            <div class="report-stat"><div class="label">Approved</div><div class="value">{{ $appointmentStats['approved'] }}</div></div>
-            <div class="report-stat"><div class="label">Pending</div><div class="value">{{ $appointmentStats['pending'] }}</div></div>
-            <div class="report-stat"><div class="label">Declined</div><div class="value">{{ $appointmentStats['declined'] }}</div></div>
-            <div class="report-stat"><div class="label">Cancelled</div><div class="value">{{ $appointmentStats['cancelled'] }}</div></div>
+            <div class="report-stat"><div class="label">Completed Visits</div><div class="value">{{ $appointmentStats['completed'] }}</div></div>
+            <div class="report-stat"><div class="label">Patients Served</div><div class="value">{{ $appointmentStats['patients'] }}</div></div>
+            <div class="report-stat"><div class="label">Services Performed</div><div class="value">{{ $appointmentStats['services'] }}</div></div>
+          </div>
+          <div class="report-stats">
+            @foreach ($appointmentsBySource as $label => $count)
+              <div class="report-stat"><div class="label">{{ $label }}</div><div class="value">{{ $count }}</div></div>
+            @endforeach
           </div>
 
           @if (!empty($dailyChart))
+            <div class="report-subtitle">Completed Visits Over Time</div>
             <div class="report-chart mb-3">
               @foreach ($dailyChart as $row)
                 <div class="report-bar-row">
@@ -187,29 +195,69 @@
             </div>
           @endif
 
-          @if (isset($appointmentsList))
-            @if ($appointmentsList->isEmpty())
-              <div class="report-empty">No appointments found for this range.</div>
-            @else
-              <table class="report-table">
-                <thead>
-                  <tr><th>Date</th><th>Time</th><th>Patient ID</th><th>Patient</th><th>Contact</th><th>Service</th><th>Status</th></tr>
-                </thead>
-                <tbody>
-                  @foreach ($appointmentsList as $a)
+          @if (!empty($sourceChart))
+            <div class="report-subtitle">Completed Visits by Booking Type</div>
+            <div class="report-chart wide mb-3">
+              @foreach ($sourceChart as $row)
+                <div class="report-bar-row">
+                  <div class="report-bar-label">{{ $row['label'] }}</div>
+                  <div class="report-bar-track"><div class="report-bar-fill" style="width: {{ $row['pct'] }}%"></div></div>
+                  <div class="report-bar-value">{{ $row['count'] }}</div>
+                </div>
+              @endforeach
+            </div>
+          @endif
+
+          @if (!empty($completedServiceChart))
+            <div class="report-subtitle">Completed Visits per Service</div>
+            <div class="report-chart wide mb-3">
+              @foreach ($completedServiceChart as $row)
+                <div class="report-bar-row">
+                  <div class="report-bar-label">{{ $row['label'] }}</div>
+                  <div class="report-bar-track"><div class="report-bar-fill" style="width: {{ $row['pct'] }}%"></div></div>
+                  <div class="report-bar-value">{{ $row['count'] }}</div>
+                </div>
+              @endforeach
+            </div>
+          @endif
+
+          {{-- Every completed visit, grouped by the service performed. A visit
+               covering several services appears under each one. --}}
+          @if (empty($appointmentsByService))
+            <div class="report-empty">No completed appointments found for this range.</div>
+          @else
+            @foreach ($appointmentsByService as $serviceName => $rows)
+              <div class="report-service-group">
+                <div class="report-service-head">
+                  <span>{{ $serviceName }}</span>
+                  <span class="report-service-count">{{ count($rows) }} completed {{ count($rows) === 1 ? 'visit' : 'visits' }}</span>
+                </div>
+                <table class="report-table">
+                  <thead>
                     <tr>
-                      <td>{{ optional($a->AppointmentDate)->format('M j, Y') }}</td>
-                      <td>{{ $a->AppointmentTime }}</td>
-                      <td>{{ $a->patientInfo ? 'PT-' . str_pad($a->patientInfo->PatientID, 4, '0', STR_PAD_LEFT) : '—' }}</td>
-                      <td>{{ trim(($a->patientInfo->FirstName ?? '') . ' ' . ($a->patientInfo->LastName ?? '')) ?: '—' }}</td>
-                      <td>{{ $a->patientInfo->PhoneNumber ?? $a->patientInfo->userAccount?->Email ?? $a->patientInfo->Email ?? '—' }}</td>
-                      <td>{{ $a->TypeOfAppointment ?: ($a->service->ServiceName ?? '—') }}</td>
-                      <td><span class="pill-mini {{ $statusPill($a->Status) }}">{{ $a->Status }}</span></td>
+                      <th>Patient ID</th><th>Patient Name</th><th>Booking Type</th><th>Date</th><th>Time</th><th>Duration</th><th>Dentist</th>
+                      @if ($withDetails)<th>Contact</th>@endif
                     </tr>
-                  @endforeach
-                </tbody>
-              </table>
-            @endif
+                  </thead>
+                  <tbody>
+                    @foreach ($rows as $a)
+                      <tr>
+                        <td>{{ $a->patientInfo ? 'PT-' . str_pad($a->patientInfo->PatientID, 4, '0', STR_PAD_LEFT) : '—' }}</td>
+                        <td>{{ trim(($a->patientInfo->FirstName ?? '') . ' ' . ($a->patientInfo->LastName ?? '')) ?: '—' }}</td>
+                        <td>{{ \App\Http\Controllers\ReportController::SOURCES[$a->Source] ?? $a->Source }}</td>
+                        <td>{{ optional($a->AppointmentDate)->format('M j, Y') }}</td>
+                        <td>{{ $a->AppointmentTime ? $a->time_range_label : '—' }}</td>
+                        <td>{{ ($a->fromRecord ?? false) ? '—' : $a->duration_label }}</td>
+                        <td>{{ $a->dentist?->display_name ?? '—' }}</td>
+                        @if ($withDetails)
+                          <td>{{ $a->patientInfo->PhoneNumber ?? $a->patientInfo?->userAccount?->Email ?? '—' }}</td>
+                        @endif
+                      </tr>
+                    @endforeach
+                  </tbody>
+                </table>
+              </div>
+            @endforeach
           @endif
         </div>
       @endif
@@ -220,6 +268,9 @@
           <p class="report-desc">{{ $descriptions['patients'] }}</p>
           <div class="report-stats">
             <div class="report-stat"><div class="label">Total</div><div class="value">{{ $patientStats['total'] }}</div></div>
+            <div class="report-stat"><div class="label">Registered</div><div class="value">{{ $patientStats['registered'] }}</div></div>
+            <div class="report-stat"><div class="label">Walk-in</div><div class="value">{{ $patientStats['walkin'] }}</div></div>
+            <div class="report-stat"><div class="label">Guest (no account)</div><div class="value">{{ $patientStats['guest'] }}</div></div>
             <div class="report-stat"><div class="label">Male</div><div class="value">{{ $patientStats['male'] }}</div></div>
             <div class="report-stat"><div class="label">Female</div><div class="value">{{ $patientStats['female'] }}</div></div>
           </div>
@@ -238,81 +289,24 @@
 
           @if (isset($patientsList))
             @if ($patientsList->isEmpty())
-              <div class="report-empty">No patients found for this range.</div>
+              <div class="report-empty">No patients with a completed visit in this range.</div>
             @else
               <table class="report-table">
                 <thead>
-                  <tr><th>Patient ID</th><th>Name</th><th>Age</th><th>Gender</th><th>Phone</th><th>Address</th></tr>
+                  <tr><th>Patient ID</th><th>Name</th><th>Type</th><th>Age</th><th>Gender</th><th>Phone</th><th>Address</th><th>Visits</th><th>Last Visit</th></tr>
                 </thead>
                 <tbody>
                   @foreach ($patientsList as $p)
                     <tr>
                       <td>PT-{{ str_pad($p->PatientID, 4, '0', STR_PAD_LEFT) }}</td>
                       <td>{{ trim(($p->FirstName ?? '') . ' ' . ($p->LastName ?? '')) ?: '—' }}</td>
+                      <td>{{ $p->patient_type }}</td>
                       <td>{{ $p->Age ?? '—' }}</td>
                       <td>{{ $p->Gender ?? '—' }}</td>
                       <td>{{ $p->PhoneNumber ?? '—' }}</td>
                       <td>{{ $p->Address ?? '—' }}</td>
-                    </tr>
-                  @endforeach
-                </tbody>
-              </table>
-            @endif
-          @endif
-        </div>
-      @endif
-
-      @if (in_array($type, ['schedule', 'summary']))
-        <div class="report-section">
-          <h2><i class="bi bi-calendar3"></i> Dentist Schedule</h2>
-          <p class="report-desc">{{ $descriptions['schedule'] }}</p>
-          <div class="report-stats">
-            <div class="report-stat"><div class="label">Total Slots</div><div class="value">{{ $scheduleStats['total'] }}</div></div>
-            <div class="report-stat"><div class="label">Available</div><div class="value">{{ $scheduleStats['available'] }}</div></div>
-            <div class="report-stat"><div class="label">Booked</div><div class="value">{{ $scheduleStats['booked'] }}</div></div>
-          </div>
-
-          @if (!empty($scheduleBreakdown))
-            <div class="report-subtitle">Slots by Status</div>
-            <div class="report-chart mb-3">
-              @foreach ($scheduleBreakdown as $row)
-                <div class="report-bar-row">
-                  <div class="report-bar-label">{{ $row['label'] }}</div>
-                  <div class="report-bar-track"><div class="report-bar-fill" style="width: {{ $row['pct'] }}%"></div></div>
-                  <div class="report-bar-value">{{ $row['count'] }}</div>
-                </div>
-              @endforeach
-            </div>
-          @endif
-
-          @if (!empty($scheduleByDentist))
-            <div class="report-subtitle">Slots by Dentist</div>
-            <div class="report-chart wide mb-3">
-              @foreach ($scheduleByDentist as $row)
-                <div class="report-bar-row">
-                  <div class="report-bar-label">{{ $row['label'] }}</div>
-                  <div class="report-bar-track"><div class="report-bar-fill" style="width: {{ $row['pct'] }}%"></div></div>
-                  <div class="report-bar-value">{{ $row['count'] }} <span class="report-bar-note">({{ $row['booked'] }} booked)</span></div>
-                </div>
-              @endforeach
-            </div>
-          @endif
-
-          @if (isset($scheduleList))
-            @if ($scheduleList->isEmpty())
-              <div class="report-empty">No schedule slots found for this range.</div>
-            @else
-              <table class="report-table">
-                <thead>
-                  <tr><th>Date</th><th>Time</th><th>Dentist</th><th>Status</th></tr>
-                </thead>
-                <tbody>
-                  @foreach ($scheduleList as $s)
-                    <tr>
-                      <td>{{ optional($s->Date)->format('M j, Y') }}</td>
-                      <td>{{ $s->Time }}</td>
-                      <td>{{ $s->dentist_name }}</td>
-                      <td><span class="pill-mini {{ $statusPill($s->Status) }}">{{ $s->Status }}</span></td>
+                      <td>{{ $p->completedVisits }}</td>
+                      <td>{{ $p->lastCompletedVisit?->format('M j, Y') ?? '—' }}</td>
                     </tr>
                   @endforeach
                 </tbody>
@@ -352,13 +346,15 @@
     </div>
   </div>
 
-  {{-- No preview: the report opens straight into the browser's print dialog.
-       It is loaded in a hidden frame by the dashboard, which is told when the
-       dialog closes so it can clean the frame up. --}}
+  {{-- With ?preview=1 the dashboard shows this page inside its "Report
+       Preview" modal and prints it from there (Print button). Without it,
+       the page opens straight into the browser's print dialog. --}}
   <script>
+    @if (!request()->boolean('preview'))
     window.addEventListener('load', function () {
       setTimeout(function () { window.print(); }, 300);
     });
+    @endif
     window.addEventListener('afterprint', function () {
       if (window.parent !== window) window.parent.postMessage('report-printed', window.location.origin);
     });

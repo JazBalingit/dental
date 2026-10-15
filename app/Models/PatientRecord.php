@@ -19,6 +19,8 @@ class PatientRecord extends Model
         'Service',
         'Status',
         'Notes',
+        'BloodPressure',
+        'BleedingTime',
         'IsArchived',
         'ArchiveReason',
         'ArchivedAt',

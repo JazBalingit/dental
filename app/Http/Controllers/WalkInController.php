@@ -7,6 +7,7 @@ use App\Http\Controllers\Concerns\BuildsBookingCalendar;
 use App\Models\Appointment;
 use App\Models\ClosedDate;
 use App\Models\DentistSchedule;
+use App\Models\MedicalHistory;
 use App\Models\PatientInfo;
 use App\Models\Service;
 use App\Models\UserAccount;
@@ -98,7 +99,11 @@ class WalkInController extends Controller
         $birth = (string) $request->input('birthdate');
         $isMinor = $mode === 'walkin' && strtotime($birth) && Carbon::parse($birth)->age < 18;
 
-        $data = $request->validate([
+        // A new walk-in's medical history is copied from the paper form by
+        // staff; an existing patient's current history is linked as is.
+        $medicalRules = $mode === 'walkin' ? MedicalHistory::rules(true) + ['mh_status' => 'nullable|in:new'] : [];
+
+        $data = $request->validate($medicalRules + [
             'patient_source' => 'required|in:existing,new',
             'patient_id' => 'required_if:patient_source,existing|nullable|integer|exists:tbl_patientInfo,PatientID',
             'last_name' => ['required_if:patient_source,new', 'nullable', 'string', 'max:100', $nameRule],
@@ -113,7 +118,7 @@ class WalkInController extends Controller
             'guardian_occupation' => ['nullable', 'string', 'max:150', $nameRule],
             'guardian_phone' => $isMinor ? 'required|digits:11' : 'nullable|digits:11',
             'guardian_email' => 'nullable|email|max:255',
-            'service_ids' => 'required|array|min:1',
+            'service_ids' => 'required|array|min:1|max:' . Service::MAX_PER_APPOINTMENT,
             'service_ids.*' => 'distinct|exists:tbl_services,ServiceID',
             // A walk-in is booked automatically for "now" — only a follow-up
             // picks a date and time from the calendar.
@@ -130,7 +135,8 @@ class WalkInController extends Controller
             'last_name.regex' => 'Last name may only contain letters.',
             'first_name.regex' => 'First name may only contain letters.',
             'middle_name.regex' => 'Middle name may only contain letters.',
-        ]);
+            'service_ids.max' => 'Choose up to ' . Service::MAX_PER_APPOINTMENT . ' services per appointment.',
+        ] + MedicalHistory::messages());
 
         $dentist = UserAccount::dentists()->where('UserID', $data['dentist_id'])->first();
 
@@ -142,14 +148,14 @@ class WalkInController extends Controller
         // One active appointment at a time — only meaningful for an existing
         // patient, since a "new" one can't already have an appointment.
         if ($data['patient_source'] === 'existing'
-            && Appointment::where('PatientID', $data['patient_id'])->whereIn('Status', ['Pending', 'Approved'])->exists()) {
+            && Appointment::where('PatientID', $data['patient_id'])->upcoming()->exists()) {
             return back()->withInput()->with('error', 'This patient already has an upcoming appointment. Please wait until it\'s completed, or cancel it, before booking another.')
                 ->with('walkin_error_step', 2);
         }
 
         $date = $mode === 'followup' ? Carbon::parse($data['date']) : today();
 
-        if ($date->isSunday() || $date->lt(today()) || ClosedDate::isClosed($date)) {
+        if (ClosedDate::isClosedWeekday($date) || $date->lt(today()) || ClosedDate::isClosed($date)) {
             return back()->withInput()->with('error', $mode === 'followup' ? 'That date is not available for booking.' : "The clinic is closed today — walk-ins can't be booked.")
                 ->with('walkin_error_step', 2);
         }
@@ -235,18 +241,25 @@ class WalkInController extends Controller
                 'AppointmentTime' => $data['time'],
                 'TypeOfAppointment' => $services->pluck('ServiceName')->implode(', ') ?: null,
                 'DurationHours' => round($slotsNeeded * DentistSchedule::SLOT_MINUTES / 60, 1),
-                // A follow-up for a patient with an account is an online-patient
-                // appointment (they see it in their portal); everyone else is a
-                // walk-in.
-                'Source' => ($mode === 'followup' && $user) ? 'Online' : 'Walk-in',
+                // Tracked separately so reports can split Online / Walk-in /
+                // Follow-up. A follow-up still shows in the patient's portal
+                // (that's keyed on PatientID, not Source).
+                'Source' => $mode === 'followup' ? 'Follow-up' : 'Walk-in',
                 // Anything booked from the admin / super-admin side (walk-in or
                 // follow-up) is booked by staff, so it is approved straight away —
-                // only patient self-bookings go through Appointment Approval.
+                // only patient self-bookings go through Appointment Requests.
                 'Status' => 'Approved',
                 'ApprovedAt' => now(),
             ]);
 
             $appointment->services()->sync($services->pluck('ServiceID'));
+
+            $medical = $mode === 'walkin'
+                ? MedicalHistory::record($patientInfo->PatientID, MedicalHistory::answersFrom($data['mh'] ?? [], true, $patientInfo->latestMedicalHistory?->Answers), 'staff', UserAccount::current())
+                : $patientInfo->latestMedicalHistory;
+            if ($medical) {
+                $appointment->update(['MedicalHistoryID' => $medical->MedicalHistoryID]);
+            }
 
             DB::commit();
         } catch (\Throwable $e) {
@@ -276,17 +289,16 @@ class WalkInController extends Controller
         // next scheduled tick. No-ops for a walk-in with no account.
         $this->reminders->checkOne($appointment);
 
-        // Walk-in patients get nothing sent (no account, at the counter).
-        // A follow-up goes through the same notification path as an online
-        // booking: in-app notification + email, and it appears in the
-        // patient's own Appointments pages (same PatientID).
-        if ($mode === 'followup' && $user) {
-            $this->notifications->notifyUser(
-                $user,
+        // Walk-in patients get nothing sent (they're at the counter). A
+        // follow-up goes through the same path as an online booking: bell +
+        // email for account holders, email (with a manage link) for patients
+        // without an account who have an email on file.
+        if ($mode === 'followup') {
+            $this->notifications->notifyPatient(
+                $appointment,
                 'Follow-up Appointment Booked',
                 "A follow-up appointment for {$appointment->TypeOfAppointment} has been scheduled and approved for you on {$dateLabel} at {$timeLabel}.",
                 'success',
-                $appointment->AppointmentID,
                 'Approved'
             );
         }
@@ -328,7 +340,7 @@ class WalkInController extends Controller
      * service simply continues after it (11:00 + 3h → 11:00–12:00, 1:00–3:00).
      *
      * A walk-in can only be booked while the clinic is open: before opening,
-     * during lunch, after closing and on Sundays there is no slot for "now"
+     * during lunch, after closing and on weekly closed days there is no slot for "now"
      * and it is refused. If the dentist already holds that slot (or part of
      * the block), it is refused too — pick another dentist.
      *

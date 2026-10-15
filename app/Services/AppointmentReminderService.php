@@ -101,10 +101,20 @@ class AppointmentReminderService
     public function checkOne(Appointment $appointment, ?Carbon $now = null): bool
     {
         $now = $now ?? Carbon::now();
-        $user = $appointment->patientInfo->userAccount ?? null;
+        // A walk-in is booked for "now" with the patient at the counter.
+        if ($appointment->Source === 'Walk-in') {
+            return false;
+        }
 
-        if (!$user) {
-            return false; // walk-ins / patients without an account
+        // Someone has to be reachable: an account (bell + email) or, for
+        // guests and walk-ins, an email address.
+        $appointment->loadMissing(['patientInfo.userAccount', 'patientInfo.guardianAccount', 'bookedBy']);
+        $p = $appointment->patientInfo;
+        $reachable = $appointment->bookedBy || $p?->userAccount || $p?->guardianAccount
+            || $appointment->BookedByEmail || $p?->Email || $p?->GuardianEmail || $p?->ParentsEmail;
+
+        if (!$reachable) {
+            return false; // a walk-in with no account and no email
         }
 
         $start = $this->startsAt($appointment, $now);
@@ -135,12 +145,11 @@ class AppointmentReminderService
         }
 
         try {
-            $this->notifications->notifyUser(
-                $user,
+            $this->notifications->notifyPatient(
+                $appointment,
                 'Appointment Reminder',
                 $this->message($stage, $start, $now),
                 'info',
-                $appointment->AppointmentID,
                 $appointment->Status,
                 $stage
             );

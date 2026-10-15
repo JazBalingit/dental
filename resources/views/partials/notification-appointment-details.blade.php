@@ -12,7 +12,7 @@
 
     [$statusLabel, $statusTone, $note] = match ($a->Status) {
         'Pending' => ['Pending approval', 'warning', $isAdminSide
-            ? 'This appointment is awaiting approval on the Appointment Approval page.'
+            ? 'This appointment is awaiting approval on the Appointment Requests page.'
             : 'Your appointment request has been received and is awaiting approval. You will be notified once it has been reviewed.'],
         'Approved' => ['Approved', 'info', $isAdminSide
             ? 'This appointment has been approved and is scheduled.'

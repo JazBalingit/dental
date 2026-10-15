@@ -6,6 +6,12 @@
         <h3 style="color:#1f2a24;">{{ $heading }}</h3>
         <p style="color:#1f2a24; line-height:1.6;">{{ $body }}</p>
 
+        @if (!empty($forOther))
+            <p style="margin:0 0 4px;padding:10px 14px;background:#eef6ff;border-radius:8px;color:#1e3a8a;font-size:14px;">
+                This appointment is for <strong>{{ $forOther }}</strong>, which you booked for them.
+            </p>
+        @endif
+
         {{-- The appointment's date and time, front and centre. --}}
         @if (!empty($schedule))
             <div style="margin-top:20px;background:#167d1d;border-radius:8px;padding:16px 18px;color:#ffffff;">
@@ -30,6 +36,20 @@
                     @endforeach
                 </table>
             </div>
+        @endif
+
+        @if (!empty($manageUrl))
+            <div style="margin-top:22px;text-align:center;">
+                <a href="{{ $manageUrl }}" style="display:inline-block;background:#167d1d;color:#ffffff;text-decoration:none;font-weight:bold;padding:12px 26px;border-radius:8px;">Manage my appointment</a>
+                <div style="color:#6b7a70;font-size:12px;margin-top:8px;">View, cancel or reschedule — no login needed. Keep this link private.</div>
+            </div>
+        @endif
+
+        @if (!empty($signupUrl))
+            <p style="color:#1f2a24;font-size:13px;margin-top:20px;padding:12px 14px;background:#f1fcf0;border-radius:8px;">
+                Want to see all your visits and dental records in one place?
+                <a href="{{ $signupUrl }}" style="color:#167d1d;font-weight:bold;">Create a free account</a> with this email — your bookings will be there already.
+            </p>
         @endif
 
         <p style="color:#6b7a70;font-size:13px;margin-top:24px;">

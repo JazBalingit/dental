@@ -13,7 +13,7 @@
 --}}
 @php
     $active = $active ?? '';
-    $appointmentsSubpages = ['appointments-book', 'appointments-current', 'appointments-history'];
+    $appointmentsSubpages = ['appointments-book', 'appointments-book-other', 'appointments-current', 'appointments-history'];
     $appointmentsOpen = in_array($active, $appointmentsSubpages, true);
 @endphp
 <nav class="nav">
@@ -27,10 +27,12 @@
   </button>
   <div class="collapse {{ $appointmentsOpen ? 'show' : '' }}" id="patientApptSubnav">
     <a href="{{ route('userAppointment.book') }}" class="nav-sub-link {{ $active === 'appointments-book' ? 'active' : '' }}"><i class="bi bi-calendar-plus"></i> Book Appointment</a>
+    <a href="{{ route('userAppointment.book', ['for' => 'other']) }}" class="nav-sub-link {{ $active === 'appointments-book-other' ? 'active' : '' }}"><i class="bi bi-people"></i> Book for Someone Else</a>
     <a href="{{ route('userAppointment') }}" class="nav-sub-link {{ $active === 'appointments-current' ? 'active' : '' }}"><i class="bi bi-clock-history"></i> Current Appointments</a>
     <a href="{{ route('userAppointment.history') }}" class="nav-sub-link {{ $active === 'appointments-history' ? 'active' : '' }}"><i class="bi bi-journal-text"></i> Appointment History</a>
   </div>
 
   <a href="{{ route('myRecords') }}" @class(['active' => $active === 'records'])><i class="bi bi-folder2-open"></i> My Dental Records</a>
+  <a href="{{ route('myMedicalHistory') }}" @class(['active' => $active === 'medical'])><i class="bi bi-heart-pulse"></i> Medical History</a>
   <a href="{{ route('settings') }}" @class(['active' => $active === 'settings'])><i class="bi bi-gear"></i> Settings</a>
 </nav>

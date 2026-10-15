@@ -11,7 +11,7 @@
     $badgeClass = match ($appointment->Status) {
         'Completed' => 'badge-completed',
         'Approved' => 'badge-approved',
-        'Declined', 'Cancelled' => 'badge-cancelled',
+        'Declined', 'Cancelled', 'No Show' => 'badge-cancelled',
         default => 'badge-pending',
     };
 @endphp
@@ -25,6 +25,10 @@
             <div class="modal-body">
 
                 <div class="appt-info-grid">
+                    @if ($appointment->BookedForOther && $appointment->patientInfo)
+                        <div class="appt-info-cell"><span class="appt-info-lbl">Patient</span><span class="appt-info-val">{{ $appointment->patientInfo->full_name }}{{ $appointment->patientInfo->Relationship ? ' (' . $appointment->patientInfo->Relationship . ')' : '' }}</span></div>
+                        <div class="appt-info-cell"><span class="appt-info-lbl">Booked by</span><span class="appt-info-val">{{ $appointment->booked_by_label }}</span></div>
+                    @endif
                     <div class="appt-info-cell"><span class="appt-info-lbl">Service</span><span class="appt-info-val">{{ $appointment->TypeOfAppointment ?: ($appointment->service->ServiceName ?? '—') }}</span></div>
                     <div class="appt-info-cell"><span class="appt-info-lbl">Dentist</span><span class="appt-info-val">{{ $appointment->dentist_name }}</span></div>
                     <div class="appt-info-cell"><span class="appt-info-lbl">Date</span><span class="appt-info-val">{{ $appointment->AppointmentDate->format('F j, Y') }}</span></div>
@@ -34,10 +38,15 @@
                     @if ($appointment->ApprovedAt)
                         <div class="appt-info-cell"><span class="appt-info-lbl">Approved On</span><span class="appt-info-val">{{ $appointment->ApprovedAt->format('F j, Y g:i A') }}</span></div>
                     @endif
-                    @if (in_array($appointment->Status, ['Declined', 'Cancelled'], true) && $appointment->DeclineReason)
+                    @if (in_array($appointment->Status, ['Declined', 'Cancelled', 'No Show'], true) && $appointment->DeclineReason)
                         <div class="appt-info-cell" style="grid-column:1/-1"><span class="appt-info-lbl">Reason</span><span class="appt-info-val">{{ $appointment->DeclineReason }}</span></div>
                     @endif
                 </div>
+
+                @if ($appointment->attachments->isNotEmpty() || trim((string) $appointment->PatientNotes) !== '')
+                    <div class="appt-info-divider"></div>
+                    @include('partials.appointment-photos', ['appointment' => $appointment, 'audience' => 'patient'])
+                @endif
 
                 <div class="appt-info-divider"></div>
 

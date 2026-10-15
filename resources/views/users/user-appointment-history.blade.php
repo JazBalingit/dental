@@ -16,6 +16,7 @@
         rel="stylesheet">
     <link rel="stylesheet" href="{{ asset('css/styles.css') }}">
     <link rel="stylesheet" href="/css/user_appointments.css">
+    <link rel="stylesheet" href="{{ asset('css/guest-booking.css') }}">
     <link rel="stylesheet" href="/css/odontogram.css">
     <link rel="stylesheet" href="{{ asset('css/modals.css') }}">
     <link rel="stylesheet" href="{{ asset('css/mobile.css') }}">
@@ -65,7 +66,7 @@
                                 <p>A record of your past dental visits</p>
                             </div>
                         </div>
-                        <form method="GET" class="history-filters"><div class="history-search"><button type="submit" class="history-search-btn" aria-label="Search"><i class="fas fa-search"></i></button><input class="form-control" name="search" value="{{ $search }}" placeholder="Search service"></div><select class="form-select" name="status" onchange="this.form.submit()"><option value="">All statuses</option>@foreach(['Pending','Approved','Completed','Cancelled','Declined'] as $option)<option value="{{ $option }}" @selected($status === $option)>{{ $option === 'Approved' ? 'Booked' : $option }}</option>@endforeach</select></form>
+                        <form method="GET" class="history-filters"><div class="history-search"><button type="submit" class="history-search-btn" aria-label="Search"><i class="fas fa-search"></i></button><input class="form-control" name="search" value="{{ $search }}" placeholder="Search service"></div><select class="form-select" name="status" onchange="this.form.submit()"><option value="">All statuses</option>@foreach(['Pending','Approved','Completed','Cancelled','No Show','Declined'] as $option)<option value="{{ $option }}" @selected($status === $option)>{{ $option === 'Approved' ? 'Booked' : $option }}</option>@endforeach</select></form>
                     </div>
                     <div style="overflow-x:auto">
                         <table class="appt-table">
@@ -86,7 +87,7 @@
                                         $historyBadgeClass = match ($appointment->Status) {
                                             'Completed' => 'badge-completed',
                                             'Approved' => 'badge-approved',
-                                            'Declined', 'Cancelled' => 'badge-cancelled',
+                                            'Declined', 'Cancelled', 'No Show' => 'badge-cancelled',
                                             default => 'badge-pending',
                                         };
                                     @endphp
@@ -94,7 +95,7 @@
                                         <td style="font-weight:600;color:#0f4c7a">{{ $appointment->AppointmentDate->format('M j, Y') }}</td>
                                         <td>{{ \Carbon\Carbon::createFromFormat('H:i', $appointment->AppointmentTime)->format('g:i A') }}</td>
                                         <td>{{ $appointment->duration_label }}</td>
-                                        <td><span class="service-tag">{{ $appointment->TypeOfAppointment ?: ($appointment->service->ServiceName ?? '') }}</span></td>
+                                        <td><span class="service-tag">{{ $appointment->TypeOfAppointment ?: ($appointment->service->ServiceName ?? '') }}</span>@if ($appointment->PatientID !== $ownPatientId)<div class="mt-1"><span class="for-badge"><i class="fas fa-user"></i> For: {{ $appointment->patientInfo?->full_name }}{{ $appointment->patientInfo?->Relationship ? ' (' . $appointment->patientInfo->Relationship . ')' : '' }}</span></div>@endif</td>
                                         <td>{{ $appointment->dentist_name }}</td>
                                         <td><span class="badge-pill {{ $historyBadgeClass }}">{{ $appointment->Status === 'Approved' ? 'Booked' : $appointment->Status }}</span></td>
                                         <td class="text-end">

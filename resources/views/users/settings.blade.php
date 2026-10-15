@@ -141,8 +141,12 @@
                                 <div class="flex-grow-1" style="min-width:220px">
                                     <div class="mb-3">
                                         <label class="fl">Email address</label>
-                                        <input type="text" class="fc fc-plain" value="{{ $user->Email }}" disabled>
-                                        <div class="small text-muted mt-1">Email can't be changed here. Contact the clinic if you need to update it.</div>
+                                        <div class="d-flex gap-2 align-items-center">
+                                            <input type="text" class="fc fc-plain flex-grow-1" value="{{ $user->Email }}" disabled>
+                                            <button type="button" class="btn btn-outline-secondary btn-sm px-3" data-email-change
+                                                data-current-email="{{ $user->Email }}"><i class="bi bi-pencil-square"></i> Change</button>
+                                        </div>
+                                        <div class="small text-muted mt-1">A verification code is sent to the new email before it changes.</div>
                                     </div>
                                     <div>
                                         <label class="fl">Member since</label>
@@ -574,6 +578,7 @@
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js"></script>
     <script src="{{ asset('js/reopen-modal.js') }}"></script>
     @include('partials.confirm-action-modal')
+    @include('partials.email-change-modal')
     <script src="{{ asset('js/field-restrictions.js') }}"></script>
     <script src="{{ asset('js/address-sync.js') }}"></script>
     <script src="{{ asset('js/birthdate-age.js') }}"></script>

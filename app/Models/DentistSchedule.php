@@ -141,7 +141,8 @@ class DentistSchedule extends Model
             ? ', closed ' . Carbon::createFromFormat('H:i', $hours['lunchStart'])->format('g:i A') . ' – ' . Carbon::createFromFormat('H:i', $hours['lunchEnd'])->format('g:i A') . ' for lunch'
             : '';
 
-        return "The clinic is closed right now, so a walk-in can't be booked. Clinic hours: " . static::clinicHoursLabel() . $lunch . ' (closed Sundays).';
+        return "The clinic is closed right now, so a walk-in can't be booked. Clinic hours: " . static::clinicHoursLabel() . $lunch
+            . (($closedDays = ClosedDate::closedWeekdaysLabel()) !== '' ? " (closed {$closedDays})." : '.');
     }
 
     /**

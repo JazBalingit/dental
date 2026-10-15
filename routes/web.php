@@ -64,6 +64,8 @@ Route::post('/book/verify', [GuestBookingController::class, 'verify'])->name('gu
 Route::post('/book/change-email', [GuestBookingController::class, 'changeEmail'])->name('guestBooking.changeEmail');
 Route::post('/book/confirm', [GuestBookingController::class, 'confirm'])->name('guestBooking.confirm');
 Route::post('/book/cancel', [GuestBookingController::class, 'cancel'])->name('guestBooking.cancel');
+Route::post('/book/back', [GuestBookingController::class, 'back'])->name('guestBooking.back');
+Route::post('/book/people/{id}/remove', [GuestBookingController::class, 'removePerson'])->whereNumber('id')->name('guestBooking.removePerson');
 
 // ---- Manage an appointment without an account (the emailed link, or look it up by email code) ----
 Route::get('/appointment/manage/{token}', [ManageAppointmentController::class, 'show'])->name('manage.show');

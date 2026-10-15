@@ -49,6 +49,9 @@ class GuestBookingController extends Controller
     /** Most upcoming requests one email may have open at once (across everyone it books for). */
     protected const MAX_OPEN_PER_EMAIL = 3;
 
+    /** Most people (yourself included) one email may keep on file. */
+    public const MAX_PEOPLE_PER_EMAIL = 3;
+
     public function __construct(
         protected BookingService $booking,
         protected NotificationService $notifications,
@@ -146,12 +149,13 @@ class GuestBookingController extends Controller
         $selfRecord = $verified ? $people->first(fn ($p) => !$p->isDependentOf($verified)) : null;
 
         return view('guest.book', [
-            'step' => $verified ? 'details' : (session('guest_book_email') ? 'code' : 'email'),
+            'step' => $this->currentStep(),
             'summary' => $this->summary($slot),
             'pendingEmail' => session('guest_book_email'),
             'verifiedEmail' => $verified,
             'people' => $people,
             'selfRecord' => $selfRecord,
+            'maxPeople' => self::MAX_PEOPLE_PER_EMAIL,
             'retryAfter' => $this->otpResendRetryAfter('guest_book'),
             'adultCutoff' => BookingService::adultCutoff(),
             'privacyPolicy' => SystemSetting::get('privacy_policy_content', ''),
@@ -163,6 +167,15 @@ class GuestBookingController extends Controller
     public function sendCode(Request $request)
     {
         $email = strtolower(trim((string) $request->validate(['email' => 'required|email|max:255'])['email']));
+
+        // Came back from "Patient details" and kept the same, still-verified
+        // email — carry on without a new code.
+        if (($verified = $this->verifiedEmail()) && strcasecmp($verified, $email) === 0) {
+            session()->forget('guest_book_editing_email');
+
+            return redirect()->route('guestBooking.show');
+        }
+        session()->forget(['guest_book_editing_email', 'guest_verified_email', 'guest_verified_at']);
 
         if (UserAccount::whereRaw('LOWER(Email) = ?', [$email])->exists()) {
             return redirect()->route('login')
@@ -256,9 +269,67 @@ class GuestBookingController extends Controller
     public function changeEmail()
     {
         $this->clearOtp('guest_book');
-        session()->forget(['guest_book_email', 'guest_verified_email', 'guest_verified_at']);
+        session()->forget(['guest_book_email', 'guest_verified_email', 'guest_verified_at', 'guest_book_editing_email']);
 
         return redirect()->route('guestBooking.show');
+    }
+
+    /**
+     * "Back" — one step at a time: Patient details → Your email (still
+     * verified, so keeping the same email skips the code), Verify code →
+     * Your email, Your email → the calendar.
+     */
+    public function back()
+    {
+        switch ($this->currentStep()) {
+            case 'details':
+                session(['guest_book_editing_email' => true]);
+                break;
+            case 'code':
+                $email = session('guest_book_email');
+                $this->clearOtp('guest_book');
+                session()->forget('guest_book_email');
+
+                return redirect()->route('guestBooking.show')->withInput(['email' => $email]);
+            default:
+                return $this->cancel();
+        }
+
+        return redirect()->route('guestBooking.show');
+    }
+
+    /**
+     * Take someone this email booked for off its list (the "×" on their
+     * card). Their records stay with the clinic — they just stop showing up
+     * under this email. Not the email's own record, and not while they have
+     * an upcoming appointment.
+     */
+    public function removePerson(int $id)
+    {
+        $email = $this->verifiedEmail();
+        if (!$email) {
+            return redirect()->route('guestBooking.show')->with('booking_error', 'Please verify your email again — it has been a while.');
+        }
+
+        $person = PatientInfo::underEmail($email)->find($id);
+        if (!$person || !$person->isDependentOf($email)) {
+            return redirect()->route('guestBooking.show')->with('booking_error', 'That person is not on your list.');
+        }
+
+        if (Appointment::upcoming()->where('PatientID', $person->PatientID)->exists()) {
+            return redirect()->route('guestBooking.show')->with('booking_error', "{$person->full_name} has an upcoming appointment. Cancel it first if you want to remove them.");
+        }
+
+        foreach (['GuardianEmail', 'ParentsEmail'] as $column) {
+            if (strcasecmp((string) $person->{$column}, $email) === 0) {
+                $person->{$column} = null;
+            }
+        }
+        $person->save();
+
+        $this->activityLog->log('Edit', "Guest {$email} removed {$person->full_name} from the people they book for.");
+
+        return redirect()->route('guestBooking.show')->with('success', "{$person->full_name} was removed from your list.");
     }
 
     /** Leave the guest flow and go back to the calendar. */
@@ -290,6 +361,10 @@ class GuestBookingController extends Controller
 
         $rules = ['patient_choice' => 'required|string', 'agree_terms' => 'accepted'];
         $existing = ctype_digit($choice) ? $people->firstWhere('PatientID', (int) $choice) : null;
+
+        if (in_array($choice, ['self', 'other'], true) && $people->count() >= self::MAX_PEOPLE_PER_EMAIL) {
+            return back()->withInput()->with('booking_error', 'One email can keep up to ' . self::MAX_PEOPLE_PER_EMAIL . ' people. Remove someone from your list to add a new person.');
+        }
 
         if ($choice === 'self') {
             $rules += BookingService::selfRules();
@@ -416,6 +491,15 @@ class GuestBookingController extends Controller
     }
 
     // ------------------------------------------------------------------
+
+    protected function currentStep(): string
+    {
+        if ($this->verifiedEmail()) {
+            return session('guest_book_editing_email') ? 'email' : 'details';
+        }
+
+        return session('guest_book_email') ? 'code' : 'email';
+    }
 
     protected function verifiedEmail(): ?string
     {

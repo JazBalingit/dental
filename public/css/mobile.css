@@ -290,8 +290,8 @@
          times sit in a TWO-COLUMN grid of compact tappable chips; tapping
          one drops a full-width panel with that slot's service picker
          (booking-calendar partial toggles `.is-open`, one at a time). The
-         modal itself goes full-screen (modal-fullscreen-sm-down) so the
-         grid has room to breathe. The admin / super-admin modal keeps the
+         modal is only as tall as its content (no longer full-screen — it
+         left a big empty sheet under a short picker). The admin / super-admin modal keeps the
          plain 5b list — it has no per-slot picker to fold away. */
 @media (max-width: 575.98px) {
   .book-day-modal .modal-body {

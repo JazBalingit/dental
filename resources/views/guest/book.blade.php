@@ -30,15 +30,20 @@
       @include('partials.flash-toasts', ['topOffset' => '20px', 'suppressErrors' => true])
 
       {{-- Steps --}}
-      @php $stepIndex = ['email' => 1, 'code' => 2, 'details' => 3][$step]; @endphp
-      <ol class="gb-steps">
-        @foreach (['Your email', 'Verify code', 'Patient details'] as $i => $stepLabel)
+      @php
+        $stepIndex = ['email' => 1, 'code' => 2, 'details' => 3][$step];
+        $stepLabels = ['Your email', 'Verify code', 'Patient details'];
+      @endphp
+      <ol class="gb-steps" aria-label="Step {{ $stepIndex }} of 3: {{ $stepLabels[$stepIndex - 1] }}">
+        @foreach ($stepLabels as $i => $stepLabel)
           <li class="{{ $i + 1 < $stepIndex ? 'is-done' : ($i + 1 === $stepIndex ? 'is-current' : '') }}">
             <span class="gb-step-num">@if ($i + 1 < $stepIndex)<i class="bi bi-check-lg"></i>@else{{ $i + 1 }}@endif</span>
             <span class="gb-step-label">{{ $stepLabel }}</span>
           </li>
         @endforeach
       </ol>
+      {{-- Phones: the pills show numbers only; the current step is spelled out here. --}}
+      <div class="gb-step-caption">Step {{ $stepIndex }} of 3 · <strong>{{ $stepLabels[$stepIndex - 1] }}</strong></div>
 
       {{-- The slot they picked on the calendar --}}
       <div class="gb-summary">
@@ -69,12 +74,23 @@
           <div class="section-label">Your email</div>
           <p class="small text-muted-2 mb-2">We'll send a 6-digit code to confirm it's yours. Every update about this appointment — approval, reminders, changes — goes to this email.</p>
           <div class="row g-3 align-items-end">
-            @include('guest.partials.field', ['f' => ['name' => 'email', 'label' => 'Email address', 'icon' => 'bi-envelope', 'type' => 'email', 'placeholder' => 'you@example.com', 'required' => true, 'col' => 'col-md-8', 'attrs' => 'autocomplete="email"']])
+            @include('guest.partials.field', ['f' => ['name' => 'email', 'label' => 'Email address', 'icon' => 'bi-envelope', 'type' => 'email', 'placeholder' => 'you@example.com', 'required' => true, 'col' => 'col-md-8', 'attrs' => 'autocomplete="email"', 'value' => $verifiedEmail ?? '']])
             <div class="col-md-4">
-              <button type="submit" class="btn btn-brand w-100"><i class="bi bi-send me-1"></i> Send code</button>
+              @if ($verifiedEmail)
+                <button type="submit" class="btn btn-brand w-100"><i class="bi bi-arrow-right me-1"></i> Continue</button>
+              @else
+                <button type="submit" class="btn btn-brand w-100"><i class="bi bi-send me-1"></i> Send code</button>
+              @endif
             </div>
           </div>
-          <p class="small text-muted-2 mt-3 mb-0">If you're booking for your child or someone else, use <strong>your</strong> email — you'll add their details next.</p>
+          @if ($verifiedEmail)
+            <p class="small text-muted-2 mt-3 mb-0">This email is already verified — keep it to continue without a new code, or enter a different one.</p>
+          @else
+            <p class="small text-muted-2 mt-3 mb-0">If you're booking for your child or someone else, use <strong>your</strong> email — you'll add their details next.</p>
+          @endif
+          <div class="mt-3">
+            <button type="submit" form="gbBack" class="btn btn-ghost"><i class="bi bi-arrow-left me-1"></i> Back to calendar</button>
+          </div>
         </form>
 
       {{-- ============ STEP 2: CODE ============ --}}
@@ -105,6 +121,9 @@
               <button type="submit" class="btn btn-link btn-sm p-0">Use a different email</button>
             </form>
           </div>
+          <div class="mt-3">
+            <button type="submit" form="gbBack" class="btn btn-ghost"><i class="bi bi-arrow-left me-1"></i> Back</button>
+          </div>
         </div>
 
       {{-- ============ STEP 3: WHO + DETAILS ============ --}}
@@ -120,6 +139,7 @@
             <button type="submit" form="gbChangeEmail" class="btn btn-link btn-sm p-0 ms-auto">Change</button>
           </div>
 
+          @php $peopleFull = $people->count() >= $maxPeople; @endphp
           <div class="section-label">Who is this appointment for?</div>
           <div class="who-options" data-who>
             @foreach ($people as $person)
@@ -132,21 +152,32 @@
                 <span class="who-sub">
                   {{ $isSelf ? 'You' : ($person->Relationship ?: 'Booked by you') }}@if ($person->age_years !== null) · {{ $person->age_years }} yrs @endif
                 </span>
+                @unless ($isSelf)
+                  <button type="button" class="who-remove" title="Remove {{ $person->full_name }}" aria-label="Remove {{ $person->full_name }}"
+                    data-remove-url="{{ route('guestBooking.removePerson', $person->PatientID) }}" data-remove-name="{{ $person->full_name }}">
+                    <i class="bi bi-x-lg"></i>
+                  </button>
+                @endunless
               </label>
             @endforeach
-            @unless ($selfRecord)
+            @unless ($selfRecord || $peopleFull)
               <label class="who-option">
                 <input type="radio" name="patient_choice" value="self" data-kind="self" {{ $choice === 'self' ? 'checked' : '' }}>
                 <span class="who-main"><i class="bi bi-person me-1"></i> Myself</span>
                 <span class="who-sub">18 years old and above</span>
               </label>
             @endunless
-            <label class="who-option">
-              <input type="radio" name="patient_choice" value="other" data-kind="other" {{ $choice === 'other' ? 'checked' : '' }}>
-              <span class="who-main"><i class="bi bi-people me-1"></i> Someone else</span>
-              <span class="who-sub">My child, parent, spouse…</span>
-            </label>
+            @unless ($peopleFull)
+              <label class="who-option">
+                <input type="radio" name="patient_choice" value="other" data-kind="other" {{ $choice === 'other' ? 'checked' : '' }}>
+                <span class="who-main"><i class="bi bi-people me-1"></i> Someone else</span>
+                <span class="who-sub">My child, parent, spouse…</span>
+              </label>
+            @endunless
           </div>
+          @if ($peopleFull)
+            <div class="who-limit"><i class="bi bi-info-circle me-1"></i> One email can keep up to {{ $maxPeople }} people. To book for someone new, remove a person with the <i class="bi bi-x-lg"></i> on their card.</div>
+          @endif
           @error('patient_choice') <div class="field-error mb-2"><i class="bi bi-exclamation-circle-fill"></i> {{ $message }}</div> @enderror
 
           {{-- Myself — the same details as signing up --}}
@@ -236,12 +267,14 @@
           </div>
 
           <div class="d-flex gap-2">
-            <a href="{{ route('landingPage') }}#appointment" class="btn btn-ghost"><i class="bi bi-arrow-left me-1"></i> Back</a>
+            <button type="submit" form="gbBack" class="btn btn-ghost" formnovalidate><i class="bi bi-arrow-left me-1"></i> Back</button>
             <button type="submit" class="btn btn-brand flex-grow-1"><i class="bi bi-check2-circle me-1"></i> Request Appointment</button>
           </div>
         </form>
         <form method="POST" action="{{ route('guestBooking.changeEmail') }}" id="gbChangeEmail" class="d-none">@csrf</form>
+        <form method="POST" action="" id="gbRemovePerson" class="d-none">@csrf</form>
       @endif
+      <form method="POST" action="{{ route('guestBooking.back') }}" id="gbBack" class="d-none">@csrf</form>
 
       <p class="text-center small text-muted-2 mt-4 mb-0">
         Have an account? <a href="{{ route('login') }}">Log in</a> to book from your Patient Portal.
@@ -274,6 +307,27 @@
 
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js"></script>
   <script src="{{ asset('js/booking-forms.js') }}"></script>
+  @include('partials.confirm-action-modal')
+  <script>
+    // "×" on a saved person: confirm, then remove them from this email.
+    document.querySelectorAll('.who-remove').forEach(function (btn) {
+      btn.addEventListener('click', function (e) {
+        e.preventDefault();
+        e.stopPropagation(); // don't pick the radio in the card
+        window.appConfirm({
+          title: 'Remove ' + btn.dataset.removeName + '?',
+          message: btn.dataset.removeName + ' will no longer show up under this email. Their records stay with the clinic, and you can add them again later with "Someone else".',
+          confirmLabel: 'Yes, remove',
+          confirmClass: 'btn-pill-archive',
+        }).then(function (ok) {
+          if (!ok) return;
+          var form = document.getElementById('gbRemovePerson');
+          form.action = btn.dataset.removeUrl;
+          form.submit();
+        });
+      });
+    });
+  </script>
   <script>
     // Resend countdown.
     (function () {

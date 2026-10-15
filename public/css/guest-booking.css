@@ -194,9 +194,65 @@
 
 @media (max-width: 767.98px) {
   .gb-summary-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  /* Numbers only in the pills (a squeezed label read as "1 Y…"); the
+     caption under them names the current step. */
   .gb-step-label { display: none; }
+  .gb-steps { margin-bottom: .4rem; }
   .gb-steps li { justify-content: center; }
-  .gb-steps li.is-current .gb-step-label { display: inline; }
+  .gb-step-caption { display: block; }
   .gm-row { flex-direction: column; gap: .1rem; }
   .gm-row .gm-k { width: auto; }
 }
+
+/* Step caption — phones only (see the 767.98px block). */
+.gb-step-caption {
+  display: none;
+  text-align: center;
+  font-size: .85rem;
+  color: #6b7a70;
+  margin-bottom: 1.1rem;
+}
+.gb-step-caption strong { color: var(--brand-800, #167d1d); }
+
+/* Long emails wrap instead of being cut off. */
+.gb-verified span,
+.gb-email-wrap {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.gb-verified .btn-link { flex: none; }
+
+/* "Who is this for?" — a saved person can be removed from this email. */
+.who-option { position: relative; }
+.who-remove {
+  position: absolute;
+  top: .45rem;
+  right: .45rem;
+  width: 30px;
+  height: 30px;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: #9aa6a0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+.who-remove:hover,
+.who-remove:focus-visible { background: #fdecee; color: #c93645; }
+.who-option:has(.who-remove) .who-main { padding-right: 1.6rem; }
+.who-limit {
+  font-size: .82rem;
+  color: #8a6100;
+  background: #fff8e1;
+  border-radius: .6rem;
+  padding: .5rem .75rem;
+  margin-bottom: .5rem;
+}
+@media (max-width: 767.98px) {
+  .gb-step-caption { display: block; }
+}
+
+/* Any long unbroken text (emails) breaks onto the next line instead of
+   running past the card on a phone. */
+.auth-card { overflow-wrap: break-word; }

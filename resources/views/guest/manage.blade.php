@@ -107,8 +107,13 @@
           @endif
           <button type="button" class="btn btn-outline-danger" data-bs-toggle="modal" data-bs-target="#gmCancelModal"><i class="bi bi-x-circle me-1"></i> Cancel appointment</button>
         </div>
-        @if ($a->Status === 'Pending')
+        @if (!$a->can_reschedule)
+          {{-- Pending/Approved but the start time has already passed today. --}}
+          <p class="small text-muted-2 mt-3 mb-0"><i class="bi bi-info-circle me-1"></i> This appointment's time has already started, so it can't be rescheduled online. Please call the clinic if you need a new time.</p>
+        @elseif ($a->Status === 'Pending')
           <p class="small text-muted-2 mt-3 mb-0"><i class="bi bi-hourglass-split me-1"></i> Waiting for the clinic to approve. We'll email you as soon as it's reviewed.</p>
+        @else
+          <p class="small text-muted-2 mt-3 mb-0"><i class="bi bi-info-circle me-1"></i> Need a different time? Rescheduling sends your new time back to the clinic for approval.</p>
         @endif
       @else
         <div class="gm-actions">
@@ -119,7 +124,7 @@
       @if (!$hasAccount && $a->BookedByEmail)
         <div class="mt-4 p-3 rounded-3" style="background:#f1fcf0;">
           <div class="fw-semibold small" style="color:var(--brand-800);"><i class="bi bi-person-plus me-1"></i> See all your visits in one place</div>
-          <div class="small text-muted-2">Create a free account with <strong>{{ $a->BookedByEmail }}</strong> — this booking and your dental records will already be there.
+          <div class="small text-muted-2">Create a free account with <strong class="gb-email-wrap">{{ $a->BookedByEmail }}</strong> — this booking and your dental records will already be there.
             <a href="{{ route('signup', ['email' => $a->BookedByEmail]) }}" class="fw-semibold">Create an account</a></div>
         </div>
       @endif

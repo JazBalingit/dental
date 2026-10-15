@@ -42,7 +42,9 @@
 
 <body>
     <div class="app">
-        <aside class="sidebar">
+        {{-- Same offcanvas sidebar as the admin pages, so on phones/tablets the
+             menu button below can open it — it holds the only Log Out. --}}
+        <aside class="sidebar offcanvas position-sticky" tabindex="-1" id="sidebarOffcanvas">
             <div class="brand">
                 <div><img class="logo" src="/images/puspus_logo.png" alt=""></div>
                 <div>
@@ -70,6 +72,10 @@
         <main>
             <div class="topbar">
                 <div class="left">
+                    <button class="toggle d-lg-none" type="button" data-bs-toggle="offcanvas" data-bs-target="#sidebarOffcanvas"
+                        aria-controls="sidebarOffcanvas" aria-label="Open menu">
+                        <i class="bi bi-list"></i>
+                    </button>
                     <p class="page-title mb-0">Super Admin Setup</p>
                 </div>
                 <div class="right"></div>

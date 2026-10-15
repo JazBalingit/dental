@@ -81,6 +81,11 @@ class AppServiceProvider extends ServiceProvider
             'staff.staff-userprofile',
         ], AdminNotificationComposer::class);
 
+        // Every top-level patient-portal page. A NEW page that includes the
+        // bell / account menu must be added here, or it crashes with
+        // "Undefined variable $userUnreadCount" (users.medical-history did).
+        // Not a 'users.*' wildcard: that would also re-run these queries for
+        // each users/partials/* include (some render once per calendar day).
         View::composer([
             'users.landing-page',
             'users.user-appointment',
@@ -89,6 +94,8 @@ class AppServiceProvider extends ServiceProvider
             'users.user-appointment-history',
             'users.settings',
             'users.my-records',
+            'users.medical-history',
+            'users.appointment-status',
         ], UserNotificationComposer::class);
 
         if (app()->environment('production')) {

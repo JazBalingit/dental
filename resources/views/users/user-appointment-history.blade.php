@@ -92,13 +92,13 @@
                                         };
                                     @endphp
                                     <tr>
-                                        <td style="font-weight:600;color:#0f4c7a">{{ $appointment->AppointmentDate->format('M j, Y') }}</td>
-                                        <td>{{ \Carbon\Carbon::createFromFormat('H:i', $appointment->AppointmentTime)->format('g:i A') }}</td>
-                                        <td>{{ $appointment->duration_label }}</td>
-                                        <td><span class="service-tag">{{ $appointment->TypeOfAppointment ?: ($appointment->service->ServiceName ?? '') }}</span>@if ($appointment->PatientID !== $ownPatientId)<div class="mt-1"><span class="for-badge"><i class="fas fa-user"></i> For: {{ $appointment->patientInfo?->full_name }}{{ $appointment->patientInfo?->Relationship ? ' (' . $appointment->patientInfo->Relationship . ')' : '' }}</span></div>@endif</td>
-                                        <td>{{ $appointment->dentist_name }}</td>
-                                        <td><span class="badge-pill {{ $historyBadgeClass }}">{{ $appointment->Status === 'Approved' ? 'Booked' : $appointment->Status }}</span></td>
-                                        <td class="text-end">
+                                        <td data-label="Date" style="font-weight:600;color:#0f4c7a">{{ $appointment->AppointmentDate->format('M j, Y') }}</td>
+                                        <td data-label="Time">{{ \Carbon\Carbon::createFromFormat('H:i', $appointment->AppointmentTime)->format('g:i A') }}</td>
+                                        <td data-label="Duration">{{ $appointment->duration_label }}</td>
+                                        <td data-label="Service"><span class="service-tag">{{ $appointment->TypeOfAppointment ?: ($appointment->service->ServiceName ?? '') }}</span>@if ($appointment->PatientID !== $ownPatientId)<div class="mt-1"><span class="for-badge"><i class="fas fa-user"></i> For: {{ $appointment->patientInfo?->full_name }}{{ $appointment->patientInfo?->Relationship ? ' (' . $appointment->patientInfo->Relationship . ')' : '' }}</span></div>@endif</td>
+                                        <td data-label="Dentist">{{ $appointment->dentist_name }}</td>
+                                        <td data-label="Status"><span class="badge-pill {{ $historyBadgeClass }}">{{ $appointment->Status === 'Approved' ? 'Booked' : $appointment->Status }}</span></td>
+                                        <td data-label="Details" class="text-end">
                                             <button type="button" class="btn-view-appt" data-bs-toggle="modal" data-bs-target="#apptModal{{ $appointment->AppointmentID }}">
                                                 <i class="fas fa-eye"></i> View
                                             </button>

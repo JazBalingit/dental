@@ -120,12 +120,12 @@
                                     : '—';
                             @endphp
                             <tr>
-                                <td style="font-weight:600;color:#0f4c7a">{{ $record->VisitDate->format('M j, Y') }}</td>
-                                <td>{{ $record->VisitTime ? \Carbon\Carbon::createFromFormat('H:i', $record->VisitTime)->format('g:i A') : '—' }}</td>
-                                <td><span class="service-tag">{{ $record->Service ?: ($record->service->ServiceName ?? '—') }}</span></td>
-                                <td>{{ $dentistName }}</td>
-                                <td><span class="badge-pill badge-completed">{{ $record->Status ?: 'Completed' }}</span></td>
-                                <td class="text-end">
+                                <td data-label="Visit Date" style="font-weight:600;color:#0f4c7a">{{ $record->VisitDate->format('M j, Y') }}</td>
+                                <td data-label="Time">{{ $record->VisitTime ? \Carbon\Carbon::createFromFormat('H:i', $record->VisitTime)->format('g:i A') : '—' }}</td>
+                                <td data-label="Treatment"><span class="service-tag">{{ $record->Service ?: ($record->service->ServiceName ?? '—') }}</span></td>
+                                <td data-label="Dentist">{{ $dentistName }}</td>
+                                <td data-label="Status"><span class="badge-pill badge-completed">{{ $record->Status ?: 'Completed' }}</span></td>
+                                <td data-label="Chart &amp; Notes" class="text-end">
                                     <button type="button" class="btn-view-appt" data-bs-toggle="modal" data-bs-target="#recModal{{ $record->RecordID }}">
                                         <i class="fas fa-eye"></i> View
                                     </button>

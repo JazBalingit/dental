@@ -889,3 +889,111 @@
     justify-content: center;
   }
 }
+
+/* ---------------------------------------------------------------------
+   14. Notification cards (patient + admin modals): icon | text | badge |
+       arrow sat in one row, so on a phone the status badge squeezed the
+       message down to one word per line. Phones: icon | text | arrow with
+       the badge tucked under the text. (The unread-card form/button use
+       display:contents, so their children are still the grid items.)
+   ------------------------------------------------------------------- */
+@media (max-width: 575.98px) {
+  .notif-card {
+    display: grid !important;
+    grid-template-columns: 34px minmax(0, 1fr) auto;
+    grid-template-areas:
+      "icon text chev"
+      "icon badge chev";
+    column-gap: .65rem;
+    row-gap: .35rem;
+    align-items: start;
+    padding: .7rem .75rem;
+  }
+  .notif-card .notif-icon { grid-area: icon; }
+  .notif-card .notif-content { grid-area: text; min-width: 0; }
+  .notif-card .notif-badge { grid-area: badge; justify-self: start; margin: 0; }
+  .notif-card .notif-chevron { grid-area: chev; align-self: center; }
+  .notif-card .notif-text { overflow-wrap: anywhere; }
+}
+
+/* ---------------------------------------------------------------------
+   15. Patient tables (.appt-table — Appointment History, My Dental
+       Records): on phones each row becomes a card of "Label  value" lines
+       instead of a 7-column table you have to scroll sideways. Labels come
+       from each cell's data-label. The empty-state row (no data-label)
+       stays a plain centered line. Up to 1199px — with the portal sidebar
+       open, 7 columns don't fit a tablet or small laptop either; there the
+       cards sit two per row.
+   ------------------------------------------------------------------- */
+@media (min-width: 768px) and (max-width: 1199.98px) {
+  .appt-table tbody {
+    display: grid !important;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: .75rem;
+  }
+  .appt-table tbody tr { margin-bottom: 0 !important; }
+  .appt-table tbody tr:has(td:not([data-label])) { grid-column: 1 / -1; }
+}
+
+@media (max-width: 1199.98px) {
+  .appt-table,
+  .appt-table tbody,
+  .appt-table tr,
+  .appt-table td {
+    display: block;
+    width: 100%;
+  }
+  .appt-table thead { display: none; }
+
+  .appt-table tbody { padding: .75rem; }
+  .appt-table tbody tr {
+    border: 1px solid #e3ece6;
+    border-radius: .85rem;
+    background: #fff;
+    padding: .35rem .9rem;
+    margin-bottom: .75rem;
+    box-shadow: 0 2px 8px rgba(15, 23, 42, .04);
+  }
+  .appt-table tbody tr:last-child { margin-bottom: 0; }
+  .appt-table tbody tr:hover td { background: transparent; }
+
+  .appt-table td[data-label] {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: .5rem 0 !important;
+    border-bottom: 1px dashed #edf2ee !important;
+    white-space: normal !important;
+    text-align: right !important;
+    font-size: .88rem !important;
+    overflow-wrap: anywhere;
+  }
+  .appt-table td[data-label]::before {
+    content: attr(data-label);
+    flex: none;
+    font-size: .72rem;
+    font-weight: 700;
+    letter-spacing: .04em;
+    text-transform: uppercase;
+    color: #6b7a70;
+    text-align: left;
+  }
+  .appt-table td[data-label]:last-child {
+    border-bottom: 0 !important;
+  }
+  /* Service tags / "For: …" badge sit right-aligned under each other. */
+  .appt-table td[data-label] > span,
+  .appt-table td[data-label] > div { max-width: 70%; }
+  .appt-table td[data-label] .service-tag { white-space: normal; text-align: right; }
+
+  /* The action cell: full-width button instead of a label. */
+  .appt-table td[data-label]:last-child::before { display: none; }
+  .appt-table td[data-label]:last-child { justify-content: stretch; padding-top: .65rem !important; }
+  .appt-table td[data-label]:last-child > * { flex: 1; }
+  .appt-table td[data-label]:last-child .btn-view-appt,
+  .appt-table td[data-label]:last-child button,
+  .appt-table td[data-label]:last-child a { width: 100%; justify-content: center; }
+
+  .appt-table td:not([data-label]) { padding: 1rem .5rem !important; white-space: normal !important; }
+}

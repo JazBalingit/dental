@@ -50,7 +50,18 @@ class UserController extends Controller
 
         $uncategorizedServices = Service::where('IsArchived', false)->whereNull('CategoryID')->orderBy('ServiceName')->get();
 
+        // "Back to calendar" / "Change" from the guest booking page: reopen
+        // that day's picker with the guest's time, services and note.
+        $slot = session('guest_booking');
+        $bookResume = $request->boolean('resume') && !session('user_id') && $slot ? [
+            'date' => $slot['date'],
+            'time' => $slot['time'],
+            'service_ids' => $slot['service_ids'],
+            'notes' => $slot['patient_notes'] ?? '',
+        ] : null;
+
         return view('users.landing-page', array_merge($bookingData, [
+            'bookResume' => $bookResume,
             'currentPatient' => $currentPatient,
             'appointmentSteps' => AppointmentStep::where('IsArchived', false)
                 ->orderBy('DisplayOrder')

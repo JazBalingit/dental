@@ -117,3 +117,29 @@
   .mh-view-row { flex-direction: column; gap: .1rem; }
   .mh-view-v { text-align: left; max-width: none; }
 }
+
+/* Show/Hide toggle beside the "Medical history" heading */
+.mh-step-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: .5rem;
+  flex-wrap: wrap;
+  margin-bottom: .5rem;
+}
+.mh-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: .35rem;
+  border: 1px solid var(--brand-100, #cfeed3);
+  background: var(--brand-50, #eefaf0);
+  color: var(--brand-800, #167d1d);
+  font-size: .82rem;
+  font-weight: 600;
+  border-radius: 999px;
+  padding: .3rem .8rem;
+  min-height: 32px;
+}
+.mh-toggle:hover { border-color: var(--brand-500, #33bd3c); }
+.mh-toggle .bi-chevron-down { font-size: .75rem; transition: transform .15s ease; }
+.mh-toggle[aria-expanded="true"] .bi-chevron-down { transform: rotate(180deg); }

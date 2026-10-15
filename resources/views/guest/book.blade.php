@@ -49,7 +49,7 @@
       <div class="gb-summary">
         <div class="gb-summary-head">
           <span><i class="bi bi-calendar2-check me-1"></i> Your appointment</span>
-          <form method="POST" action="{{ route('guestBooking.cancel') }}" class="m-0">@csrf
+          <form method="POST" action="{{ route('guestBooking.editSlot') }}" class="m-0">@csrf
             <button type="submit" class="btn btn-link btn-sm p-0 gb-change">Change</button>
           </form>
         </div>

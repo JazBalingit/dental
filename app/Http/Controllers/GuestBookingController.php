@@ -292,10 +292,30 @@ class GuestBookingController extends Controller
 
                 return redirect()->route('guestBooking.show')->withInput(['email' => $email]);
             default:
-                return $this->cancel();
+                return $this->editSlot();
         }
 
         return redirect()->route('guestBooking.show');
+    }
+
+    /**
+     * Back to the calendar with the day's time/services picker reopened and
+     * filled in (landing page reads ?resume=1 — see UserController). The
+     * slot stays in the session until a new one is submitted; photos have
+     * to be picked again since a file input can't be pre-filled.
+     */
+    public function editSlot()
+    {
+        $slot = session('guest_booking');
+        if (!$slot) {
+            return redirect()->to(route('landingPage') . '#appointment');
+        }
+
+        return redirect()->to(route('landingPage', [
+            'bookMonth' => Carbon::parse($slot['date'])->format('Y-m'),
+            'dentist' => $slot['dentist_id'],
+            'resume' => 1,
+        ]) . '#appointment');
     }
 
     /**

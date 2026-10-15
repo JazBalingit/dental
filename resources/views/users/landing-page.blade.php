@@ -390,6 +390,47 @@
   </div>
 
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js"></script>
+  @if ($bookResume)
+    <script>
+      // Came back from the guest booking page: reopen the day's picker with
+      // the same time, services and note (the modal resets itself on open,
+      // so fill it in once it's shown).
+      window.addEventListener('load', function () {
+        var r = @json($bookResume);
+        var url = new URL(window.location.href);
+        url.searchParams.delete('resume');
+        window.history.replaceState({}, '', url);
+
+        var modal = document.getElementById('bookDay' + r.date.replace(/-/g, ''));
+        if (!modal) return;
+
+        modal.addEventListener('shown.bs.modal', function fill() {
+          modal.removeEventListener('shown.bs.modal', fill);
+          var picker = modal.querySelector('.book-picker');
+          if (picker) {
+            if (picker.querySelector('.book-time-chip[data-time="' + r.time + '"]')) {
+              picker.querySelector('.book-picker-time').value = r.time;
+            }
+            var last = null;
+            r.service_ids.forEach(function (id) {
+              var box = picker.querySelector('.book-slot-service-option[value="' + id + '"]');
+              if (box) { box.checked = true; last = box; }
+            });
+            // Fires the picker's own listeners: service label + time/summary/Continue.
+            (last || picker.querySelector('.book-slot-service-option'))
+              ?.dispatchEvent(new Event('change', { bubbles: true }));
+          }
+          var notes = modal.querySelector('.book-notes-input');
+          if (notes && r.notes) {
+            notes.value = r.notes;
+            notes.dispatchEvent(new Event('input', { bubbles: true }));
+          }
+        });
+
+        bootstrap.Modal.getOrCreateInstance(modal).show();
+      });
+    </script>
+  @endif
 </body>
 
 </html>

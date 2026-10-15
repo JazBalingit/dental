@@ -271,3 +271,27 @@
     padding: .7rem 1rem;
   }
 }
+
+/* "Manage my booking" list. Desktop: one row. The title truncates. */
+.gm-list-title { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* Phones: date | details | arrow, with the status badge under the details.
+   Side by side, the badge squeezed the details column to one letter wide. */
+@media (max-width: 575.98px) {
+  .gm-list-item {
+    display: grid;
+    grid-template-columns: 50px minmax(0, 1fr) auto;
+    grid-template-areas:
+      "date info chev"
+      "date status chev";
+    column-gap: .75rem;
+    row-gap: .35rem;
+    align-items: center;
+    padding: .75rem .8rem;
+  }
+  .gm-list-date { grid-area: date; width: 50px; align-self: start; }
+  .gm-list-info { grid-area: info; }
+  .gm-list-item .gm-status { grid-area: status; justify-self: start; }
+  .gm-list-chev { grid-area: chev; }
+  .gm-list-title { white-space: normal; }
+}

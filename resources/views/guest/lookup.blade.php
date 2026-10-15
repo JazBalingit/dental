@@ -76,12 +76,12 @@
           @endphp
           <a class="gm-list-item" href="{{ $appt->manage_url }}">
             <div class="gm-list-date"><b>{{ $appt->AppointmentDate->format('d') }}</b><span>{{ $appt->AppointmentDate->format('M Y') }}</span></div>
-            <div class="flex-grow-1" style="min-width:0;">
-              <div class="fw-semibold text-truncate">{{ $appt->TypeOfAppointment ?: ($appt->service->ServiceName ?? 'Appointment') }}</div>
+            <div class="gm-list-info flex-grow-1" style="min-width:0;">
+              <div class="fw-semibold gm-list-title">{{ $appt->TypeOfAppointment ?: ($appt->service->ServiceName ?? 'Appointment') }}</div>
               <div class="small text-muted-2">{{ $appt->patientInfo?->full_name }} · {{ $appt->time_range_label }} · {{ $appt->dentist_name }}</div>
             </div>
             <span class="gm-status {{ $cls }}">{{ $appt->Status }}</span>
-            <i class="bi bi-chevron-right text-muted-2"></i>
+            <i class="bi bi-chevron-right text-muted-2 gm-list-chev"></i>
           </a>
         @empty
           <div class="text-center text-muted-2 py-4">

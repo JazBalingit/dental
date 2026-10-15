@@ -451,3 +451,59 @@
     grid-template-columns: 1fr 1fr;
   }
 }
+
+/* ---------------------------------------------------------------------
+   Narrow charts (phones, small modals): each arch is 16 teeth = 560px,
+   which had to be scrolled sideways. When the chart box is narrower,
+   each arch wraps into two rows of 8 — right quadrant, then left — with
+   the quadrant named above each row. Keyed to the chart's own width
+   (container query), so it behaves the same in a modal or on a page.
+   ------------------------------------------------------------------- */
+.odontogram-chart { container-type: inline-size; }
+
+@container (max-width: 559px) {
+  .odontogram-chart .odontogram-quadrant-row { display: none; }
+
+  .odontogram-chart .odontogram-row {
+    min-width: 0;
+    flex-wrap: wrap;
+    row-gap: 2px;
+  }
+  .odontogram-chart .odontogram-tooth {
+    flex: 1 1 calc((100% - 21px) / 8);
+    min-width: 0;
+    max-width: none;
+  }
+
+  /* Label above the right quadrant ("Upper Right" / "Lower Right") … */
+  .odontogram-chart .odontogram-row::before,
+  /* … and the midline turns into the divider + label for the left one. */
+  .odontogram-chart .odontogram-midline::after {
+    flex-basis: 100%;
+    display: block;
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: .06em;
+    color: #9ca3af;
+    padding: 0 4px 2px;
+  }
+  .odontogram-chart .odontogram-row::before { content: "Upper Right"; }
+  .odontogram-chart .odontogram-row + .odontogram-row::before { content: "Lower Right"; }
+
+  .odontogram-chart .odontogram-midline {
+    flex-basis: 100%;
+    width: auto;
+    margin: 6px 0 0;
+    padding-top: 6px;
+    background: none;
+    border-top: 1px dashed var(--border, #e5e7eb);
+  }
+  .odontogram-chart .odontogram-midline::after { content: "Upper Left"; padding-left: 4px; }
+  .odontogram-chart .odontogram-row + .odontogram-row .odontogram-midline::after { content: "Lower Left"; }
+  .odontogram-chart .odontogram-row + .odontogram-row {
+    margin-top: 8px;
+    padding-top: 10px;
+    border-top: 2px solid var(--border, #e5e7eb);
+  }
+}

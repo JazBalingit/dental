@@ -30,7 +30,8 @@ class RescheduleService
 {
     public function __construct(
         protected NotificationService $notifications,
-        protected ActivityLogService $activityLog
+        protected ActivityLogService $activityLog,
+        protected AppointmentReminderService $reminders
     ) {
     }
 
@@ -135,6 +136,13 @@ class RescheduleService
             'Approved'
         );
         $this->activityLog->log('Reschedule Accepted', "Accepted the proposed new time: {$appointment->AppointmentDate->format('F j, Y')}, {$appointment->time_range_label}.");
+
+        // It's Approved at the new time now — send the reminder for the stage
+        // it's already in (e.g. "in 5 hours" if the new time is today) right
+        // away, the same as approving an appointment does, instead of waiting
+        // for the scheduler. Later stages follow from the schedule as usual.
+        // Accounts get bell + email, guests get it by email (notifyPatient).
+        $this->reminders->checkOne($appointment->fresh());
 
         return $appointment;
     }

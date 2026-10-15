@@ -256,3 +256,18 @@
 /* Any long unbroken text (emails) breaks onto the next line instead of
    running past the card on a phone. */
 .auth-card { overflow-wrap: break-word; }
+
+/* Manage page actions on phones: full-width, the icon flows inline with
+   the label (a flex button split them — "Book another appointment" wrapped
+   into a two-line block with the icon stranded on the left). */
+@media (max-width: 575.98px) {
+  .gm-actions { flex-direction: column; }
+  .gm-actions .btn {
+    display: block;
+    width: 100%;
+    text-align: center;
+    font-size: clamp(.88rem, 4.2vw, 1rem);
+    line-height: 1.35;
+    padding: .7rem 1rem;
+  }
+}

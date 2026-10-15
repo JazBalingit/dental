@@ -27,7 +27,7 @@
         <p class="auth-subtitle mb-0">Booked without an account? Find your appointments with the email you used.</p>
       </div>
 
-      @include('partials.flash-toasts', ['topOffset' => '20px', 'suppressErrors' => true])
+      @include('partials.flash-toasts', ['topOffset' => '80px', 'suppressErrors' => true])
 
       @if ($step === 'email')
         <form method="POST" action="{{ route('manage.lookup.send') }}">

@@ -39,7 +39,7 @@
         <p class="auth-subtitle mb-0">Sign in to your Dental Clinic account</p>
       </div>
 
-      @include('partials.flash-toasts', ['topOffset' => '20px', 'suppress' => $loginFormError ? ['login_error'] : []])
+      @include('partials.flash-toasts', ['topOffset' => '80px', 'suppress' => $loginFormError ? ['login_error'] : []])
 
       <form method="POST" action="{{ route('login.store') }}">
         @csrf

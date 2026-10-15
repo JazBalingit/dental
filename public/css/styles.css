@@ -3909,3 +3909,8 @@ input[type="checkbox"],
 input[type="radio"] {
   accent-color: #1e8f27;
 }
+
+/* Alert boxes: long text (emails, links) wraps instead of running out of the box. */
+.alert {
+  overflow-wrap: anywhere;
+}

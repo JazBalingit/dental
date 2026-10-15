@@ -6,10 +6,12 @@
     forgot/reset-password modals) are NOT part of this partial — those stay
     inline at the top of their modal, unchanged.
 
-    Optional: pass ['topOffset' => '20px'] when including on a page with no
-    sticky topbar/navbar (e.g. login/signup). Defaults to 84px, which clears
-    the 68px admin `.topbar`. Pages using the public `.navbar.fixed-top`
-    (landing page, patient settings/profile/appointments) pass '100px'.
+    Optional: pass ['topOffset' => '…'] to clear the page's fixed bar.
+    Defaults to 84px, which clears the 68px admin `.topbar`. Login/signup and
+    the guest pages (65–68px `.auth-navbar`) pass '80px'; pages using the
+    public `.navbar.fixed-top` (landing page, patient settings/profile/
+    appointments) pass '100px'. The stack is capped to the space below that
+    offset and scrolls if a long error list would run off the screen.
 
     Optional: pass ['suppress' => ['login_error', ...]] to skip specific
     flash keys — for a page that renders that message inline next to the
@@ -54,25 +56,34 @@
 @endphp
 
 <style>
-    .flash-toast-container { position: fixed; right: 1.25rem; z-index: 1080; display: flex; flex-direction: column; align-items: flex-end; pointer-events: none; }
-    .flash-toast { pointer-events: auto; position: relative; display: flex; align-items: flex-start; gap: .7rem; background: #fff; border-radius: var(--radius-lg, 1rem); box-shadow: var(--shadow-lg, 0 18px 40px -12px rgba(15,23,42,.18)); padding: .85rem 2.3rem .85rem .9rem; margin-bottom: .7rem; width: 340px; max-width: calc(100vw - 2.5rem); overflow: hidden; border-left: 4px solid var(--success, #10b981); opacity: 0; transform: translateX(18px); animation: flashToastIn .28s ease forwards; }
+    /* Never taller than the screen: a long error list scrolls inside the stack. */
+    .flash-toast-container { position: fixed; right: .75rem; padding: 0 .5rem 1.25rem 1.5rem; overflow-x: hidden; z-index: 1080; display: flex; flex-direction: column; align-items: flex-end; pointer-events: none; max-height: calc(100vh - var(--toast-top, 84px) - .5rem); max-height: calc(100dvh - var(--toast-top, 84px) - .5rem); overflow-y: auto; overscroll-behavior: contain; scrollbar-width: none; }
+    .flash-toast-container::-webkit-scrollbar { display: none; }
+    .flash-toast { flex: none; pointer-events: auto; position: relative; display: flex; align-items: flex-start; gap: .7rem; background: #fff; border-radius: var(--radius-lg, 1rem); box-shadow: var(--shadow-lg, 0 18px 40px -12px rgba(15,23,42,.18)); padding: .85rem 2.3rem .85rem .9rem; margin-bottom: .7rem; width: 340px; max-width: calc(100vw - 2.5rem); overflow: hidden; border-left: 4px solid var(--success, #10b981); opacity: 0; transform: translateX(18px); animation: flashToastIn .28s ease forwards; }
     .flash-toast.flash-toast-danger { border-left-color: var(--danger, #ef4444); }
     .flash-toast-icon { flex: none; width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; background: rgba(16,185,129,.12); color: var(--success, #10b981); font-size: 1rem; margin-top: 1px; }
     .flash-toast.flash-toast-danger .flash-toast-icon { background: rgba(239,68,68,.12); color: var(--danger, #ef4444); }
     .flash-toast-title { font-weight: 600; font-size: .85rem; color: var(--ink-900, #0f172a); margin-bottom: .1rem; }
-    .flash-toast-body { flex: 1; font-size: .82rem; color: var(--ink-700, #334155); line-height: 1.45; }
+    .flash-toast-body { flex: 1; min-width: 0; overflow-wrap: anywhere; font-size: .82rem; color: var(--ink-700, #334155); line-height: 1.45; }
     .flash-toast-body ul { padding-left: 1.1rem; margin: 0; }
     .flash-toast-close { position: absolute; top: .55rem; right: .55rem; border: none; background: transparent; color: var(--ink-500, #64748b); width: 22px; height: 22px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: .65rem; cursor: pointer; transition: background .15s, color .15s; }
     .flash-toast-close:hover { background: var(--ink-100, #f1f5f9); color: var(--ink-900, #0f172a); }
     .flash-toast-progress { position: absolute; left: 0; bottom: 0; height: 3px; background: var(--success, #10b981); width: 100%; animation: flashToastProgress 8s linear forwards; }
     .flash-toast.flash-toast-danger .flash-toast-progress { background: var(--danger, #ef4444); }
     .flash-toast.hide-toast { animation: flashToastOut .2s ease forwards; }
+    /* Phones: full-width toasts with even side margins, text a touch larger. */
+    @media (max-width: 575.98px) {
+        .flash-toast-container { left: 0; right: 0; padding: 0 .75rem 1.25rem; align-items: stretch; }
+        .flash-toast { width: auto; max-width: none; padding: .8rem 2.4rem .8rem .8rem; }
+        .flash-toast-body { font-size: .86rem; }
+        .flash-toast-close { width: 30px; height: 30px; top: .4rem; right: .4rem; font-size: .75rem; }
+    }
     @keyframes flashToastIn { to { opacity: 1; transform: translateX(0); } }
     @keyframes flashToastOut { to { opacity: 0; transform: translateX(18px); } }
     @keyframes flashToastProgress { from { width: 100%; } to { width: 0%; } }
 </style>
 
-<div class="flash-toast-container" style="top: {{ $topOffset }};">
+<div class="flash-toast-container" style="top: {{ $topOffset }}; --toast-top: {{ $topOffset }};">
     @foreach ($flashes as $flash)
         @if (!in_array($flash['key'], $suppress, true) && session($flash['key']))
             <div class="flash-toast flash-toast-{{ $flash['type'] }}" role="alert" aria-live="assertive" aria-atomic="true">

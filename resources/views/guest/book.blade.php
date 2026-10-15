@@ -27,7 +27,7 @@
         <p class="auth-subtitle mb-0">No account needed — we'll confirm your email with a quick code.</p>
       </div>
 
-      @include('partials.flash-toasts', ['topOffset' => '20px', 'suppressErrors' => true])
+      @include('partials.flash-toasts', ['topOffset' => '80px', 'suppressErrors' => true])
 
       {{-- Steps --}}
       @php

@@ -35,7 +35,7 @@
 
   <main class="auth-main">
     <div class="auth-card gm-card w-100">
-      @include('partials.flash-toasts', ['topOffset' => '20px'])
+      @include('partials.flash-toasts', ['topOffset' => '80px'])
 
       @if (session('just_booked'))
         <div class="text-center mb-3">

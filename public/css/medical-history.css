@@ -143,3 +143,6 @@
 .mh-toggle:hover { border-color: var(--brand-500, #33bd3c); }
 .mh-toggle .bi-chevron-down { font-size: .75rem; transition: transform .15s ease; }
 .mh-toggle[aria-expanded="true"] .bi-chevron-down { transform: rotate(180deg); }
+
+/* Long alert labels wrap inside their pill instead of overflowing. */
+.mh-alert { white-space: normal; max-width: 100%; overflow-wrap: anywhere; line-height: 1.3; }

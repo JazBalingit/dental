@@ -21,7 +21,7 @@
 
   <main class="auth-main" style="align-items:flex-start;">
     <div class="container" style="max-width:1100px;">
-      @include('partials.flash-toasts', ['topOffset' => '20px'])
+      @include('partials.flash-toasts', ['topOffset' => '80px'])
       <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-3">
         <div>
           <h2 class="auth-title mb-0" style="text-align:left;">Reschedule Appointment</h2>

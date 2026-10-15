@@ -1207,7 +1207,12 @@
       el.setAttribute('role', 'alert');
       el.style.cssText = 'position:fixed;top:84px;right:1.25rem;z-index:1080;background:#fff;'
         + 'border-left:4px solid #dc3545;border-radius:12px;box-shadow:0 18px 40px -12px rgba(15,23,42,.18);'
-        + 'padding:.85rem 1.1rem;max-width:320px;font-size:.85rem;color:#334155;';
+        + 'padding:.85rem 1.1rem;max-width:min(320px, calc(100vw - 1.5rem));font-size:.85rem;color:#334155;'
+        + 'overflow-wrap:anywhere;line-height:1.45;';
+      // Phones: span the width with even margins instead of hugging the right edge.
+      if (window.matchMedia('(max-width: 575.98px)').matches) {
+        el.style.left = '.75rem'; el.style.right = '.75rem'; el.style.maxWidth = 'none';
+      }
       el.textContent = message;
       document.body.appendChild(el);
       setTimeout(function () { el.remove(); }, 4000);

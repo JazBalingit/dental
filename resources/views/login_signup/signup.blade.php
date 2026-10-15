@@ -34,7 +34,7 @@
         <p class="auth-subtitle mb-0">Join the Dental Clinic patient portal</p>
       </div>
 
-      @include('partials.flash-toasts', ['topOffset' => '20px', 'suppressErrors' => true])
+      @include('partials.flash-toasts', ['topOffset' => '80px', 'suppressErrors' => true])
 
           @php
             // Which wizard step a field belongs to, so a validation failure

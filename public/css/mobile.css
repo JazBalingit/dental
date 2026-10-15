@@ -44,10 +44,17 @@
   .settings-layout,
   .settings-content,
   .container,
-  .container-fluid,
-  .row {
+  .container-fluid {
     min-width: 0;
     max-width: 100%;
+  }
+
+  /* NOT max-width on .row: a Bootstrap row is deliberately one gutter
+     wider than its container (negative side margins). Capping it at 100%
+     shoved every row's content a half-gutter to the left — the
+     "cards aren't centered" bug on phones. */
+  .row {
+    min-width: 0;
   }
 }
 
@@ -694,5 +701,191 @@
   .table-soft td.text-end:has(.btn-pill) > .btn-pill:first-child,
   .table-soft td.text-end:has(.btn-pill) > :first-child .btn-pill {
     margin-top: 0 !important;
+  }
+}
+
+/* ---------------------------------------------------------------------
+   12. Month calendar: all seven days always fit (Sunday was cut off on
+       phones). landing.css forced each column to ≥44px — 7 × 44 is wider
+       than a 320/375px phone's calendar box. Let the columns shrink
+       instead; the day badges already ellipsize.
+   ------------------------------------------------------------------- */
+@media (max-width: 767.98px) {
+  .month-grid {
+    grid-template-columns: repeat(7, minmax(0, 1fr)) !important;
+  }
+
+  .month-grid .day-cell,
+  .month-grid .mh {
+    min-width: 0;
+  }
+}
+
+@media (max-width: 575.98px) {
+  /* Less nested padding around the calendar so the days get the width. */
+  #appointment .content {
+    padding-left: 0;
+    padding-right: 0;
+  }
+
+  .month-grid .day-cell {
+    padding: .25rem .15rem;
+    min-height: 64px;
+  }
+
+  .month-grid .day-cell .ev {
+    font-size: .52rem;
+    padding: .1rem .15rem;
+    text-align: center;
+  }
+
+  .month-grid .mh {
+    padding: .4rem 0;
+    font-size: .55rem;
+    letter-spacing: 0;
+  }
+}
+
+/* ---------------------------------------------------------------------
+   13. Landing page, phones + tablets (320 / 375 / 425 / 768).
+       Everything stacks into one centered column, and text scales with
+       the screen width (clamp) instead of jumping between fixed sizes.
+   ------------------------------------------------------------------- */
+@media (max-width: 991.98px) {
+  /* Navbar: the brand shrinks so the hamburger stays on the same row,
+     on the right, even at 320px. */
+  .navbar > .container-fluid > .navbar-brand {
+    min-width: 0;
+    flex: 0 1 auto;
+    margin-right: .5rem;
+    white-space: nowrap;
+  }
+
+  .navbar .navt {
+    font-size: clamp(.95rem, 4.6vw, 1.375rem);
+    letter-spacing: -0.3px;
+  }
+
+  .navbar .navt.ms-2 {
+    margin-left: .3rem !important;
+  }
+
+  .navbar .logo {
+    width: clamp(30px, 9vw, 38px);
+    height: clamp(30px, 9vw, 38px);
+  }
+
+  .navbar > .container-fluid > .d-lg-none {
+    margin-left: auto;
+  }
+
+  /* Fluid type */
+  .hero h1,
+  .hero-title {
+    font-size: clamp(1.75rem, 7.5vw, 2.6rem);
+  }
+
+  .hero p {
+    font-size: clamp(.95rem, 3.8vw, 1.1rem);
+  }
+
+  .section-title {
+    font-size: clamp(1.5rem, 6.5vw, 2.2rem);
+  }
+
+  .section-intro,
+  #about p,
+  #contact p {
+    font-size: clamp(.9rem, 3.6vw, 1rem);
+  }
+
+  h3 {
+    font-size: clamp(1.25rem, 5vw, 1.6rem);
+  }
+
+  h5,
+  .service-card h5,
+  .step-card h5 {
+    font-size: clamp(1.05rem, 4.4vw, 1.2rem);
+  }
+
+  /* About: photo + Location & Hours centered */
+  #about .about-img {
+    height: clamp(240px, 70vw, 420px);
+  }
+
+  #about .col-md-6 {
+    flex: 0 0 100%;
+    max-width: 100%;
+    text-align: center;
+  }
+
+  #about .location-info p {
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    gap: 4px;
+  }
+
+  #about .location-info i {
+    margin-top: 0;
+  }
+
+  /* Contact info card: centered, and long values (the email) wrap
+     instead of running off the card. */
+  .contact-info-card {
+    padding: clamp(24px, 7vw, 40px) clamp(18px, 6vw, 40px);
+    text-align: center;
+  }
+
+  .contact-info-card .info-row {
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .contact-info-card .info-row span,
+  .contact-info-card .info-row strong {
+    min-width: 0;
+    overflow-wrap: anywhere;
+  }
+
+  #contact .appointment-card .text-end {
+    text-align: center !important;
+  }
+
+  /* Footer: every column centered; the email wraps. */
+  footer {
+    text-align: center;
+    padding-top: 48px;
+  }
+
+  footer p {
+    overflow-wrap: anywhere;
+  }
+
+  footer .col-md-6 {
+    flex: 0 0 100%;
+    max-width: 100%;
+  }
+}
+
+@media (max-width: 575.98px) {
+  .contact-info-card .info-row i {
+    width: 34px;
+    height: 34px;
+  }
+
+  #contact .btn-submit {
+    width: 100%;
+  }
+}
+
+/* Two-column card grids (tablet): an odd last card sits centered rather
+   than alone on the left. */
+@media (max-width: 991.98px) {
+  #services .row,
+  #how .row {
+    justify-content: center;
   }
 }

@@ -94,7 +94,7 @@ class PatientRecordsController extends Controller
             ->withMax('records as last_record_at', 'created_at')
             // Preloads the last appointment date so PatientInfo::is_inactive
             // (Active / Inactive pill) needs no extra query per row.
-            ->withMax('appointments', 'AppointmentDate')
+            ->withLastVisit()
             ->whereHas('records');
 
         $activeQuery = $base()->whereHas('records', fn ($q) => $q->where('IsArchived', false));
@@ -215,7 +215,7 @@ class PatientRecordsController extends Controller
     /** Every visit for one patient — the "Patient Record History" page. */
     public function history(Request $request, $patientId)
     {
-        $patient = PatientInfo::with('userAccount')->withMax('appointments', 'AppointmentDate')->findOrFail($patientId);
+        $patient = PatientInfo::with('userAccount')->withLastVisit()->findOrFail($patientId);
         $search = $request->query('search');
 
         // Individual visits can't be archived — only the patient as a whole

@@ -24,10 +24,10 @@ class UserAccountController extends Controller
         $search = $request->query('search');
         $tab = $request->query('tab') === 'archived' ? 'archived' : 'active';
 
-        // withMax preloads each patient's most recent appointment date in the
-        // same query (via a join), so PatientInfo::is_inactive can classify
-        // every row on the page without an extra query per patient.
-        $withInactivity = fn ($q) => $q->withMax('appointments', 'AppointmentDate');
+        // withLastVisit preloads each patient's last clinic visit (latest
+        // Completed appointment) in the same query, so PatientInfo::is_inactive
+        // can classify every row without an extra query per patient.
+        $withInactivity = fn ($q) => $q->withLastVisit();
 
         $activeQuery = UserAccount::with(['patientInfo' => $withInactivity])
             ->where('AccountType', 'User')
@@ -51,19 +51,20 @@ class UserAccountController extends Controller
             $archivedQuery->where($filter);
         }
 
-        // Activity status — "Inactive" mirrors PatientInfo::is_inactive (has
-        // appointments, none in the last 6 months); "Active" is everyone else.
+        // Activity status — "Inactive" mirrors PatientInfo::is_inactive (has a
+        // completed visit, none in the last 6 months); "Active" is everyone else.
         $status = in_array($request->query('status'), ['active', 'inactive'], true) ? $request->query('status') : null;
         if ($status) {
             $cutoff = now()->subMonths(6)->toDateString();
-            $recent = fn ($a) => $a->whereDate('AppointmentDate', '>=', $cutoff);
-            $statusFilter = function ($q) use ($status, $recent) {
+            $visits = fn ($a) => $a->where('Status', 'Completed');
+            $recent = fn ($a) => $a->where('Status', 'Completed')->whereDate('AppointmentDate', '>=', $cutoff);
+            $statusFilter = function ($q) use ($status, $visits, $recent) {
                 if ($status === 'inactive') {
-                    $q->whereHas('patientInfo', fn ($p) => $p->whereHas('appointments')->whereDoesntHave('appointments', $recent));
+                    $q->whereHas('patientInfo', fn ($p) => $p->whereHas('appointments', $visits)->whereDoesntHave('appointments', $recent));
                 } else {
-                    $q->where(function ($w) use ($recent) {
+                    $q->where(function ($w) use ($visits, $recent) {
                         $w->whereDoesntHave('patientInfo')
-                            ->orWhereHas('patientInfo', fn ($p) => $p->whereDoesntHave('appointments')->orWhereHas('appointments', $recent));
+                            ->orWhereHas('patientInfo', fn ($p) => $p->whereDoesntHave('appointments', $visits)->orWhereHas('appointments', $recent));
                     });
                 }
             };

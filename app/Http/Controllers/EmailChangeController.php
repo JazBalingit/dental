@@ -3,19 +3,32 @@
 namespace App\Http\Controllers;
 
 use App\Http\Controllers\Concerns\ManagesOtp;
+use App\Mail\EmailChangedMail;
 use App\Mail\OtpMail;
 use App\Models\UserAccount;
 use App\Services\ActivityLogService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Validation\Rule;
 
 /**
- * Changing an account's email — the one place it can change. A 6-digit
- * code is emailed to the NEW address and must be entered before the email
- * is switched, so nobody can move an account to an inbox they don't own.
+ * Changing an account's email — the one place it can change.
+ *
+ * Your own account takes three steps, so someone at an unlocked, logged-in
+ * screen can't move the account to an inbox they control:
+ *   1. sendCurrent / verifyCurrent — a code to the CURRENT email proves it's
+ *      really you. That unlocks steps 2–3 for IDENTITY_MINUTES.
+ *   2. send   — a code to the NEW email.
+ *   3. verify — the new email's code; only now is the email switched.
+ * Nothing is saved before step 3, so a refresh, a closed tab or an expired
+ * code part-way leaves the old email in place (and the next try starts over).
+ *
+ * An admin changing SOMEONE ELSE's email (usually because they lost the old
+ * inbox) skips step 1 — the new address must still be verified, and the old
+ * address is told about the change afterwards.
  *
  * Used everywhere an email is shown as changeable, through the shared
  * partials.email-change-modal (JSON endpoints):
@@ -23,9 +36,9 @@ use Illuminate\Validation\Rule;
  *   - someone else's:   User Accounts (any admin, patient accounts only)
  *                       Staff Accounts (super admin only)
  *
- * Session keys: email_change_* (via ManagesOtp) + email_change_target /
- * email_change_new_email, so a code only ever confirms the exact account
- * and address it was sent for.
+ * Session keys: email_change_* (new-email code, via ManagesOtp) with
+ * email_change_target / email_change_new_email; email_change_old_* (current-
+ * email code); email_change_identity (step 1 passed: user, email, until).
  */
 class EmailChangeController extends Controller
 {
@@ -33,15 +46,110 @@ class EmailChangeController extends Controller
 
     protected string $prefix = 'email_change';
 
+    /** OTP prefix for the code sent to the CURRENT email (step 1). */
+    protected string $identityPrefix = 'email_change_old';
+
+    /** How long a confirmed current email unlocks steps 2–3. */
+    public const IDENTITY_MINUTES = 15;
+
     public function __construct(protected ActivityLogService $activityLog)
     {
     }
 
+    /** Step 1: send a code to the account's CURRENT email (own account only). */
+    public function sendCurrent(Request $request): JsonResponse
+    {
+        $target = $this->resolveTarget($request);
+        if ($target instanceof JsonResponse) {
+            return $target;
+        }
+        if (!$this->isSelf($target)) {
+            return $this->fail('This step is only for changing your own email.', 422);
+        }
+
+        if ($this->otpResendTooSoon($this->identityPrefix)) {
+            $wait = $this->otpResendRetryAfter($this->identityPrefix);
+
+            return $this->fail("Please wait {$this->otpWaitLabel($wait)} before requesting another code.", 429, ['retryAfter' => $wait]);
+        }
+
+        if ($limited = $this->throttle()) {
+            return $limited;
+        }
+
+        // A fresh start: drop anything left from an earlier, unfinished try.
+        $this->forgetPending();
+        session()->forget('email_change_identity');
+
+        $code = $this->issueOtp($this->identityPrefix);
+        session(['email_change_old_target' => $target->UserID, 'email_change_old_attempts' => 0]);
+
+        try {
+            Mail::to($target->Email)->send(new OtpMail($code, "confirm it's really you before changing the email of your account"));
+        } catch (\Throwable $e) {
+            report($e);
+            $this->clearOtp($this->identityPrefix);
+
+            return $this->fail("We couldn't send the code to your current email. Please try again later.", 500);
+        }
+
+        return response()->json([
+            'ok' => true,
+            'message' => "We sent a 6-digit code to your current email, {$target->Email}. It expires in 5 minutes.",
+            'retryAfter' => $this->otpResendCooldownSeconds,
+        ]);
+    }
+
+    /** Step 1b: check the current email's code → unlock the new-email steps. */
+    public function verifyCurrent(Request $request): JsonResponse
+    {
+        $target = $this->resolveTarget($request);
+        if ($target instanceof JsonResponse) {
+            return $target;
+        }
+        if (!$this->isSelf($target)) {
+            return $this->fail('This step is only for changing your own email.', 422);
+        }
+
+        $request->validate(['code' => 'required|string']);
+
+        if ((int) session('email_change_old_target') !== $target->UserID || $this->otpExpired($this->identityPrefix)) {
+            return $this->fail('Your code expired or was not requested. Please send a new code.', 422);
+        }
+
+        if (!$this->otpMatches($this->identityPrefix, $request->input('code'))) {
+            $attempts = (int) session('email_change_old_attempts', 0) + 1;
+            if ($attempts >= 5) {
+                $this->clearOtp($this->identityPrefix);
+
+                return $this->fail('Too many incorrect attempts. Please request a new code.', 422, ['restart' => 'identity']);
+            }
+            session(['email_change_old_attempts' => $attempts]);
+
+            return $this->fail('Incorrect code. Please try again.', 422);
+        }
+
+        $this->clearOtp($this->identityPrefix);
+        session()->forget(['email_change_old_target', 'email_change_old_attempts']);
+        session(['email_change_identity' => [
+            'user_id' => $target->UserID,
+            'email' => mb_strtolower((string) $target->Email),
+            'until' => now()->addMinutes(self::IDENTITY_MINUTES)->toIso8601String(),
+        ]]);
+
+        return response()->json(['ok' => true, 'message' => 'Your current email is confirmed. Now enter your new email.']);
+    }
+
+    /** Step 2: send a code to the NEW email. */
     public function send(Request $request): JsonResponse
     {
         $target = $this->resolveTarget($request);
         if ($target instanceof JsonResponse) {
             return $target;
+        }
+
+        if ($blocked = $this->requireIdentity($target)) {
+            return $blocked;
         }
 
         $data = $request->validate([
@@ -67,13 +175,9 @@ class EmailChangeController extends Controller
             return $this->fail("Please wait {$this->otpWaitLabel($wait)} before requesting another code.", 429, ['retryAfter' => $wait]);
         }
 
-        $throttleKey = 'email-change:' . session('user_id');
-        if (RateLimiter::tooManyAttempts($throttleKey, 5)) {
-            $minutes = (int) ceil(RateLimiter::availableIn($throttleKey) / 60);
-
-            return $this->fail("Too many code requests. Please try again in {$minutes} minute(s).", 429);
+        if ($limited = $this->throttle()) {
+            return $limited;
         }
-        RateLimiter::hit($throttleKey, 600);
 
         $code = $this->issueOtp($this->prefix);
         session([
@@ -83,7 +187,7 @@ class EmailChangeController extends Controller
         ]);
 
         try {
-            Mail::to($newEmail)->send(new OtpMail($code));
+            Mail::to($newEmail)->send(new OtpMail($code, 'confirm this as the new email address of your account'));
         } catch (\Throwable $e) {
             report($e);
             $this->forgetPending();
@@ -98,6 +202,7 @@ class EmailChangeController extends Controller
         ]);
     }
 
+    /** Step 3: check the new email's code → switch the email. */
     public function verify(Request $request): JsonResponse
     {
         $target = $this->resolveTarget($request);
@@ -106,6 +211,10 @@ class EmailChangeController extends Controller
         }
 
         $request->validate(['code' => 'required|string']);
+
+        if ($blocked = $this->requireIdentity($target)) {
+            return $blocked;
+        }
 
         $newEmail = session('email_change_new_email');
         if ((int) session('email_change_target') !== $target->UserID || !$newEmail || $this->otpExpired($this->prefix)) {
@@ -117,7 +226,7 @@ class EmailChangeController extends Controller
             if ($attempts >= 5) {
                 $this->forgetPending();
 
-                return $this->fail('Too many incorrect attempts. Please request a new code.', 422, ['restart' => true]);
+                return $this->fail('Too many incorrect attempts. Please request a new code.', 422, ['restart' => 'new']);
             }
             session(['email_change_attempts' => $attempts]);
 
@@ -128,7 +237,7 @@ class EmailChangeController extends Controller
         if (UserAccount::where('Email', $newEmail)->where('UserID', '!=', $target->UserID)->exists()) {
             $this->forgetPending();
 
-            return $this->fail('That email is already used by another account.', 422, ['restart' => true]);
+            return $this->fail('That email is already used by another account.', 422, ['restart' => 'new']);
         }
 
         $oldEmail = $target->Email;
@@ -136,17 +245,27 @@ class EmailChangeController extends Controller
         $target->EmailVerifiedAt = now();
         $target->save();
 
-        $isSelf = $target->UserID === (int) session('user_id');
+        $isSelf = $this->isSelf($target);
         if ($isSelf) {
             session(['user_email' => $newEmail]);
         }
 
         $this->forgetPending();
+        session()->forget('email_change_identity');
+
+        // Tell the old inbox too, so an unexpected change doesn't go unnoticed.
+        if ($oldEmail) {
+            try {
+                Mail::to($oldEmail)->send(new EmailChangedMail($newEmail, $isSelf));
+            } catch (\Throwable $e) {
+                report($e);
+            }
+        }
 
         $this->activityLog->log(
             'Email Changed',
             $isSelf
-                ? "Changed own account email from {$oldEmail} to {$newEmail} (verified by code)."
+                ? "Changed own account email from {$oldEmail} to {$newEmail} (current and new email verified by code)."
                 : "Changed the email of {$target->display_name}'s account from {$oldEmail} to {$newEmail} (verified by code)."
         );
 
@@ -192,6 +311,52 @@ class EmailChangeController extends Controller
 
         // Patient accounts: any admin-panel user (same as User Accounts).
         return $isAdmin ? $target : $this->fail('You can\'t change this account\'s email.', 403);
+    }
+
+    protected function isSelf(UserAccount $target): bool
+    {
+        return $target->UserID === (int) session('user_id');
+    }
+
+    /**
+     * Own account: step 1 (current email confirmed) must have happened, for
+     * this account and its current email, within IDENTITY_MINUTES. Null when
+     * it has; otherwise an error that sends the modal back to step 1.
+     */
+    protected function requireIdentity(UserAccount $target): ?JsonResponse
+    {
+        if (!$this->isSelf($target)) {
+            return null;
+        }
+
+        $id = session('email_change_identity');
+        $ok = is_array($id)
+            && (int) ($id['user_id'] ?? 0) === $target->UserID
+            && ($id['email'] ?? null) === mb_strtolower((string) $target->Email)
+            && now()->lessThan(Carbon::parse($id['until'] ?? '1970-01-01'));
+
+        if ($ok) {
+            return null;
+        }
+
+        session()->forget('email_change_identity');
+        $this->forgetPending();
+
+        return $this->fail('For your security, please confirm your current email first.', 403, ['restart' => 'identity']);
+    }
+
+    /** At most 8 code emails (both steps together) per 10 minutes per signed-in user. */
+    protected function throttle(): ?JsonResponse
+    {
+        $throttleKey = 'email-change:' . session('user_id');
+        if (RateLimiter::tooManyAttempts($throttleKey, 8)) {
+            $minutes = (int) ceil(RateLimiter::availableIn($throttleKey) / 60);
+
+            return $this->fail("Too many code requests. Please try again in {$minutes} minute(s).", 429);
+        }
+        RateLimiter::hit($throttleKey, 600);
+
+        return null;
     }
 
     protected function forgetPending(): void

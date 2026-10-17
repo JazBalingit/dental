@@ -135,9 +135,12 @@ Route::middleware('auth.session')->group(function () {
     // Profile (patient edits their own info; UserID / DateCreated are never editable)
     Route::post('/profile', [ProfileController::class, 'update'])->name('userProfile.update');
 
-    // Change an account's email — a code is sent to the NEW address and must
-    // be entered first. Your own account (patients + admins), plus patient
-    // accounts (any admin) and staff accounts (super admin), checked in-controller.
+    // Change an account's email. Your own: confirm the CURRENT email by code
+    // (current/*), then the NEW one — only then does it change. Someone
+    // else's — patient accounts (any admin), staff accounts (super admin) —
+    // needs the new email's code only. Checked in-controller.
+    Route::post('/email-change/current/send', [EmailChangeController::class, 'sendCurrent'])->name('emailChange.sendCurrent');
+    Route::post('/email-change/current/verify', [EmailChangeController::class, 'verifyCurrent'])->name('emailChange.verifyCurrent');
     Route::post('/email-change/send', [EmailChangeController::class, 'send'])->name('emailChange.send');
     Route::post('/email-change/verify', [EmailChangeController::class, 'verify'])->name('emailChange.verify');
 

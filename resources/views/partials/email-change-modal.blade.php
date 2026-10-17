@@ -7,10 +7,14 @@
       data-current-email="{{ $email }}" shown as the current address
       data-account-label="Dr. Jane Cruz" optional, shown in the subtitle
 
-    Step 1: type the new email → a 6-digit code is sent to it.
-    Step 2: enter the code → the email changes and the page reloads.
-    Backed by EmailChangeController (JSON). If the trigger sits inside
-    another open modal, that one is closed first and reopened on Cancel.
+    Your own account (3 steps):
+      1. a code goes to the CURRENT email → enter it (proves it's you)
+      2. type the new email → a code goes to it
+      3. enter that code → only now does the email change; the page reloads
+    Someone else's account (admin): steps 2–3 only.
+    Closing or refreshing part-way changes nothing; the next try starts at
+    step 1. Backed by EmailChangeController (JSON). If the trigger sits
+    inside another open modal, that one is closed first and reopened on Cancel.
 --}}
 <div class="modal fade" id="emailChangeModal" tabindex="-1" aria-labelledby="emailChangeModalLabel" aria-hidden="true">
   <div class="modal-dialog modal-dialog-centered">
@@ -18,33 +22,44 @@
       <div class="modal-header">
         <div>
           <h5 class="modal-title fw-semibold" id="emailChangeModalLabel"><i class="bi bi-envelope-at"></i> Change Email</h5>
-          <div class="small text-muted" id="emailChangeSubtitle">We'll send a verification code to the new address.</div>
+          <div class="small text-muted" id="emailChangeSubtitle"></div>
         </div>
         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
       </div>
 
       <div class="modal-body">
+        <div class="small fw-semibold text-success mb-3" id="emailChangeStepLabel"></div>
+
         <div class="mb-3">
           <label class="form-label">Current email</label>
           <div class="input-icon"><i class="bi bi-envelope"></i><input type="text" class="form-control" id="emailChangeCurrent" disabled></div>
         </div>
 
-        {{-- Step 1 --}}
-        <div id="emailChangeStep1">
+        {{-- Own account, step 1: confirm it's you --}}
+        <div id="emailChangeIdentity" hidden>
+          <p class="small text-muted-2 mb-0">
+            To keep your account safe, we'll first send a 6-digit code to your <strong>current</strong> email.
+            Enter it to continue to your new email.
+          </p>
+          <p class="small text-muted-2 mt-2 mb-0">Can't open your current email anymore? Ask the clinic to change it for you.</p>
+        </div>
+
+        {{-- Step: the new email --}}
+        <div id="emailChangeNewWrap" hidden>
           <label class="form-label" for="emailChangeNew">New email</label>
           <div class="input-icon"><i class="bi bi-envelope-plus"></i><input type="email" class="form-control" id="emailChangeNew"
               maxlength="150" placeholder="name@example.com" autocomplete="email"></div>
         </div>
 
-        {{-- Step 2 --}}
-        <div id="emailChangeStep2" hidden>
+        {{-- Step: a code (for the current or the new email) --}}
+        <div id="emailChangeCodeWrap" hidden>
           <p class="small text-muted-2 mb-2" id="emailChangeSentMsg"></p>
           <label class="form-label" for="emailChangeCode">Verification code</label>
           <input type="text" class="form-control text-center" id="emailChangeCode" maxlength="6" inputmode="numeric"
             pattern="[0-9]*" placeholder="••••••" autocomplete="one-time-code" style="letter-spacing:4px;">
           <div class="d-flex justify-content-between align-items-center mt-2 small">
             <button type="button" class="btn btn-link p-0 small" id="emailChangeEditBtn">Use a different email</button>
-            <button type="button" class="btn btn-link p-0 small" id="emailChangeResendBtn" disabled>Resend code</button>
+            <button type="button" class="btn btn-link p-0 small ms-auto" id="emailChangeResendBtn" disabled>Resend code</button>
           </div>
         </div>
 
@@ -53,8 +68,8 @@
 
       <div class="modal-footer">
         <button type="button" class="btn btn-ghost" data-bs-dismiss="modal">Cancel</button>
-        <button type="button" class="btn btn-brand px-3" id="emailChangeSendBtn"><i class="bi bi-send me-1"></i> Send Code</button>
-        <button type="button" class="btn btn-brand px-3" id="emailChangeVerifyBtn" hidden><i class="bi bi-check2-circle me-1"></i> Verify &amp; Change</button>
+        <button type="button" class="btn btn-brand px-3" id="emailChangeSendBtn"><i class="bi bi-send me-1"></i> <span>Send Code</span></button>
+        <button type="button" class="btn btn-brand px-3" id="emailChangeVerifyBtn" hidden><i class="bi bi-check2-circle me-1"></i> <span>Verify</span></button>
       </div>
     </div>
   </div>
@@ -66,26 +81,51 @@
     if (!modalEl || modalEl.dataset.ready) return;
     modalEl.dataset.ready = '1';
 
-    var sendUrl = @json(route('emailChange.send'));
-    var verifyUrl = @json(route('emailChange.verify'));
+    var urls = {
+      sendCurrent: @json(route('emailChange.sendCurrent')),
+      verifyCurrent: @json(route('emailChange.verifyCurrent')),
+      send: @json(route('emailChange.send')),
+      verify: @json(route('emailChange.verify'))
+    };
     var csrf = @json(csrf_token());
+    var myId = @json((string) session('user_id'));
 
     var $ = function (id) { return document.getElementById(id); };
-    var step1 = $('emailChangeStep1'), step2 = $('emailChangeStep2');
+    var identityWrap = $('emailChangeIdentity'), newWrap = $('emailChangeNewWrap'), codeWrap = $('emailChangeCodeWrap');
     var currentInput = $('emailChangeCurrent'), newInput = $('emailChangeNew'), codeInput = $('emailChangeCode');
     var sendBtn = $('emailChangeSendBtn'), verifyBtn = $('emailChangeVerifyBtn');
     var resendBtn = $('emailChangeResendBtn'), editBtn = $('emailChangeEditBtn');
     var errorBox = $('emailChangeError'), sentMsg = $('emailChangeSentMsg'), subtitle = $('emailChangeSubtitle');
+    var stepLabel = $('emailChangeStepLabel');
 
-    var userId = '', returnTo = null, cooldownTimer = null, changed = false;
+    // Phases: idSend → idCode (own account only) → new → newCode.
+    var userId = '', isSelf = true, phase = 'new', returnTo = null, cooldownTimer = null, changed = false;
 
     function showError(msg) { errorBox.querySelector('span').textContent = msg; errorBox.hidden = !msg; }
 
-    function setStep(n) {
-      step1.hidden = n !== 1; step2.hidden = n !== 2;
-      sendBtn.hidden = n !== 1; verifyBtn.hidden = n !== 2;
+    function setPhase(p) {
+      phase = p;
+      identityWrap.hidden = p !== 'idSend';
+      newWrap.hidden = p !== 'new';
+      codeWrap.hidden = p !== 'idCode' && p !== 'newCode';
+      sendBtn.hidden = p !== 'idSend' && p !== 'new';
+      verifyBtn.hidden = !sendBtn.hidden;
+      editBtn.hidden = p !== 'newCode';
+
+      sendBtn.querySelector('span').textContent = p === 'idSend' ? 'Send Code to Current Email' : 'Send Code';
+      verifyBtn.querySelector('span').textContent = p === 'idCode' ? 'Verify' : 'Verify & Change';
+
+      var n = { idSend: 1, idCode: 1, new: 2, newCode: 3 }[p];
+      var labels = { 1: "Confirm it's you", 2: 'Enter your new email', 3: 'Verify your new email' };
+      if (isSelf) {
+        stepLabel.textContent = 'Step ' + n + ' of 3 · ' + labels[n];
+      } else {
+        stepLabel.textContent = 'Step ' + (n - 1) + ' of 2 · ' + (n === 2 ? 'Enter the new email' : 'Verify the new email');
+      }
+
       showError('');
-      (n === 1 ? newInput : codeInput).focus();
+      if (p === 'new') newInput.focus();
+      if (p === 'idCode' || p === 'newCode') { codeInput.value = ''; codeInput.focus(); }
     }
 
     function startCooldown(seconds) {
@@ -118,22 +158,44 @@
       return d.message || 'Something went wrong. Please try again.';
     }
 
-    function sendCode(btn) {
-      var email = newInput.value.trim();
-      if (!email) { showError('Please enter the new email.'); newInput.focus(); return; }
-      var fd = new FormData(); fd.append('new_email', email);
-      post(sendUrl, fd, btn).then(function (d) {
-        if (!d.ok) { showError(firstError(d)); if (d.retryAfter) startCooldown(d.retryAfter); return; }
+    // An error that says "start over from step X" moves the modal there,
+    // keeping the message visible.
+    function handleFail(d) {
+      var msg = firstError(d);
+      if (d.restart === 'identity' && isSelf) setPhase('idSend');
+      else if (d.restart === 'new' || d.restart === true) setPhase('new');
+      showError(msg);
+      if (d.retryAfter) startCooldown(d.retryAfter);
+    }
+
+    function sendCurrentCode(btn) {
+      post(urls.sendCurrent, new FormData(), btn).then(function (d) {
+        if (!d.ok) { handleFail(d); return; }
+        setPhase('idCode');
         sentMsg.textContent = d.message;
-        codeInput.value = '';
-        setStep(2);
         startCooldown(d.retryAfter);
       });
     }
 
-    sendBtn.addEventListener('click', function () { sendCode(sendBtn); });
-    resendBtn.addEventListener('click', function () { sendCode(resendBtn); });
-    editBtn.addEventListener('click', function () { setStep(1); });
+    function sendNewCode(btn) {
+      var email = newInput.value.trim();
+      if (!email) { setPhase('new'); showError('Please enter the new email.'); return; }
+      var fd = new FormData(); fd.append('new_email', email);
+      post(urls.send, fd, btn).then(function (d) {
+        if (!d.ok) { handleFail(d); return; }
+        setPhase('newCode');
+        sentMsg.textContent = d.message;
+        startCooldown(d.retryAfter);
+      });
+    }
+
+    sendBtn.addEventListener('click', function () {
+      if (phase === 'idSend') sendCurrentCode(sendBtn); else sendNewCode(sendBtn);
+    });
+    resendBtn.addEventListener('click', function () {
+      if (phase === 'idCode') sendCurrentCode(resendBtn); else sendNewCode(resendBtn);
+    });
+    editBtn.addEventListener('click', function () { setPhase('new'); });
     newInput.addEventListener('keydown', function (e) { if (e.key === 'Enter') { e.preventDefault(); sendBtn.click(); } });
     codeInput.addEventListener('keydown', function (e) { if (e.key === 'Enter') { e.preventDefault(); verifyBtn.click(); } });
 
@@ -141,8 +203,20 @@
       var code = codeInput.value.trim();
       if (!/^\d{6}$/.test(code)) { showError('Enter the 6-digit code from the email.'); codeInput.focus(); return; }
       var fd = new FormData(); fd.append('code', code);
-      post(verifyUrl, fd, verifyBtn).then(function (d) {
-        if (!d.ok) { showError(firstError(d)); if (d.restart) setStep(1); return; }
+
+      if (phase === 'idCode') {
+        post(urls.verifyCurrent, fd, verifyBtn).then(function (d) {
+          if (!d.ok) { handleFail(d); return; }
+          clearInterval(cooldownTimer);
+          resendBtn.disabled = false; resendBtn.textContent = 'Resend code';
+          newInput.value = '';
+          setPhase('new');
+        });
+        return;
+      }
+
+      post(urls.verify, fd, verifyBtn).then(function (d) {
+        if (!d.ok) { handleFail(d); return; }
         changed = true;
         window.location.reload();
       });
@@ -150,15 +224,16 @@
 
     function open(trigger) {
       userId = trigger.dataset.userId || '';
+      isSelf = !userId || userId === myId;
       currentInput.value = trigger.dataset.currentEmail || '';
-      subtitle.textContent = trigger.dataset.accountLabel
+      subtitle.textContent = trigger.dataset.accountLabel && !isSelf
         ? 'For ' + trigger.dataset.accountLabel + ' — a verification code goes to the new address.'
-        : "We'll send a verification code to the new address.";
+        : 'Your current email and your new email are both verified before anything changes.';
       newInput.value = '';
       codeInput.value = '';
       clearInterval(cooldownTimer);
       resendBtn.disabled = false; resendBtn.textContent = 'Resend code';
-      setStep(1);
+      setPhase(isSelf ? 'idSend' : 'new');
       bootstrap.Modal.getOrCreateInstance(modalEl).show();
     }
 
@@ -178,7 +253,9 @@
       }
     });
 
-    modalEl.addEventListener('shown.bs.modal', function () { newInput.focus(); });
+    modalEl.addEventListener('shown.bs.modal', function () {
+      if (phase === 'new') newInput.focus(); else sendBtn.focus();
+    });
     modalEl.addEventListener('hidden.bs.modal', function () {
       clearInterval(cooldownTimer);
       if (returnTo && !changed) bootstrap.Modal.getOrCreateInstance(returnTo).show();

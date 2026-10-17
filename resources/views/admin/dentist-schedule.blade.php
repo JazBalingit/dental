@@ -53,23 +53,42 @@
 
                 @include('partials.flash-toasts')
 
+                {{-- Same look as the Patient Portal / landing booking calendar
+                     (partials.booking-calendar): one status badge per day, same
+                     colors and legend — plus a small line with the day's
+                     appointments, since this page is for managing them. --}}
+                <style>
+                    .booking-calendar .schedule-toolbar h4 { margin: 0 0 .15rem; font-weight: 700; color: var(--brand-700, #167d1d); }
+                    .booking-calendar .ev.ev-day-open { background: #dcfce7; color: #15803d; border: 1px solid #86efac; }
+                    .booking-calendar .ev.ev-day-partial { background: #fef3c7; color: #92400e; border: 1px solid #fcd34d; }
+                    .booking-calendar .ev.ev-day-full { background: #fee2e2; color: #b91c1c; border: 1px solid #fca5a5; font-weight: 700; }
+                    .booking-calendar .ev.ev-day-closed { background: #f1f5f9; color: #64748b; border: 1px solid #e2e8f0; font-style: normal; }
+                    .booking-calendar .day-cell .ds-day-note {
+                        /* Hangs below the badge without changing the cell height, so every date in a row stays lined up. */
+                        display: block; height: 1rem; margin: .2rem 8px -1.2rem; font-size: .7rem; font-weight: 600; line-height: 1rem; color: var(--ink-500, #64748b);
+                        overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+                    }
+                    .booking-calendar .ds-day-note .is-booked { color: #1d4ed8; }
+                    .booking-calendar .ds-day-note .is-pending { color: #8a6100; }
+                    .booking-calendar .ds-day-note .is-completed { color: #6d28d9; }
+                    .booking-calendar .ds-day-note .is-off { color: #b02a37; }
+                    /* Past / full / closed days still open their day window here. */
+                    .booking-calendar button.day-cell.day-off:not(:disabled) { cursor: pointer; }
+                    /* Phones: cells are too narrow for the extra line — tapping the day shows it all. */
+                    @media (max-width: 575.98px) { .booking-calendar .day-cell .ds-day-note { display: none; } }
+                </style>
+
                 {{-- ===================== MONTH VIEW ===================== --}}
-                <div class="schedule-wrap">
+                <div class="schedule-wrap booking-calendar">
                     <div class="schedule-toolbar d-flex justify-content-between align-items-center flex-wrap gap-2">
                         <div>
-                            <div class="fw-semibold">
+                            <h4>{{ ($viewerIsDentist ?? false) ? 'My Schedule' : 'Dentist Schedule' }}</h4>
+                            <div class="small text-muted-2">
                                 {{ $current->format('F Y') }}
                                 @if ($selectedDentist)
-                                    — <span style="color: var(--brand-700);">{{ $selectedDentist->display_name }}</span>
-                                @endif
-                            </div>
-                            <div class="small text-muted-2">
-                                @if ($viewerIsDentist ?? false)
-                                    Your own availability grid.
+                                    · with <strong>{{ $selectedDentist->display_name }}</strong>
                                 @elseif ($dentists->isEmpty())
-                                    No dentist accounts yet — add one under Staff Accounts.
-                                @else
-                                    Each dentist keeps an independent availability grid.
+                                    · No dentist accounts yet — add one under Staff Accounts.
                                 @endif
                             </div>
                         </div>
@@ -77,7 +96,7 @@
                         <div class="d-flex align-items-center gap-2 flex-wrap">
                             {{-- Dentist filter — staff / super admin only; a dentist only ever sees their own grid --}}
                             @if (!($viewerIsDentist ?? false) && $dentists->isNotEmpty())
-                                <select class="form-select form-select-sm" style="width: 190px;"
+                                <select class="form-select form-select-sm" style="width: 200px;"
                                     onchange="window.location.href='{{ route('dentistSchedule') }}?month={{ $current->format('Y-m') }}&dentist=' + this.value">
                                     @foreach ($dentists as $dentist)
                                         <option value="{{ $dentist->UserID }}" {{ (int) $selectedDentistId === (int) $dentist->UserID ? 'selected' : '' }}>
@@ -139,95 +158,93 @@
                                     $clinicClosedReason = \App\Models\ClosedDate::reasonFor($d);
                                     $isPast = $d->lt(\Carbon\Carbon::parse($today));
                                     $daySlots = $schedules[$dateStr] ?? collect();
-                                    $notAvailable = $daySlots->where('Status', 'Not Available');
                                     $lockedTimes = collect($slots)->filter(fn($label, $time) => isset($occupiedSlots[$dateStr . '_' . $time]) || (($daySlots[$time]->Status ?? 'Available') === 'Not Available'));
                                     $availableCount = $totalSlotsPerDay - $lockedTimes->count();
                                     $completedThatDay = $completedCountByDate[$dateStr] ?? 0;
                                     $modalId = 'modalDay' . $d->format('Ymd');
 
-                                    $countClass = 'count';
-                                    if ($availableCount <= 0) {
-                                        $countClass .= ' count-danger';
-                                    } elseif ($notAvailable->count() > 0) {
-                                        $countClass .= ' count-warning';
-                                    }
+                                    // The day's appointments (one appointment spans several slots)
+                                    // and the hours the dentist switched off.
+                                    $dayAppts = collect($slots)->keys()
+                                        ->map(fn ($t) => $occupiedSlots[$dateStr . '_' . $t] ?? null)
+                                        ->filter()->unique(fn ($a) => $a->AppointmentID);
+                                    $bookedAppts = $dayAppts->where('Status', 'Approved')->count();
+                                    $pendingAppts = $dayAppts->where('Status', 'Pending')->count();
+                                    $offHours = collect($slots)->keys()
+                                        ->filter(fn ($t) => !isset($occupiedSlots[$dateStr . '_' . $t]) && (($daySlots[$t]->Status ?? 'Available') === 'Not Available'))
+                                        ->count();
+
+                                    // Same states and colors as the patient calendar:
+                                    // green open · yellow some booked · red fully booked · grey closed/passed.
+                                    $dayState = match (true) {
+                                        !$inMonth => 'out',
+                                        $isWeeklyOff || $isClinicClosed => 'closed',
+                                        $isPast => 'passed',
+                                        $availableCount <= 0 && $dayAppts->isNotEmpty() => 'full',
+                                        $availableCount <= 0 => 'closed',
+                                        $dayAppts->isNotEmpty() => 'partial',
+                                        default => 'open',
+                                    };
                                 @endphp
 
-                                @if ($inMonth && !$isWeeklyOff && !$isClinicClosed && $isPast)
-                                    {{-- The day is done — no slots to manage anymore. Show it plainly
-                                         as passed, and roll the per-slot "Completed" chips into one line. --}}
-                                    <button type="button"
-                                        class="day-cell day-past border-0 text-start p-0 w-100 d-block {{ $dateStr === $today ? 'today' : '' }}"
-                                        data-bs-toggle="modal" data-bs-target="#{{ $modalId }}">
-                                        <div class="n" style="margin-left: 8px;">{{ $d->day }}</div>
-                                        <span class="ev ev-past">Date passed</span>
-                                        @if ($completedThatDay > 0)
-                                            <span class="ev ev-completed">{{ $completedThatDay }} appointment{{ $completedThatDay === 1 ? '' : 's' }} completed</span>
-                                        @endif
-                                    </button>
-                                @elseif ($inMonth && !$isWeeklyOff && !$isClinicClosed)
-                                    <button type="button"
-                                        class="day-cell border-0 text-start p-0 w-100 d-block {{ $dateStr === $today ? 'today' : '' }}"
-                                        data-bs-toggle="modal" data-bs-target="#{{ $modalId }}">
-                                        <div class="n" style="margin-left: 8px;">{{ $d->day }}</div>
-                                        <span class="{{ $countClass }}">{{ $availableCount }}</span>
-                                        @php
-                                            // Nothing left to book that day — collapse the per-slot chip
-                                            // list into one line. "Fully booked" if appointments filled it,
-                                            // "Closed" if the dentist just switched every slot off.
-                                            $heldByAppointment = $lockedTimes->contains(fn($label, $time) => isset($occupiedSlots[$dateStr . '_' . $time]));
-                                        @endphp
-                                        @if ($availableCount <= 0)
-                                            <span class="ev ev-unavailable">{{ $heldByAppointment ? 'Fully booked' : 'Closed' }}</span>
-                                        @else
-                                            @foreach ($lockedTimes->take(3) as $time => $label)
-                                                @php
-                                                    $slotAppointment = $occupiedSlots[$dateStr . '_' . $time] ?? null;
-                                                    $evLabel = match (true) {
-                                                        $slotAppointment && $slotAppointment->Status === 'Completed' => 'Completed',
-                                                        $slotAppointment && $slotAppointment->Status === 'Approved' => 'Booked',
-                                                        $slotAppointment !== null => 'Pending',
-                                                        default => 'Not available',
-                                                    };
-                                                    $evClass = match (true) {
-                                                        $slotAppointment && $slotAppointment->Status === 'Completed' => 'ev-completed',
-                                                        $slotAppointment && $slotAppointment->Status === 'Approved' => 'ev-booked',
-                                                        $slotAppointment !== null => 'ev-pending',
-                                                        default => 'ev-unavailable',
-                                                    };
-                                                @endphp
-                                                <span class="ev {{ $evClass }}">{{ \Carbon\Carbon::createFromFormat('H:i', $time)->format('g:i A') }} · {{ $evLabel }}</span>
-                                            @endforeach
-                                        @endif
-                                    </button>
-                                @elseif ($inMonth && ($isWeeklyOff || $isClinicClosed))
-                                    <button type="button" class="day-cell day-off border-0 text-start p-0 w-100 d-block" disabled>
-                                        <div class="n" style="margin-left: 8px;">{{ $d->day }}</div>
-                                        @if ($isClinicClosed)
-                                            <span class="ev ev-unavailable">Closed{{ $clinicClosedReason ? ' — ' . $clinicClosedReason : '' }}</span>
-                                        @else
-                                            <span class="ev ev-unavailable">Day Closed</span>
-                                        @endif
-                                    </button>
-                                @else
+                                @if ($dayState === 'out')
                                     <button class="day-cell border-0 text-start p-0 w-100 d-block disabled" disabled>
                                         <div class="n" style="margin-left: 8px;">{{ $d->day }}</div>
+                                    </button>
+                                @elseif ($isWeeklyOff || $isClinicClosed)
+                                    {{-- Clinic closed — nothing to manage. --}}
+                                    <button type="button" class="day-cell day-off border-0 text-start p-0 w-100 d-block {{ $dateStr === $today ? 'today' : '' }}" disabled>
+                                        <div class="n" style="margin-left: 8px;">{{ $d->day }}</div>
+                                        <span class="ev ev-day-closed">Closed{{ $isClinicClosed && $clinicClosedReason ? ' — ' . $clinicClosedReason : '' }}</span>
+                                    </button>
+                                @else
+                                    <button type="button"
+                                        class="day-cell {{ in_array($dayState, ['passed', 'closed', 'full'], true) ? 'day-off' : '' }} border-0 text-start p-0 w-100 d-block {{ $dateStr === $today ? 'today' : '' }}"
+                                        data-bs-toggle="modal" data-bs-target="#{{ $modalId }}">
+                                        <div class="n" style="margin-left: 8px;">{{ $d->day }}</div>
+                                        @if ($dayState === 'passed')
+                                            <span class="ev ev-day-closed">Date has passed</span>
+                                        @elseif ($dayState === 'full')
+                                            <span class="ev ev-day-full">Fully booked</span>
+                                        @elseif ($dayState === 'closed')
+                                            <span class="ev ev-day-closed">Closed</span>
+                                        @else
+                                            <span class="ev {{ $dayState === 'open' ? 'ev-day-open' : 'ev-day-partial' }}">
+                                                {{ $availableCount }} slot{{ $availableCount === 1 ? '' : 's' }} available
+                                            </span>
+                                        @endif
+
+                                        @php
+                                            $notes = [];
+                                            if ($dayState === 'passed') {
+                                                if ($completedThatDay > 0) $notes[] = ['is-completed', $completedThatDay . ' completed'];
+                                            } else {
+                                                if ($bookedAppts) $notes[] = ['is-booked', $bookedAppts . ' booked'];
+                                                if ($pendingAppts) $notes[] = ['is-pending', $pendingAppts . ' pending'];
+                                                if ($offHours && $dayState !== 'closed') $notes[] = ['is-off', $offHours . ' unavailable'];
+                                            }
+                                        @endphp
+                                        @if ($notes)
+                                            <span class="ds-day-note">
+                                                @foreach ($notes as [$cls, $text])<span class="{{ $cls }}">{{ $text }}</span>{{ $loop->last ? '' : ' · ' }}@endforeach
+                                            </span>
+                                        @endif
                                     </button>
                                 @endif
                             @endforeach
                         @endforeach
                     </div>
 
+                    {{-- Same legend as the patient calendar. --}}
                     <div class="p-3 d-flex justify-content-between flex-wrap gap-2">
                         <div class="legend">
                             <span><span class="dot" style="background: var(--brand-700);"></span>Today</span>
-                            <span><span class="dot" style="background: #b9ffbd;"></span>Available slots a day</span>
-                            <span><span class="dot" style="background: #ffe69bbd !important;"></span>Day with Unavailable Slots</span>
-                            <span><span class="dot" style="background: #dc3545;"></span>Has Unavailable Slots</span>
-                            <span><span class="dot" style="background: #e9ecef;"></span>Day Closed{{ ($closedDaysLabel = \App\Models\ClosedDate::closedWeekdaysLabel()) !== '' ? ' (' . $closedDaysLabel . ')' : '' }}</span>
+                            <span><span class="dot" style="background: #16a34a;"></span>Available</span>
+                            <span><span class="dot" style="background: #d4a017;"></span>Some slots booked</span>
+                            <span><span class="dot" style="background: #dc2626;"></span>Fully booked</span>
+                            <span><span class="dot" style="background: #94a3b8;"></span>Closed / passed</span>
                         </div>
-                        <div class="small text-muted-2">Available schedule this month: {{ $totalAvailableThisMonth }}
-                            schedules</div>
+                        <div class="small text-muted-2">Available schedule this month: {{ $totalAvailableThisMonth }} schedules · Click a date to manage its hours.</div>
                     </div>
                 </div>
             </div>

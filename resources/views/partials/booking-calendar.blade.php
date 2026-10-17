@@ -159,11 +159,34 @@
         background: rgba(15, 23, 42, .7); color: #fff; font-size: .7rem; display: flex; align-items: center; justify-content: center;
     }
 
+    /* One look on every page. The landing page loads landing.css instead of
+       styles.css, and its own copy of the calendar rules drifted (closed-day
+       shading, toolbar controls, greens) — pin the Patient Portal's values. */
+    .booking-calendar { border-radius: 16px; box-shadow: 0 2px 8px rgba(15, 76, 122, .06); }
+    .booking-calendar .schedule-toolbar h4 { color: #0f7a2f; }
+    .booking-calendar .schedule-toolbar .small { color: #64748b; }
+    .booking-calendar .schedule-toolbar .form-select,
+    .booking-calendar .schedule-toolbar .form-control {
+        height: auto; border: 1px solid #e7ecf3; border-radius: 10px;
+        font-size: .88rem; line-height: 1.5; padding-top: 9px; padding-bottom: 9px; padding-left: 12px;
+    }
+    .booking-calendar .schedule-toolbar .form-select { padding-right: 36px; }
+    .booking-calendar .schedule-toolbar .form-control { padding-right: 12px; }
+    .booking-calendar .schedule-toolbar .btn-brand {
+        background: #167d1d; border: 1px solid #167d1d; border-radius: 10px; color: #fff;
+        box-shadow: 0 4px 10px rgba(22, 125, 29, .25);
+    }
+    .booking-calendar .schedule-toolbar .btn-brand:hover { background: #12671a; border-color: #12671a; }
+    .booking-calendar .month-grid .mh { color: #167d1d; }
+    .booking-calendar .month-grid .day-cell.day-off { background: #f4f5f4; color: #9aa39c; }
+    .booking-calendar .month-grid .day-cell.day-off .n { color: #9aa39c; }
+    .booking-calendar .month-grid .day-cell.today .n { background: #37a03e; }
+
     /* Month-grid day badges — one scheme for every booking calendar. */
     .booking-calendar .ev.ev-day-open { background: #dcfce7; color: #15803d; border: 1px solid #86efac; }
     .booking-calendar .ev.ev-day-partial { background: #fef3c7; color: #92400e; border: 1px solid #fcd34d; }
     .booking-calendar .ev.ev-day-full { background: #fee2e2; color: #b91c1c; border: 1px solid #fca5a5; font-weight: 700; }
-    .booking-calendar .ev.ev-day-closed { background: #f1f5f9; color: #64748b; border: 1px solid #e2e8f0; }
+    .booking-calendar .ev.ev-day-closed { background: #f1f5f9; color: #64748b; border: 1px solid #e2e8f0; font-style: normal; }
 
     /* Simple day picker: ① pick a time (dropdown) → ② pick service(s) → Continue. */
     .book-picker { max-width: 520px; margin: 0 auto; }
@@ -430,7 +453,7 @@
             // One legend for every calendar (patient portal, landing preview,
             // follow-up) — matches the .ev-day-* badge colors below.
             $legendItems = [
-                ['color' => 'var(--brand-700)', 'label' => 'Today'],
+                ['color' => '#37a03e', 'label' => 'Today'],
                 ['color' => '#16a34a', 'label' => 'Available'],
                 ['color' => '#d4a017', 'label' => 'Some slots booked'],
                 ['color' => '#dc2626', 'label' => 'Fully booked'],

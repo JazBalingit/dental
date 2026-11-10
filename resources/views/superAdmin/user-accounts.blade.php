@@ -52,6 +52,10 @@
                         <h2>User Accounts</h2>
                         <div class="crumbs">View, edit, and manage patient accounts.</div>
                     </div>
+                    <div>
+                        <button class="btn btn-brand" data-bs-toggle="modal" data-bs-target="#addUserModal"><i
+                                class="bi bi-person-plus-fill"></i> Add User</button>
+                    </div>
                 </div>
 
                 @include('partials.flash-toasts')
@@ -120,6 +124,9 @@
                                                     @else
                                                         <span class="pill pill-success">Active</span>
                                                     @endif
+                                                    @unless ($acc->EmailVerifiedAt)
+                                                        <div class="small text-muted-2 mt-1" title="Created by the clinic; the patient verifies this email on first login">Email not verified</div>
+                                                    @endunless
                                                 </td>
                                                 <td class="text-end">
                                                     <button class="btn btn-pill btn-pill-edit me-1" data-bs-toggle="modal"
@@ -426,6 +433,16 @@
                                 </div>
                             </div>
 
+                            <div class="section-label mt-2">Credentials</div>
+                            <div class="row g-3 mb-3">
+                                <div class="col-12">
+                                    <button type="button" class="btn btn-pill btn-pill-edit" data-bs-dismiss="modal"
+                                        data-bs-toggle="modal" data-bs-target="#changePasswordModal{{ $acc->UserID }}">
+                                        <i class="bi bi-shield-lock"></i> Change Password
+                                    </button>
+                                </div>
+                            </div>
+
                         </div>
                         <div class="modal-footer">
                             <button type="button" class="btn btn-ghost" data-bs-dismiss="modal">Cancel</button>
@@ -440,10 +457,13 @@
     @include('partials.admin-notif-modal')
     @include('partials.confirm-action-modal')
     @include('partials.email-change-modal')
+    @include('partials.user-account-add-modal')
+    @include('partials.user-account-password-modals', ['accounts' => $users->merge($archivedUsers)])
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
     <script src="{{ asset('js/field-restrictions.js') }}"></script>
     <script src="{{ asset('js/address-sync.js') }}"></script>
+    <script src="{{ asset('js/ph-address.js') }}"></script>
     <script src="{{ asset('js/birthdate-age.js') }}"></script>
     <script>
         document.querySelectorAll('input[type="file"][name="photo"]').forEach(function (input) {

@@ -58,17 +58,16 @@ class ManageAppointmentController extends Controller
     public function cancel(Request $request, string $token)
     {
         $appointment = $this->byToken($token);
-        $data = $request->validate(['reason' => 'nullable|string|max:500']);
 
         if (!in_array($appointment->Status, ['Pending', 'Approved'], true)) {
             return redirect()->route('manage.show', $token)
                 ->with('success', 'That appointment is no longer active — it may have already been ' . strtolower($appointment->Status) . '.');
         }
 
-        $reason = trim((string) ($data['reason'] ?? ''));
+        $reason = Appointment::cancelReasonFrom($request);
         $this->releaseSlots($appointment);
         $appointment->Status = 'Cancelled';
-        $appointment->DeclineReason = $reason !== '' ? "Cancelled by the patient: {$reason}" : 'Cancelled by the patient.';
+        $appointment->DeclineReason = "Cancelled by the patient: {$reason}";
         $appointment->save();
 
         $dateLabel = $appointment->AppointmentDate->format('F j, Y');
@@ -84,13 +83,12 @@ class ManageAppointmentController extends Controller
         );
         $this->notifications->notifyAdmins(
             'Appointment Cancelled',
-            "{$patientName}'s appointment on {$dateLabel} at {$timeLabel} was cancelled by the patient (no account)."
-                . ($reason !== '' ? " Reason: {$reason}" : ''),
+            "{$patientName}'s appointment on {$dateLabel} at {$timeLabel} was cancelled by the patient (no account). Reason: {$reason}",
             'danger',
             $appointment->AppointmentID,
             'Cancelled'
         );
-        $this->activityLog->log('Appointment Cancelled', "{$patientName}'s appointment on {$dateLabel} at {$timeLabel} was cancelled from the manage link.");
+        $this->activityLog->log('Appointment Cancelled', "{$patientName}'s appointment on {$dateLabel} at {$timeLabel} was cancelled from the manage link. Reason: {$reason}");
 
         return redirect()->route('manage.show', $token)->with('success', 'Your appointment has been cancelled. The time slot is open again.');
     }

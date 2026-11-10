@@ -31,6 +31,7 @@ use App\Http\Controllers\ClosedDateController;
 use App\Http\Controllers\GuestBookingController;
 use App\Http\Controllers\ManageAppointmentController;
 use App\Http\Controllers\MedicalHistoryController;
+use App\Http\Controllers\PatientVerificationController;
 
 /*
 |--------------------------------------------------------------------------
@@ -105,6 +106,13 @@ Route::post('/forgot-password/cancel', [LoginController::class, 'cancelReset'])-
 |--------------------------------------------------------------------------
 */
 Route::middleware('auth.session')->group(function () {
+
+    // Patient — verify email. A patient account an admin created (User
+    // Accounts → Add User) is held here by EnsurePatientIsVerified until the
+    // email is proven with a code.
+    Route::get('/verify-email', [PatientVerificationController::class, 'show'])->name('patientVerify');
+    Route::post('/verify-email/send', [PatientVerificationController::class, 'send'])->name('patientVerify.send');
+    Route::post('/verify-email', [PatientVerificationController::class, 'verify'])->name('patientVerify.verify');
 
     // Patient — my appointments (3 pages under one sidebar dropdown)
     Route::get('user-appointment', [UserController::class, 'showUserAppointment'])->name('userAppointment');
@@ -198,7 +206,9 @@ Route::middleware('admin')->group(function () {
 
     // User (patient) accounts
     Route::get('/user-accounts', [UserAccountController::class, 'index'])->name('userAcc');
+    Route::post('/user-accounts', [UserAccountController::class, 'store'])->name('userAcc.store');
     Route::post('/user-accounts/{id}/update', [UserAccountController::class, 'update'])->name('userAcc.update');
+    Route::post('/user-accounts/{id}/password/update', [UserAccountController::class, 'updatePassword'])->name('userAcc.password.update');
     Route::post('/user-accounts/{id}/archive', [UserAccountController::class, 'archive'])->name('userAcc.archive');
     Route::post('/user-accounts/{id}/unarchive', [UserAccountController::class, 'unarchive'])->name('userAcc.unarchive');
 

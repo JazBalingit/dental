@@ -4,10 +4,19 @@
 // <form> via closest() so it works even when a page has several such
 // forms/modals at once (e.g. one edit modal per row).
 (function () {
+    // Always saved as "Street, Barangay, City, Province" — by field name, not
+    // page position, since ph-address.js shows them Province → … → Street.
+    var ORDER = ['addr_street', 'addr_barangay', 'addr_city', 'addr_province'];
+    function rank(el) {
+        for (var i = 0; i < ORDER.length; i++) if ((el.name || '').slice(-ORDER[i].length) === ORDER[i]) return i;
+        return ORDER.length;
+    }
+
     function sync(form) {
         var hidden = form.querySelector('input[name="address"]');
         if (!hidden) return;
         var parts = Array.prototype.slice.call(form.querySelectorAll('.addr-part'))
+            .sort(function (a, b) { return rank(a) - rank(b); })
             .map(function (el) { return el.value.trim(); })
             .filter(Boolean);
         hidden.value = parts.join(', ');

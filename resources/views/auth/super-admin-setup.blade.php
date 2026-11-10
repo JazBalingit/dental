@@ -59,7 +59,7 @@
             </nav>
 
             <div class="sidebar-footer">
-                <form method="POST" action="{{ route('logout') }}" class="m-0">
+                <form method="POST" action="{{ route('logout') }}" class="m-0" data-logout-form>
                     @csrf
                     <button type="submit" class="sidebar-profile-badge" style="justify-content:flex-start;gap:.65rem;">
                         <i class="bi bi-box-arrow-right" style="font-size:1.05rem;"></i>
@@ -232,6 +232,7 @@
         </main>
     </div>
 
+    @include('partials.logout-confirm-modal')
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
     <script src="{{ asset('js/otp-resend-cooldown.js') }}"></script>
 </body>

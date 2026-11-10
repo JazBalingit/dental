@@ -717,6 +717,7 @@
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
     <script src="{{ asset('js/field-restrictions.js') }}"></script>
     <script src="{{ asset('js/address-sync.js') }}"></script>
+    <script src="{{ asset('js/ph-address.js') }}"></script>
     <script src="{{ asset('js/birthdate-age.js') }}"></script>
     <script>
         document.querySelectorAll('input[type="file"][name="photo"]').forEach(function (input) {

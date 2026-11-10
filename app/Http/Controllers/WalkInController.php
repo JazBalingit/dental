@@ -39,7 +39,18 @@ class WalkInController extends Controller
     /** Appointment Bookings → Follow-up Appointment: books an existing patient. */
     public function followUp(Request $request)
     {
-        return $this->panelView('walk-in', $this->calendarData($request) + ['mode' => 'followup']);
+        // Every patient on file for Step 1's "choose from the patient list"
+        // dropdown — names only; the full details are fetched on selection.
+        $patientOptions = PatientInfo::query()
+            ->select('PatientID', 'FirstName', 'MiddleName', 'LastName')
+            ->orderBy('LastName')
+            ->orderBy('FirstName')
+            ->get();
+
+        return $this->panelView('walk-in', $this->calendarData($request) + [
+            'mode' => 'followup',
+            'patientOptions' => $patientOptions,
+        ]);
     }
 
     /**
@@ -51,21 +62,27 @@ class WalkInController extends Controller
     public function searchPatient(Request $request)
     {
         $q = trim((string) $request->query('q', ''));
+        // ?id= — one exact patient, picked from the patient-list dropdown.
+        $id = $request->integer('id');
 
-        if ($q === '') {
+        if ($q === '' && !$id) {
             return response()->json([]);
         }
 
+        // "PT-0012" (how IDs are shown across the app) means patient 12.
+        $idFromQuery = preg_match('/^(?:pt-?)?0*(\d+)$/i', $q, $m) ? (int) $m[1] : null;
+
         $patients = PatientInfo::with('userAccount')
-            ->where(function ($query) use ($q) {
+            ->when($id, fn ($query) => $query->where('PatientID', $id))
+            ->when(!$id, fn ($query) => $query->where(function ($query) use ($q, $idFromQuery) {
                 $query->where('FirstName', 'like', "%{$q}%")
                     ->orWhere('LastName', 'like', "%{$q}%")
                     ->orWhereRaw("CONCAT(FirstName, ' ', LastName) LIKE ?", ["%{$q}%"]);
 
-                if (is_numeric($q)) {
-                    $query->orWhere('PatientID', (int) $q);
+                if ($idFromQuery) {
+                    $query->orWhere('PatientID', $idFromQuery);
                 }
-            })
+            }))
             ->orderBy('LastName')
             ->limit(10)
             ->get();

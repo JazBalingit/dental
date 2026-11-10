@@ -3,6 +3,7 @@
 use App\Http\Middleware\EnsureAdmin;
 use App\Http\Middleware\EnsureAuthenticated;
 use App\Http\Middleware\EnsureConfigurationAccess;
+use App\Http\Middleware\EnsurePatientIsVerified;
 use App\Http\Middleware\EnsureStaffIsVerified;
 use App\Http\Middleware\EnsureSuperAdmin;
 use App\Http\Middleware\EnsureSuperAdminClaimed;
@@ -30,6 +31,7 @@ return Application::configure(basePath: dirname(__DIR__))
 
         $middleware->web(append: [
             EnsureStaffIsVerified::class,
+            EnsurePatientIsVerified::class,
             EnsureSuperAdminClaimed::class,
         ]);
 

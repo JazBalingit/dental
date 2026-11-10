@@ -155,6 +155,21 @@ class PatientRecordsController extends Controller
             $archivedQuery->whereHas('records', $inRange);
         }
 
+        // Activity status — same six-month rule as PatientInfo::is_inactive
+        // (the Status pill): Inactive = has a completed visit but none in the
+        // last 6 months; Active = everyone else (incl. no completed visit yet).
+        $status = in_array($request->query('status'), ['active', 'inactive'], true) ? $request->query('status') : null;
+        if ($status) {
+            $cutoff = now()->subMonths(6)->toDateString();
+            $visits = fn ($a) => $a->where('Status', 'Completed');
+            $recent = fn ($a) => $a->where('Status', 'Completed')->whereDate('AppointmentDate', '>=', $cutoff);
+            $byStatus = $status === 'inactive'
+                ? fn ($q) => $q->whereHas('appointments', $visits)->whereDoesntHave('appointments', $recent)
+                : fn ($q) => $q->where(fn ($w) => $w->whereDoesntHave('appointments', $visits)->orWhereHas('appointments', $recent));
+            $byStatus($activeQuery);
+            $byStatus($archivedQuery);
+        }
+
         $tab = $request->query('tab') === 'archived' ? 'archived' : 'active';
 
         return $this->panelView('patient-records', [
@@ -168,6 +183,7 @@ class PatientRecordsController extends Controller
                 ->appends(['tab' => 'archived']),
             'search' => $search,
             'type' => $type,
+            'status' => $status,
             'from' => $from,
             'to' => $to,
             'tab' => $tab,

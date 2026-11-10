@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Appointment;
 use App\Models\PatientInfo;
 use App\Models\PatientRecord;
+use App\Models\SystemSetting;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 
@@ -38,6 +39,8 @@ class ReportController extends Controller
             'includeCharts' => $includeCharts,
             'includePatientDetails' => $includePatientDetails,
             'generatedAt' => now(),
+            // Letterhead: clinic address and contacts as set in Configuration.
+            'clinic' => SystemSetting::aboutInfo(),
         ];
 
         // Reports count COMPLETED visits only — the ones that actually

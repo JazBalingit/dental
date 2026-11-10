@@ -117,6 +117,7 @@
 
 {{-- Admin tables turn into cards when they don't fit (see the script's header). --}}
 <script src="{{ asset('js/responsive-tables.js') }}" defer></script>
+<script src="{{ asset('js/required-fields.js') }}" defer></script>
 
 <script>
     document.addEventListener('DOMContentLoaded', function () {

@@ -3,9 +3,9 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Controllers\Concerns\LinksPatientRecords;
 use App\Http\Controllers\Concerns\ManagesOtp;
 use App\Mail\OtpMail;
-use App\Models\PatientInfo;
 use App\Models\SystemSetting;
 use App\Models\UserAccount;
 use App\Services\BookingService;
@@ -18,7 +18,7 @@ use Illuminate\Validation\Rules\Password;
 
 class RegisterController extends Controller
 {
-    use ManagesOtp;
+    use LinksPatientRecords, ManagesOtp;
 
     public function __construct(protected ActivityLogService $activityLog)
     {
@@ -156,6 +156,8 @@ class RegisterController extends Controller
             'Password' => $pending['Password'],
             'AccountRole' => 'patient',
             'DateCreated' => now(),
+            // The code they just typed proves the email.
+            'EmailVerifiedAt' => now(),
         ]);
 
         $details = collect($pending)->except(['Email', 'Password'])->toArray();
@@ -218,54 +220,5 @@ class RegisterController extends Controller
         $this->clearOtp('otp');
 
         return redirect()->route('signup');
-    }
-    /**
-     * The email was just verified, so everything booked with it becomes
-     * this account's:
-     *
-     *  - the patient record that IS this person (a guest booking or walk-in
-     *    with this email and the same name or birthdate) gets the account
-     *    attached and their signup details — no duplicate patient, and their
-     *    past visits, records and odontogram are in the portal right away;
-     *  - people booked under this email (their children…) get this account as
-     *    their guardian, so they show up under "Book for Someone Else";
-     *  - appointments booked with this email are marked as booked by them.
-     *
-     * Returns how many existing records were linked.
-     */
-
-    protected function linkExistingRecords(UserAccount $user, array $details): int
-    {
-        $email = strtolower($user->Email);
-        $candidates = PatientInfo::underEmail($email)->get();
-
-        $self = $candidates
-            ->filter(fn ($p) => !$p->isDependentOf($email))
-            ->sortByDesc(fn ($p) => (int) (
-                ($p->DateOfBirth?->format('Y-m-d') === $details['DateOfBirth'])
-                + (strcasecmp($p->FirstName, $details['FirstName']) === 0 && strcasecmp($p->LastName, $details['LastName']) === 0)
-            ))
-            ->first(fn ($p) => $p->DateOfBirth?->format('Y-m-d') === $details['DateOfBirth']
-                || (strcasecmp($p->FirstName, $details['FirstName']) === 0 && strcasecmp($p->LastName, $details['LastName']) === 0));
-
-        if ($self) {
-            $self->fill($details + ['UserID' => $user->UserID, 'Email' => $user->Email, 'IsWalkIn' => $self->IsWalkIn]);
-            $self->save();
-        } else {
-            $self = PatientInfo::create($details + ['UserID' => $user->UserID]);
-        }
-
-        $dependents = $candidates->filter(fn ($p) => $p->PatientID !== $self->PatientID && $p->isDependentOf($email));
-        foreach ($dependents as $dependent) {
-            $dependent->GuardianUserID = $user->UserID;
-            $dependent->GuardianEmail = $dependent->GuardianEmail ?: $user->Email;
-            $dependent->save();
-        }
-
-        \App\Models\Appointment::whereNull('BookedByUserID')
-            ->whereRaw('LOWER(BookedByEmail) = ?', [$email])
-            ->update(['BookedByUserID' => $user->UserID]);
-
-        return ($self->wasRecentlyCreated ? 0 : 1) + $dependents->count();
     }
 }

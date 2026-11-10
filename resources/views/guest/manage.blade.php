@@ -147,9 +147,8 @@
               <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body">
-              <p class="mb-2">Your <strong>{{ $a->AppointmentDate->format('M j') }} · {{ $a->TypeOfAppointment }}</strong> appointment will be cancelled and the time released. This can't be undone.</p>
-              <label class="form-label small fw-semibold" for="gmReason">Reason <span class="text-muted-2 fw-normal">(optional)</span></label>
-              <textarea class="form-control" id="gmReason" name="reason" rows="2" maxlength="500" placeholder="e.g. I can't make it that day"></textarea>
+              <p class="mb-0">Your <strong>{{ $a->AppointmentDate->format('M j') }} · {{ $a->TypeOfAppointment }}</strong> appointment will be cancelled and the time released. This can't be undone.</p>
+              @include('partials.cancel-reason-fields', ['id' => 'Guest'])
             </div>
             <div class="modal-footer">
               <button type="button" class="btn btn-ghost" data-bs-dismiss="modal">Keep it</button>

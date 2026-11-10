@@ -193,12 +193,31 @@
                                                         value="{{ $pv('phone', $si->PhoneNumber ?? '') }}" required {{ $profileFailed ? '' : 'disabled' }} data-editable></div>
                                                 @if ($pMsg('phone')) <div class="field-error"><i class="bi bi-exclamation-circle-fill"></i> {{ $pMsg('phone') }}</div> @endif
                                             </div>
-                                            <div class="col-12">
-                                                <label class="form-label">Home address</label>
-                                                <div class="input-icon {{ $pErr('address') }}"><i class="bi bi-geo-alt"></i><input type="text" name="address" class="form-control"
-                                                        value="{{ $pv('address', $si->Address ?? '') }}" required {{ $profileFailed ? '' : 'disabled' }} data-editable></div>
-                                                @if ($pMsg('address')) <div class="field-error"><i class="bi bi-exclamation-circle-fill"></i> {{ $pMsg('address') }}</div> @endif
+                                            {{-- Split like every other address form; address-sync.js joins it
+                                                 into the hidden "address" field, ph-address.js makes the dropdowns. --}}
+                                            @php $addrParts = array_pad(array_map('trim', explode(',', $si->Address ?? '', 4)), 4, ''); @endphp
+                                            <div class="col-md-6">
+                                                <label class="form-label">Street / House No.</label>
+                                                <div class="input-icon"><i class="bi bi-signpost-2"></i><input type="text" name="addr_street" class="form-control addr-part"
+                                                        value="{{ $pv('addr_street', $addrParts[0]) }}" placeholder="123 Sample St." {{ $profileFailed ? '' : 'disabled' }} data-editable></div>
                                             </div>
+                                            <div class="col-md-6">
+                                                <label class="form-label">Barangay</label>
+                                                <div class="input-icon"><i class="bi bi-geo"></i><input type="text" name="addr_barangay" class="form-control addr-part"
+                                                        value="{{ $pv('addr_barangay', $addrParts[1]) }}" placeholder="Barangay" {{ $profileFailed ? '' : 'disabled' }} data-editable></div>
+                                            </div>
+                                            <div class="col-md-6">
+                                                <label class="form-label">City / Municipality</label>
+                                                <div class="input-icon"><i class="bi bi-buildings"></i><input type="text" name="addr_city" class="form-control addr-part"
+                                                        value="{{ $pv('addr_city', $addrParts[2]) }}" placeholder="City / Municipality" required {{ $profileFailed ? '' : 'disabled' }} data-editable></div>
+                                            </div>
+                                            <div class="col-md-6">
+                                                <label class="form-label">Province</label>
+                                                <div class="input-icon"><i class="bi bi-map"></i><input type="text" name="addr_province" class="form-control addr-part"
+                                                        value="{{ $pv('addr_province', $addrParts[3]) }}" placeholder="Province" required {{ $profileFailed ? '' : 'disabled' }} data-editable></div>
+                                            </div>
+                                            <input type="hidden" name="address" value="{{ $pv('address', $si->Address ?? '') }}">
+                                            @if ($pMsg('address')) <div class="col-12"><div class="field-error"><i class="bi bi-exclamation-circle-fill"></i> {{ $pMsg('address') }}</div></div> @endif
                                         </div>
                                         <div class="d-flex justify-content-end gap-2 mt-3">
                                             <button type="button" class="btn btn-brand" data-edit-btn="edit" @if ($profileFailed) hidden @endif><i class="bi bi-pencil-square"></i> Edit</button>
@@ -372,6 +391,8 @@
     <script src="{{ asset('js/field-restrictions.js') }}"></script>
     <script src="{{ asset('js/birthdate-age.js') }}"></script>
     <script src="{{ asset('js/profile-edit-toggle.js') }}"></script>
+    <script src="{{ asset('js/address-sync.js') }}"></script>
+    <script src="{{ asset('js/ph-address.js') }}"></script>
     <script src="{{ asset('js/otp-resend-cooldown.js') }}"></script>
     <script>
         document.querySelectorAll('[data-profile-tab]').forEach(function (btn) {

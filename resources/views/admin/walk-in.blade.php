@@ -26,6 +26,8 @@
         .search-result-item { padding: .6rem .9rem; cursor: pointer; border-bottom: 1px solid #f0f2f1; }
         .search-result-item:last-child { border-bottom: none; }
         .search-result-item:hover { background: var(--brand-50); }
+        .patient-pick-or { display: flex; align-items: center; gap: .75rem; color: var(--muted, #9aa5a1); font-size: .8rem; font-weight: 600; text-transform: uppercase; letter-spacing: .05em; margin: -.25rem 0 .5rem; }
+        .patient-pick-or::before, .patient-pick-or::after { content: ''; flex: 1; border-top: 1px solid #e4e9e6; }
         .review-row { display: flex; justify-content: space-between; padding: .5rem 0; border-bottom: 1px solid #f0f2f1; }
         .review-row:last-child { border-bottom: none; }
 
@@ -142,11 +144,28 @@
                                         <div class="col-md-3 d-flex align-items-end">
                                             <button type="button" class="btn btn-brand w-100" id="loadPatientBtn">Load Patient</button>
                                         </div>
+                                        @if ($mode === 'followup')
+                                        {{-- The same lookup without typing: every patient on file,
+                                             A–Z by last name (type a letter to jump). --}}
+                                        <div class="col-12">
+                                            <div class="patient-pick-or"><span>or</span></div>
+                                            <label class="form-label" for="patientPickSelect">Choose from the patient list</label>
+                                            <div class="input-icon"><i class="bi bi-people"></i>
+                                                <select class="form-select" id="patientPickSelect" autocomplete="off">
+                                                    <option value="" selected>Select a patient ({{ number_format(count($patientOptions ?? [])) }} on file)</option>
+                                                    @foreach ($patientOptions ?? [] as $opt)
+                                                        <option value="{{ $opt->PatientID }}">{{ $opt->LastName }}, {{ $opt->FirstName }}{{ $opt->MiddleName ? ' ' . mb_substr($opt->MiddleName, 0, 1) . '.' : '' }} — PT-{{ str_pad($opt->PatientID, 4, '0', STR_PAD_LEFT) }}</option>
+                                                    @endforeach
+                                                </select>
+                                            </div>
+                                            <div class="small text-danger mt-1 d-none" id="patientPickError">Couldn't load that patient. Please try again.</div>
+                                        </div>
+                                        @endif
                                     </div>
 
-                                    <div class="alert alert-warning py-2 px-3 small" id="noPatientLoadedNotice">No patient loaded yet — search above and select a result.</div>
+                                    <div class="alert alert-warning py-2 px-3 small" id="noPatientLoadedNotice">No patient loaded yet — search above{{ $mode === 'followup' ? ' or choose from the patient list' : ' and select a result' }}.</div>
 
-                                    <div class="d-flex align-items-center gap-3 mb-4" id="loadedPatientCard" style="display:none;">
+                                    <div class="align-items-center gap-3 mb-4" id="loadedPatientCard" style="display:none;">
                                         <img class="avatar-initials" id="loadedPatientPhoto" src="/images/default.png" alt=""
                                             style="width:64px;height:64px;">
                                         <div class="flex-grow-1">
@@ -517,6 +536,7 @@
     <script src="{{ asset('js/booking-forms.js') }}"></script>
     <script src="{{ asset('js/field-restrictions.js') }}"></script>
     <script src="{{ asset('js/address-sync.js') }}"></script>
+    <script src="{{ asset('js/ph-address.js') }}"></script>
     <script src="{{ asset('js/birthdate-age.js') }}"></script>
     <script>
     (function () {
@@ -561,6 +581,11 @@
             phone: document.getElementById('existing_phone'),
         };
         const existingGenderSelect = document.getElementById('existing_gender');
+        const patientPickSelect = document.getElementById('patientPickSelect'); // follow-up only
+        const patientPickError = document.getElementById('patientPickError');
+
+        // Patient IDs are shown as "PT-0012" everywhere else in the app.
+        function ptId(id) { return 'PT-' + String(id).padStart(4, '0'); }
 
         // Applies a loaded patient's data to the display fields and locks the
         // search row so a second patient can't be picked without explicitly
@@ -570,7 +595,7 @@
         function applyLoadedPatient(p) {
             patientIdInput.value = p.PatientID;
             loadedPatientName.textContent = `${p.FirstName} ${p.LastName}`;
-            loadedPatientId.textContent = p.PatientID;
+            loadedPatientId.textContent = ptId(p.PatientID);
             loadedPatientPhoto.src = p.PhotoUrl || '/images/default.png';
             loadedPatientCard.style.display = 'flex';
             noPatientLoadedNotice.style.display = 'none';
@@ -599,16 +624,42 @@
             noPatientLoadedNotice.style.display = '';
 
             Object.values(displayFields).forEach(el => { el.value = ''; });
+            displayFields.birthdate.dispatchEvent(new Event('change')); // clears Age too
             existingGenderSelect.innerHTML = '<option selected>—</option>';
 
             searchRow.hidden = false;
             searchInput.value = '';
             searchResults.classList.add('d-none');
             searchResults.innerHTML = '';
+            if (patientPickSelect) patientPickSelect.value = '';
             saveDraft();
         }
 
         clearPatientBtn.addEventListener('click', clearLoadedPatient);
+
+        // "Choose from the patient list" — loads the picked patient straight
+        // away (same details the search returns, fetched by exact ID).
+        if (patientPickSelect) {
+            patientPickSelect.addEventListener('change', () => {
+                const id = patientPickSelect.value;
+                patientPickError.classList.add('d-none');
+                if (!id) return;
+                patientPickSelect.disabled = true;
+                fetch('{{ route("walkIn.search") }}?id=' + encodeURIComponent(id), { headers: { 'Accept': 'application/json' } })
+                    .then(r => r.json())
+                    .then(data => {
+                        const p = Array.isArray(data) ? data[0] : null;
+                        if (!p) throw new Error('not found');
+                        applyLoadedPatient(p);
+                        saveDraft();
+                    })
+                    .catch(() => {
+                        patientPickSelect.value = '';
+                        patientPickError.classList.remove('d-none');
+                    })
+                    .finally(() => { patientPickSelect.disabled = false; });
+            });
+        }
 
         function runSearch() {
             const q = searchInput.value.trim();
@@ -625,7 +676,7 @@
                     searchResults.innerHTML = data.map((p, i) => `
                         <div class="search-result-item" data-idx="${i}">
                             <div class="fw-semibold">${p.FirstName} ${p.LastName}</div>
-                            <div class="small text-muted-2">Patient ID: ${p.PatientID}</div>
+                            <div class="small text-muted-2">Patient ID: ${ptId(p.PatientID)}</div>
                         </div>
                     `).join('');
                     searchResults.dataset.results = JSON.stringify(data);

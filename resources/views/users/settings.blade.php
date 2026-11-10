@@ -581,6 +581,7 @@
     @include('partials.email-change-modal')
     <script src="{{ asset('js/field-restrictions.js') }}"></script>
     <script src="{{ asset('js/address-sync.js') }}"></script>
+    <script src="{{ asset('js/ph-address.js') }}"></script>
     <script src="{{ asset('js/birthdate-age.js') }}"></script>
     <script src="{{ asset('js/profile-edit-toggle.js') }}"></script>
     <script src="{{ asset('js/otp-resend-cooldown.js') }}"></script>

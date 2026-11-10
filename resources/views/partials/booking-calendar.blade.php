@@ -1297,3 +1297,75 @@
         })();
     </script>
 @endif
+
+@if ($calendarMode === 'post' && session('user_id') && ($rescheduleModalId === 'landingRescheduleModal' || $cancelModalId === 'landingCancelModal'))
+    {{-- The "mine" slot's Reschedule / Cancel buttons (default IDs) — one
+         pair for the whole calendar, pointed at the clicked appointment via
+         its data-remove-url when it opens. Pages with their own static pair
+         (the Patient Portal's Appointments page) pass other IDs and skip this. --}}
+    @if ($rescheduleModalId === 'landingRescheduleModal')
+        <div class="modal fade" id="landingRescheduleModal" tabindex="-1" aria-hidden="true">
+            <div class="modal-dialog modal-dialog-centered">
+                <div class="modal-content">
+                    <form method="POST" id="landingRescheduleForm">
+                        @csrf
+                        <input type="hidden" name="action" value="reschedule">
+                        <div class="modal-header">
+                            <h5 class="modal-title"><i class="bi bi-calendar2-week me-2" style="color:#0f7a33"></i>Reschedule Appointment</h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                        </div>
+                        <div class="modal-body">
+                            <p class="mb-0">Rescheduling removes this appointment and releases its time. You can then choose a new available time from the booking calendar.</p>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-ghost" data-bs-dismiss="modal">Discard</button>
+                            <button type="submit" class="btn btn-brand"><i class="bi bi-calendar2-week me-1"></i> Reschedule</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    @endif
+    @if ($cancelModalId === 'landingCancelModal')
+        <div class="modal fade" id="landingCancelModal" tabindex="-1" aria-hidden="true">
+            <div class="modal-dialog modal-dialog-centered">
+                <div class="modal-content">
+                    <form method="POST" id="landingCancelForm">
+                        @csrf
+                        <input type="hidden" name="action" value="cancel">
+                        <div class="modal-header">
+                            <h5 class="modal-title"><i class="bi bi-exclamation-triangle me-2" style="color:#ef4444"></i>Cancel Appointment</h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                        </div>
+                        <div class="modal-body">
+                            <p class="mb-0">Are you sure you want to cancel your <strong id="landingCancelLabel" style="color:#0f4c7a"></strong> appointment? This cannot be undone.</p>
+                            @include('partials.cancel-reason-fields', ['id' => 'Calendar'])
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-ghost" data-bs-dismiss="modal">Keep It</button>
+                            <button type="submit" class="btn btn-danger"><i class="bi bi-x-circle me-1"></i> Yes, Cancel</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    @endif
+    <script>
+        (function () {
+            ['landingRescheduleModal', 'landingCancelModal'].forEach(function (id) {
+                var el = document.getElementById(id);
+                if (!el) return;
+                document.body.appendChild(el);
+                el.addEventListener('show.bs.modal', function (e) {
+                    var trigger = e.relatedTarget;
+                    if (!trigger) return;
+                    el.querySelector('form').action = trigger.dataset.removeUrl || '';
+                    var label = document.getElementById('landingCancelLabel');
+                    if (label && id === 'landingCancelModal') {
+                        label.textContent = [trigger.dataset.apptDate, trigger.dataset.apptService].filter(Boolean).join(' – ');
+                    }
+                });
+            });
+        })();
+    </script>
+@endif

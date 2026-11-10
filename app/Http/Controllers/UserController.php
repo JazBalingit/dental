@@ -207,8 +207,15 @@ class UserController extends Controller
             );
         }
 
+        // A plain cancel must say why (partials.cancel-reason-fields); a
+        // reschedule is a cancel-and-rebook, so it needs no reason.
+        $reason = $isReschedule ? null : Appointment::cancelReasonFrom($request);
+
         $this->releaseAppointmentSlots($appointment);
         $appointment->Status = 'Cancelled';
+        if ($reason !== null) {
+            $appointment->DeclineReason = "Cancelled by the patient: {$reason}";
+        }
         $appointment->save();
 
         $timeLabel = Carbon::createFromFormat('H:i', $appointment->AppointmentTime)->format('g:i A');
@@ -242,7 +249,7 @@ class UserController extends Controller
             );
             $this->notifications->notifyAdmins(
                 'Appointment Cancelled',
-                "{$patientName}'s appointment was cancelled by the patient{$byLine}.",
+                "{$patientName}'s appointment was cancelled by the patient{$byLine}. Reason: {$reason}",
                 'danger',
                 $appointment->AppointmentID,
                 'Cancelled'
@@ -254,7 +261,8 @@ class UserController extends Controller
 
         $this->activityLog->log(
             $isReschedule ? 'Appointment Rescheduled' : 'Appointment Cancelled',
-            ($isReschedule ? 'Started a reschedule of' : 'Cancelled') . " the appointment on {$dateLabel} at {$timeLabel}.",
+            ($isReschedule ? 'Started a reschedule of' : 'Cancelled') . " the appointment on {$dateLabel} at {$timeLabel}."
+                . ($reason !== null ? " Reason: {$reason}" : ''),
             $user->UserID
         );
 

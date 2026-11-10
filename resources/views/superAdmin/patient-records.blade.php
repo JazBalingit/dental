@@ -82,6 +82,7 @@
             <div class="right">
               <input type="hidden" name="tab" id="activeTabField" value="{{ $tab }}">
               <select class="form-select" name="type" style="min-width:140px; height:40px;" onchange="this.form.submit()"><option value="">All Patients</option><option value="registered" {{ ($type ?? null) === 'registered' ? 'selected' : '' }}>Registered</option><option value="walkin" {{ ($type ?? null) === 'walkin' ? 'selected' : '' }}>Walk-in</option><option value="guest" {{ ($type ?? null) === 'guest' ? 'selected' : '' }}>Guest (no account)</option></select>
+              <select class="form-select" name="status" style="min-width:130px; height:40px;" onchange="this.form.submit()" aria-label="Filter by activity status"><option value="">All Status</option><option value="active" {{ ($status ?? null) === 'active' ? 'selected' : '' }}>Active</option><option value="inactive" {{ ($status ?? null) === 'inactive' ? 'selected' : '' }}>Inactive</option></select>
               <div class="d-flex align-items-center gap-1 flex-wrap" title="Filter by visit date">
                 <span class="small text-muted-2">Visit</span>
                 <input type="date" class="form-control" name="from" value="{{ $from ?? '' }}" style="width:auto; height:40px;" aria-label="Visit date from" onchange="this.form.submit()">
@@ -204,6 +205,8 @@
   @include('partials.confirm-action-modal')
 
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="{{ asset('js/address-sync.js') }}"></script>
+  <script src="{{ asset('js/ph-address.js') }}"></script>
 
 </body>
 

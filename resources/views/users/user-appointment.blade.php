@@ -271,22 +271,27 @@
 
         <!-- CANCEL MODAL -->
         <div class="modal fade" id="cancelModal" tabindex="-1" aria-hidden="true">
-            <div class="modal-dialog modal-dialog-centered modal-sm">
+            <div class="modal-dialog modal-dialog-centered">
                 <div class="modal-content">
-                    <div class="modal-header">
-                        <h5 class="modal-title"><i class="fas fa-exclamation-triangle me-2" style="color:#ef4444"></i>Cancel
-                            Appointment</h5>
-                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                    </div>
-                    <div class="modal-body">
-                        <p style="font-size:14px;line-height:1.7">Are you sure you want to cancel your
-                            <strong style="color:#0f4c7a">{{ $current->AppointmentDate->format('M j') }} – {{ $current->TypeOfAppointment ?: ($current->service->ServiceName ?? '') }}</strong>
-                            appointment? This cannot be undone.</p>
-                    </div>
-                    <div class="modal-footer">
-                        <button class="btn-sec" data-bs-dismiss="modal">Keep It</button>
-                        <form method="POST" action="{{ route('userAppointment.remove', $current) }}">@csrf<input type="hidden" name="action" value="cancel"><button class="btn-prim" style="background:linear-gradient(135deg,#b91c1c,#ef4444);box-shadow:0 4px 12px rgba(239,68,68,0.3)"><i class="fas fa-times me-1"></i> Yes, Cancel</button></form>
-                    </div>
+                    <form method="POST" action="{{ route('userAppointment.remove', $current) }}">
+                        @csrf
+                        <input type="hidden" name="action" value="cancel">
+                        <div class="modal-header">
+                            <h5 class="modal-title"><i class="fas fa-exclamation-triangle me-2" style="color:#ef4444"></i>Cancel
+                                Appointment</h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                        </div>
+                        <div class="modal-body">
+                            <p class="mb-0" style="font-size:14px;line-height:1.7">Are you sure you want to cancel your
+                                <strong style="color:#0f4c7a">{{ $current->AppointmentDate->format('M j') }} – {{ $current->TypeOfAppointment ?: ($current->service->ServiceName ?? '') }}</strong>
+                                appointment? This cannot be undone.</p>
+                            @include('partials.cancel-reason-fields', ['id' => 'Current'])
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn-sec" data-bs-dismiss="modal">Keep It</button>
+                            <button type="submit" class="btn-prim" style="background:linear-gradient(135deg,#b91c1c,#ef4444);box-shadow:0 4px 12px rgba(239,68,68,0.3)"><i class="fas fa-times me-1"></i> Yes, Cancel</button>
+                        </div>
+                    </form>
                 </div>
             </div>
         </div>
@@ -295,20 +300,25 @@
     @foreach ($forOthers as $other)
         @include('partials.appointment-info-modal', ['appointment' => $other])
         <div class="modal fade" id="cancelOtherModal{{ $other->AppointmentID }}" tabindex="-1" aria-hidden="true">
-            <div class="modal-dialog modal-dialog-centered modal-sm">
+            <div class="modal-dialog modal-dialog-centered">
                 <div class="modal-content">
-                    <div class="modal-header">
-                        <h5 class="modal-title"><i class="fas fa-exclamation-triangle me-2" style="color:#ef4444"></i>Cancel Appointment</h5>
-                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                    </div>
-                    <div class="modal-body">
-                        <p style="font-size:14px;line-height:1.7">Cancel <strong style="color:#0f4c7a">{{ $other->patientInfo?->full_name }}'s</strong>
-                            {{ $other->AppointmentDate->format('M j') }} – {{ $other->TypeOfAppointment ?: ($other->service->ServiceName ?? '') }} appointment? This cannot be undone.</p>
-                    </div>
-                    <div class="modal-footer">
-                        <button class="btn-sec" data-bs-dismiss="modal">Keep It</button>
-                        <form method="POST" action="{{ route('userAppointment.remove', $other) }}">@csrf<input type="hidden" name="action" value="cancel"><button class="btn-prim" style="background:linear-gradient(135deg,#b91c1c,#ef4444);box-shadow:0 4px 12px rgba(239,68,68,0.3)"><i class="fas fa-times me-1"></i> Yes, Cancel</button></form>
-                    </div>
+                    <form method="POST" action="{{ route('userAppointment.remove', $other) }}">
+                        @csrf
+                        <input type="hidden" name="action" value="cancel">
+                        <div class="modal-header">
+                            <h5 class="modal-title"><i class="fas fa-exclamation-triangle me-2" style="color:#ef4444"></i>Cancel Appointment</h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                        </div>
+                        <div class="modal-body">
+                            <p class="mb-0" style="font-size:14px;line-height:1.7">Cancel <strong style="color:#0f4c7a">{{ $other->patientInfo?->full_name }}'s</strong>
+                                {{ $other->AppointmentDate->format('M j') }} – {{ $other->TypeOfAppointment ?: ($other->service->ServiceName ?? '') }} appointment? This cannot be undone.</p>
+                            @include('partials.cancel-reason-fields', ['id' => 'Other' . $other->AppointmentID])
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn-sec" data-bs-dismiss="modal">Keep It</button>
+                            <button type="submit" class="btn-prim" style="background:linear-gradient(135deg,#b91c1c,#ef4444);box-shadow:0 4px 12px rgba(239,68,68,0.3)"><i class="fas fa-times me-1"></i> Yes, Cancel</button>
+                        </div>
+                    </form>
                 </div>
             </div>
         </div>

@@ -66,11 +66,28 @@
     .report-toolbar .back-link:hover { color: var(--brand-700); }
     .report-wrap { max-width: 900px; margin: 0 auto; padding: 2rem 1.5rem 4rem; }
     .report-sheet { background: #fff; border-radius: var(--radius-lg); padding: 2.25rem; box-shadow: 0 1px 3px rgba(15,23,42,.08); }
-    .report-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 1rem; border-bottom: 2px solid var(--brand-700); padding-bottom: 1.25rem; margin-bottom: 1.5rem; }
-    .report-head img.logo { height: 46px; }
-    .report-head h1 { font-family: 'Poppins', sans-serif; font-size: 1.4rem; color: var(--ink-900); margin: .5rem 0 0; }
-    .report-head .meta { text-align: right; font-size: .85rem; color: var(--ink-500); }
-    .report-head .meta strong { color: var(--ink-700); }
+    /* Letterhead: logo + clinic name, tagline, address and contacts, closed
+       by a thick-and-thin rule. The empty third column mirrors the logo's
+       width so the text block sits exactly in the page's centre. */
+    .letterhead { display: grid; grid-template-columns: 76px 1fr 76px; align-items: center; gap: 1rem; padding-bottom: 1rem; border-bottom: 3px solid var(--brand-700); position: relative; }
+    .letterhead::after { content: ''; position: absolute; left: 0; right: 0; bottom: -7px; border-bottom: 1px solid var(--brand-700); }
+    .letterhead .logo { width: 76px; height: 76px; object-fit: contain; }
+    .letterhead-text { text-align: center; }
+    .letterhead-name { font-family: 'Poppins', sans-serif; font-size: 1.3rem; font-weight: 700; color: var(--brand-900); letter-spacing: .04em; text-transform: uppercase; line-height: 1.15; }
+    .letterhead-tag { font-size: .8rem; font-style: italic; color: var(--brand-700); margin: .15rem 0 .4rem; }
+    .letterhead-line { font-size: .78rem; color: var(--ink-700); line-height: 1.55; }
+    .letterhead-line .sep { color: var(--ink-300); margin: 0 .4rem; }
+    .report-title { text-align: center; margin: 1.75rem 0 1.6rem; }
+    .report-title h1 { font-family: 'Poppins', sans-serif; font-size: 1.2rem; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--ink-900); margin: 0; }
+    .report-title .meta { display: flex; justify-content: center; flex-wrap: wrap; gap: .25rem 1.5rem; margin-top: .4rem; font-size: .82rem; color: var(--ink-500); }
+    .report-title .meta strong { color: var(--ink-700); }
+    @media (max-width: 575.98px) {
+      .letterhead { grid-template-columns: 56px 1fr; gap: .75rem; }
+      .letterhead .logo { width: 56px; height: 56px; }
+      .letterhead-text { text-align: left; }
+      .letterhead-spacer { display: none; }
+      .letterhead-name { font-size: 1.05rem; }
+    }
     .report-section { margin-bottom: 2rem; }
     .report-section h2 { font-family: 'Poppins', sans-serif; font-size: 1.05rem; color: var(--brand-900); margin-bottom: 1rem; display: flex; align-items: center; gap: .5rem; }
     .report-desc { font-size: .85rem; color: var(--ink-500); line-height: 1.55; margin: -.5rem 0 1rem; }
@@ -130,7 +147,8 @@
          before it (the report header) alone on an almost-blank page 1.
          Only the small pieces below need to stay intact; the section and
          its table are left free to flow and break across pages normally. */
-      .report-head,
+      .letterhead,
+      .report-title,
       .report-stats,
       .report-bar-row,
       .report-signature { page-break-inside: avoid; }
@@ -152,11 +170,41 @@
   <div class="report-wrap">
     <div class="report-sheet">
 
-      <div class="report-head">
-        <div>
-          <img class="logo" src="/images/puspus_logo.png" alt="">
-          <h1>{{ $reportTitle }}</h1>
+      @php
+        $clinic = $clinic ?? \App\Models\SystemSetting::aboutInfo();
+        // Phones share a line; the email gets its own so nothing wraps
+        // mid-line on the printed page.
+        $phoneParts = array_filter([
+            filled($clinic['phone'] ?? null) ? 'Tel. ' . $clinic['phone'] : null,
+            filled($clinic['mobile'] ?? null) ? 'Mobile ' . $clinic['mobile'] : null,
+        ]);
+      @endphp
+      <header class="letterhead">
+        <img class="logo" src="{{ $clinic['logo'] ?? '/images/puspus_logo.png' }}" alt="Pus-Pus Britanico Dental Clinic logo">
+        <div class="letterhead-text">
+          <div class="letterhead-name">Pus-Pus Britanico Dental Clinic</div>
+          @if (filled($clinic['heroSubtitle'] ?? null))
+            <div class="letterhead-tag">{{ $clinic['heroSubtitle'] }}</div>
+          @endif
+          @if (filled($clinic['address'] ?? null))
+            <div class="letterhead-line">{{ $clinic['address'] }}</div>
+          @endif
+          @if ($phoneParts)
+            <div class="letterhead-line">
+              @foreach ($phoneParts as $part)
+                @if (!$loop->first)<span class="sep">|</span>@endif{{ $part }}
+              @endforeach
+            </div>
+          @endif
+          @if (filled($clinic['email'] ?? null))
+            <div class="letterhead-line">{{ $clinic['email'] }}</div>
+          @endif
         </div>
+        <div class="letterhead-spacer" aria-hidden="true"></div>
+      </header>
+
+      <div class="report-title">
+        <h1>{{ $reportTitle }}</h1>
         <div class="meta">
           <div><strong>Range:</strong> {{ $rangeLabel }}</div>
           <div><strong>Generated:</strong> {{ $generatedAt->format('M j, Y g:i A') }}</div>

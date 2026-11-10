@@ -38,10 +38,12 @@
         <li><a class="dropdown-item" href="{{ route('settings', ['tab' => 'security']) }}"><i class="bi bi-shield-lock"></i> Security</a></li>
         <li><hr class="dropdown-divider"></li>
         <li>
-            <form method="POST" action="{{ route('logout') }}" class="m-0">
+            <form method="POST" action="{{ route('logout') }}" class="m-0" data-logout-form>
                 @csrf
                 <button type="submit" class="dropdown-item text-danger"><i class="bi bi-box-arrow-right"></i> Log Out</button>
             </form>
         </li>
     </ul>
 </div>
+
+@include('partials.logout-confirm-modal')

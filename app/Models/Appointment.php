@@ -10,6 +10,43 @@ class Appointment extends Model
     protected $table = 'tbl_appointments';
     protected $primaryKey = 'AppointmentID';
 
+    /**
+     * Reasons a patient picks from when cancelling their own appointment
+     * (portal or manage link). "Other" requires them to type the reason.
+     */
+    public const CANCEL_REASONS = [
+        'Schedule conflict',
+        'Feeling unwell',
+        'Transportation problem',
+        'Financial reasons',
+        'Got treated elsewhere',
+        'No longer needed',
+        'Other',
+    ];
+
+    /**
+     * Validate the cancel-reason fields (partials.cancel-reason-fields) and
+     * return one readable line: "Schedule conflict — can't leave work", or
+     * just the typed text for "Other".
+     */
+    public static function cancelReasonFrom(\Illuminate\Http\Request $request): string
+    {
+        $data = $request->validate([
+            'reason' => 'required|string|in:' . implode(',', self::CANCEL_REASONS),
+            'reason_details' => 'nullable|required_if:reason,Other|string|max:500',
+        ], [
+            'reason.required' => 'Please choose a reason for cancelling.',
+            'reason_details.required_if' => 'Please tell us your reason for cancelling.',
+        ]);
+
+        $details = trim((string) ($data['reason_details'] ?? ''));
+        if ($data['reason'] === 'Other') {
+            return $details;
+        }
+
+        return $details !== '' ? "{$data['reason']} — {$details}" : $data['reason'];
+    }
+
     protected $fillable = [
         'PatientID',
         'DentistID',

@@ -100,10 +100,30 @@
                                 <input type="email" name="email" class="form-control {{ $err('email') }}" value="{{ $val('email', $patient->Email) }}">
                             @endif
                         </div>
-                        <div class="col-12">
-                            <label class="form-label">Address</label>
-                            <input type="text" name="address" class="form-control {{ $err('address') }}" value="{{ $val('address', $patient->Address) }}" required>
+                        {{-- Split like every other address form; address-sync.js joins
+                             it back into the hidden "address" field this form submits,
+                             and ph-address.js turns Province/City/Barangay into dropdowns. --}}
+                        @php $addrParts = array_pad(array_map('trim', explode(',', $patient->Address ?? '', 4)), 4, ''); @endphp
+                        <div class="col-md-6">
+                            <label class="form-label">Street / House No.</label>
+                            <input type="text" name="addr_street" class="form-control addr-part" value="{{ $val('addr_street', $addrParts[0]) }}" placeholder="123 Sample St.">
                         </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Barangay</label>
+                            <input type="text" name="addr_barangay" class="form-control addr-part" value="{{ $val('addr_barangay', $addrParts[1]) }}" placeholder="Barangay">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">City / Municipality</label>
+                            <input type="text" name="addr_city" class="form-control addr-part" value="{{ $val('addr_city', $addrParts[2]) }}" placeholder="City / Municipality" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Province</label>
+                            <input type="text" name="addr_province" class="form-control addr-part" value="{{ $val('addr_province', $addrParts[3]) }}" placeholder="Province" required>
+                        </div>
+                        <input type="hidden" name="address" value="{{ $val('address', $patient->Address) }}">
+                        @if ($err('address'))
+                            <div class="col-12"><div class="field-error"><i class="bi bi-exclamation-circle-fill"></i> {{ $errors->first('address') }}</div></div>
+                        @endif
                     </div>
                 </div>
                 <div class="modal-footer">

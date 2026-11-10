@@ -101,7 +101,7 @@
       </div>
 
       <p class="record-intro">
-        This dental record documents {{ $fullName }}'s visit to Pus-Pus Britanico Dental Clinic on {{ $visitDate }}.
+        This dental record documents {{ $fullName }}'s visit to Puspus-Britanico Dental Clinic on {{ $visitDate }}.
         It includes the patient's personal information, the details of the appointment, the dental chart
         (odontogram) recorded by the attending dentist for this visit{{ $record->Notes ? ', and the dentist\'s notes' : '' }}.
         Teeth are numbered using the FDI (two-digit) system — the first digit is the quadrant and the second is the tooth.
@@ -196,7 +196,7 @@
         </div>
       </div>
 
-      <div class="record-footnote">Pus-Pus Britanico Dental Clinic · This document is confidential and intended only for the patient and the clinic.</div>
+      <div class="record-footnote">Puspus-Britanico Dental Clinic · This document is confidential and intended only for the patient and the clinic.</div>
     </div>
   </div>
 

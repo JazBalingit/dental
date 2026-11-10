@@ -5,9 +5,9 @@
   <meta charset="utf-8">
   <link rel="icon" type="image/png" href="/images/puspus_logo.png">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Pus-Pus Britanico Dental Clinic — Quality & Affordable Dental Care</title>
+  <title>Puspus-Britanico Dental Clinic — Quality & Affordable Dental Care</title>
   <meta name="description"
-    content="Pus-Pus Britanico Dental Clinic provides quality and affordable dental care. Book your appointment online — cleaning, braces, surgery, and more.">
+    content="Puspus-Britanico Dental Clinic provides quality and affordable dental care. Book your appointment online — cleaning, braces, surgery, and more.">
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/7.0.1/css/all.min.css"
@@ -28,9 +28,9 @@
   <nav class="navbar navbar-expand-lg navbar-light fixed-top mask-custom shadow-sm">
     <div class="container-fluid px-3 px-lg-5">
       <a class="navbar-brand d-flex align-items-center" href="#home">
-        <img class="logo" src="/images/puspus_logo.png" alt="Pus-Pus Britanico logo">
-        <span class="navt ms-1" style="color:#0f7a2d;">PUS-PUS</span>
-        <span class="navt ms-2" style="color:#144d25;">BRITANICO</span>
+        <img class="logo" src="/images/puspus_logo.png" alt="Puspus-Britanico logo">
+        <span class="navt ms-1" style="color:#0f7a2d;">PUSPUS-</span>
+        <span class="navt" style="color:#144d25;">BRITANICO</span>
       </a>
       {{-- Phone / tablet: notification bell sits next to the hamburger, outside the
       collapsing menu, so opening it never disturbs the nav links. --}}
@@ -201,7 +201,7 @@
       </div>
       <div class="row align-items-center g-5">
         <div class="col-md-6">
-          <img src="{{ $aboutInfo['image'] }}" class="about-img" alt="Pus-Pus Britanico Dental Clinic">
+          <img src="{{ $aboutInfo['image'] }}" class="about-img" alt="Puspus-Britanico Dental Clinic">
         </div>
         <div class="col-md-6">
           <h3 class="fw-bold mb-3">Location & Hours</h3>
@@ -313,7 +313,7 @@
     <div class="container">
       <div class="row g-4">
         <div class="col-lg-5">
-          <h5 class="text-uppercase fw-bold mb-3">Pus-Pus Britanico Dental Clinic</h5>
+          <h5 class="text-uppercase fw-bold mb-3">Puspus-Britanico Dental Clinic</h5>
           <p>{{ $aboutInfo['footerDescription'] }}</p>
         </div>
         <div class="col-lg-3 col-md-6">

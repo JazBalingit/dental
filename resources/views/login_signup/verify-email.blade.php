@@ -23,7 +23,7 @@
   <main class="auth-main">
     <div class="auth-card" style="max-width: 440px;">
       <div class="text-center mb-4">
-        <div class="auth-emblem"><img src="/images/puspus_logo.png" alt="Pus-Pus Britanico Dental Clinic"></div>
+        <div class="auth-emblem"><img src="/images/puspus_logo.png" alt="Puspus-Britanico Dental Clinic"></div>
         <h2 class="auth-title mb-1">Verify your email</h2>
         <p class="auth-subtitle mb-0">
           Your account was created by the clinic. Before you can use it, confirm that

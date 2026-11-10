@@ -23,7 +23,7 @@
       <div class="brand">
         <div><img class="logo" src="/images/puspus_logo.png" alt=""></div>
         <div>
-          <div class="name">PUS-PUS BRITANICO</div>
+          <div class="name">PUSPUS-BRITANICO</div>
           <div class="sub">DENTAL CLINIC</div>
         </div>
       </div>

@@ -3,9 +3,9 @@
 <nav class="navbar navbar-expand-lg navbar-light fixed-top auth-navbar shadow-sm">
   <div class="container-fluid px-3 px-lg-5">
     <a class="navbar-brand d-flex align-items-center" href="{{ route('landingPage') }}">
-      <img class="auth-nav-logo" src="/images/puspus_logo.png" alt="Pus-Pus Britanico logo">
-      <span class="auth-nav-title ms-1" style="color:#0f7a2d;">PUS-PUS</span>
-      <span class="auth-nav-title ms-2" style="color:#144d25;">BRITANICO</span>
+      <img class="auth-nav-logo" src="/images/puspus_logo.png" alt="Puspus-Britanico logo">
+      <span class="auth-nav-title ms-1" style="color:#0f7a2d;">PUSPUS-</span>
+      <span class="auth-nav-title" style="color:#144d25;">BRITANICO</span>
     </a>
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#authNavbar">
       <span class="navbar-toggler-icon"></span>

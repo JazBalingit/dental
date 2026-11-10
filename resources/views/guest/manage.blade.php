@@ -45,7 +45,7 @@
         </div>
       @else
         <div class="text-center mb-3">
-          <div class="auth-emblem"><img src="/images/puspus_logo.png" alt="Pus-Pus Britanico Dental Clinic"></div>
+          <div class="auth-emblem"><img src="/images/puspus_logo.png" alt="Puspus-Britanico Dental Clinic"></div>
           <h2 class="auth-title mb-1">Your Appointment</h2>
           <p class="auth-subtitle mb-0">View, cancel or reschedule — no login needed.</p>
         </div>

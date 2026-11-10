@@ -180,9 +180,9 @@
         ]);
       @endphp
       <header class="letterhead">
-        <img class="logo" src="{{ $clinic['logo'] ?? '/images/puspus_logo.png' }}" alt="Pus-Pus Britanico Dental Clinic logo">
+        <img class="logo" src="{{ $clinic['logo'] ?? '/images/puspus_logo.png' }}" alt="Puspus-Britanico Dental Clinic logo">
         <div class="letterhead-text">
-          <div class="letterhead-name">Pus-Pus Britanico Dental Clinic</div>
+          <div class="letterhead-name">Puspus-Britanico Dental Clinic</div>
           @if (filled($clinic['heroSubtitle'] ?? null))
             <div class="letterhead-tag">{{ $clinic['heroSubtitle'] }}</div>
           @endif

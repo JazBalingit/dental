@@ -1,4 +1,4 @@
-# Deployment Guide — Pus-Pus Britanico Dental Clinic
+# Deployment Guide — Puspus-Britanico Dental Clinic
 
 Gabay para i-host ang app sa **Railway** (app + MySQL) at i-connect ang **.online domain galing Hostinger**, tapos buksan ang **Resend** para sa email.
 
@@ -79,7 +79,7 @@ I-click ang **app service** (hindi ang MySQL) → tab na **Variables** → **+ N
 Gamitin ang **Raw Editor** at i-paste itong lahat nang sabay, tapos palitan ang mga naka-`<...>`:
 
 ```
-APP_NAME=Pus-Pus Britanico Dental Clinic
+APP_NAME=Puspus-Britanico Dental Clinic
 APP_ENV=production
 APP_KEY=<i-paste ang base64:... galing Step 1.4>
 APP_DEBUG=false
@@ -117,7 +117,7 @@ MAIL_PORT=587
 MAIL_USERNAME=puspusbritanicodentalclinic@gmail.com
 MAIL_PASSWORD=oryasswruqnkgykm
 MAIL_FROM_ADDRESS=puspusbritanicodentalclinic@gmail.com
-MAIL_FROM_NAME=Pus-Pus Britanico Dental Clinic
+MAIL_FROM_NAME=Puspus-Britanico Dental Clinic
 ```
 
 **Mga paalala:**
@@ -305,7 +305,7 @@ Railway → app service → **Variables** → **Raw Editor**. Palitan/tanggalin 
 MAIL_MAILER=resend
 RESEND_API_KEY=<ang re_... API key>
 MAIL_FROM_ADDRESS=noreply@send.<domain-mo>
-MAIL_FROM_NAME=Pus-Pus Britanico Dental Clinic
+MAIL_FROM_NAME=Puspus-Britanico Dental Clinic
 ```
 
 **Tanggalin** (hindi na kailangan ng Resend API): `MAIL_HOST`, `MAIL_PORT`, `MAIL_USERNAME`, `MAIL_PASSWORD`.

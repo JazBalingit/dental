@@ -22,7 +22,7 @@
   <main class="auth-main">
     <div class="auth-card signup-card">
       <div class="text-center mb-3">
-        <div class="auth-emblem"><img src="/images/puspus_logo.png" alt="Pus-Pus Britanico Dental Clinic"></div>
+        <div class="auth-emblem"><img src="/images/puspus_logo.png" alt="Puspus-Britanico Dental Clinic"></div>
         <h2 class="auth-title mb-1">Book an Appointment</h2>
         <p class="auth-subtitle mb-0">No account needed — we'll confirm your email with a quick code.</p>
       </div>

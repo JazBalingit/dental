@@ -19,7 +19,7 @@
             : 'Your appointment has been approved. Kindly arrive at the clinic a few minutes before your scheduled time.'],
         'Completed' => ['Completed', 'success', $isAdminSide
             ? 'This appointment has been completed.'
-            : 'Your appointment has been completed. Thank you for choosing Pus-Pus Britanico Dental Clinic.'],
+            : 'Your appointment has been completed. Thank you for choosing Puspus-Britanico Dental Clinic.'],
         default => [$a->Status, 'muted', null],
     };
 @endphp

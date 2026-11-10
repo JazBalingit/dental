@@ -19,7 +19,7 @@ class EmailChangedMail extends Mailable
 
     public function build()
     {
-        return $this->subject('Your Account Email Was Changed - Pus-Pus Britanico Dental Clinic')
+        return $this->subject('Your Account Email Was Changed - Puspus-Britanico Dental Clinic')
             ->view('emails.email-changed');
     }
 }

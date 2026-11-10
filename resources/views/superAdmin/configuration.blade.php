@@ -22,7 +22,7 @@
       <div class="brand">
         <div><img class="logo" src="/images/puspus_logo.png" alt=""></div>
         <div>
-          <div class="name">PUS-PUS BRITANICO</div>
+          <div class="name">PUSPUS-BRITANICO</div>
           <div class="sub">DENTAL CLINIC</div>
         </div>
       </div>
@@ -247,7 +247,7 @@
                         <label class="form-label">Copyright Line</label>
                         <div class="input-icon @error('footer_copyright') has-error @enderror"><i class="bi bi-c-circle"></i><input type="text" name="footer_copyright"
                             class="form-control" value="{{ old('footer_copyright', $aboutInfo['footerCopyright']) }}"
-                            placeholder="© {{ date('Y') }} Pus-Pus Britanico Dental Clinic. All rights reserved."></div>
+                            placeholder="© {{ date('Y') }} Puspus-Britanico Dental Clinic. All rights reserved."></div>
                         @error('footer_copyright') <div class="field-error"><i class="bi bi-exclamation-circle-fill"></i> {{ $message }}</div> @enderror
                       </div>
                     </div>

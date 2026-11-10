@@ -2,7 +2,7 @@
 <html>
 <body style="font-family: Arial, sans-serif; background:#f4f6f5; padding:24px; margin:0;">
     <div style="max-width:480px;margin:0 auto;background:#ffffff;border-radius:10px;padding:32px;">
-        <h2 style="color:#167d1d; margin-top:0;">Pus-Pus Britanico Dental Clinic</h2>
+        <h2 style="color:#167d1d; margin-top:0;">Puspus-Britanico Dental Clinic</h2>
         <h3 style="color:#1f2a24;">{{ $heading }}</h3>
         <p style="color:#1f2a24; line-height:1.6;">{{ $body }}</p>
 

@@ -114,7 +114,7 @@ class SystemSetting extends Model
             'description' => "We're conveniently located in Pacita Complex, San Pedro. Walk-ins welcome, but booking ahead means no wait.",
             'image' => '/images/clinic2.jpg',
             'heroImage' => '/images/dental_chair.jpg',
-            'heroTitle' => 'PUS-PUS BRITANICO',
+            'heroTitle' => 'PUSPUS-BRITANICO',
             'heroSubtitle' => 'Providing quality and affordable dental care.',
             'heroDescription' => 'Your smile is our priority. Experience compassionate, professional dental care in a welcoming environment.',
             'logo' => '/images/puspus_logo.png',
@@ -124,7 +124,7 @@ class SystemSetting extends Model
             // Landing-page footer: the short blurb and the copyright line. The
             // footer's quick links and contact block are generated elsewhere.
             'footerDescription' => 'Providing quality dental care with compassion and professionalism. Our clinic is dedicated to ensuring every patient receives personalized treatment in a comfortable and welcoming environment. Your smile is our priority.',
-            'footerCopyright' => '© '.date('Y').' Pus-Pus Britanico Dental Clinic. All rights reserved.',
+            'footerCopyright' => '© '.date('Y').' Puspus-Britanico Dental Clinic. All rights reserved.',
         ];
     }
 

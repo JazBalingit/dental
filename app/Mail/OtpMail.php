@@ -24,7 +24,7 @@ class OtpMail extends Mailable
 
     public function build()
     {
-        return $this->subject('Your Verification Code - Pus-Pus Britanico Dental Clinic')
+        return $this->subject('Your Verification Code - Puspus-Britanico Dental Clinic')
             ->view('login_signup.otp');
     }
 }

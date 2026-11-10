@@ -22,7 +22,7 @@
   <main class="auth-main">
     <div class="auth-card gm-card w-100">
       <div class="text-center mb-3">
-        <div class="auth-emblem"><img src="/images/puspus_logo.png" alt="Pus-Pus Britanico Dental Clinic"></div>
+        <div class="auth-emblem"><img src="/images/puspus_logo.png" alt="Puspus-Britanico Dental Clinic"></div>
         <h2 class="auth-title mb-1">Manage My Booking</h2>
         <p class="auth-subtitle mb-0">Booked without an account? Find your appointments with the email you used.</p>
       </div>

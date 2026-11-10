@@ -5,7 +5,7 @@
     <meta charset="UTF-8">
   <link rel="icon" type="image/png" href="/images/puspus_logo.png">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Settings — Patient Portal — Pus-Pus Britanico</title>
+    <title>Settings — Patient Portal — Puspus-Britanico</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/7.0.1/css/all.min.css"
@@ -51,7 +51,7 @@
             <div class="brand">
                 <div><img class="logo" src="/images/puspus_logo.png" alt=""></div>
                 <div>
-                    <div class="name">PUS-PUS BRITANICO</div>
+                    <div class="name">PUSPUS-BRITANICO</div>
                     <div class="sub">PATIENT PORTAL</div>
                 </div>
             </div>

@@ -10,7 +10,7 @@
 
 <body style="font-family: Arial, sans-serif; background:#f4f6f5; padding:24px; margin:0; -webkit-text-size-adjust:100%; -ms-text-size-adjust:100%; text-size-adjust:100%;">
     <div style="max-width:480px;margin:0 auto;background:#ffffff;border-radius:10px;padding:32px;">
-        <h2 style="color:#167d1d; margin-top:0;">Pus-Pus Britanico Dental Clinic</h2>
+        <h2 style="color:#167d1d; margin-top:0;">Puspus-Britanico Dental Clinic</h2>
         <p style="color:#1f2a24;">Use the code below to {{ $purpose }}:</p>
 
         <div style="font-size:28px;font-weight:700;letter-spacing:4px;text-align:center;

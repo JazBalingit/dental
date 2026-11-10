@@ -102,7 +102,7 @@ class AppointmentsController extends Controller
         $this->notifications->notifyPatient(
             $appointment,
             'Appointment Completed',
-            'Your appointment has been completed. Thank you for choosing Pus-Pus Britanico Dental Clinic.',
+            'Your appointment has been completed. Thank you for choosing Puspus-Britanico Dental Clinic.',
             'success',
             'Completed'
         );

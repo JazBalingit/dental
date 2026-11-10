@@ -7,6 +7,7 @@ use App\Http\Middleware\EnsurePatientIsVerified;
 use App\Http\Middleware\EnsureStaffIsVerified;
 use App\Http\Middleware\EnsureSuperAdmin;
 use App\Http\Middleware\EnsureSuperAdminClaimed;
+use App\Http\Middleware\RedirectIfSignedIn;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
@@ -40,6 +41,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'superadmin' => EnsureSuperAdmin::class,
             'config.access' => EnsureConfigurationAccess::class,
             'auth.session' => EnsureAuthenticated::class,
+            'signed.out' => RedirectIfSignedIn::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {

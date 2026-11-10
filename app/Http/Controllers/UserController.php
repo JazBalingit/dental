@@ -23,13 +23,9 @@ class UserController extends Controller
     // show landing page front end
     public function showLandingPage(Request $request, \App\Http\Controllers\AppointmentBookingController $booking)
     {
-        // Booking and appointment management live in the Patient Portal now
-        // (see showUserAppointment) — a logged-in patient never sees this
-        // public page. Admin/staff sessions are left alone; they land on
-        // /dashboard at login and have no reason to hit this route anyway.
-        if (session('user_id') && !in_array(session('user_role'), UserAccount::ADMIN_ROLES, true)) {
-            return redirect()->route('userAppointment');
-        }
+        // Logged-out visitors only. Anyone still signed in — patient, staff
+        // or super admin — is sent back to their own side by the route's
+        // `signed.out` middleware (RedirectIfSignedIn) before reaching here.
 
         // Read-only schedule preview for guests — calendarData() degrades
         // gracefully with no session (bookCurrentPatientId simply ends up

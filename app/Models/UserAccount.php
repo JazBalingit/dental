@@ -19,6 +19,17 @@ class UserAccount extends Model
      */
     public const ADMIN_ROLES = ['admin', 'super admin'];
 
+    /**
+     * Where a signed-in account belongs: the admin panel for staff and the
+     * super admin, the Patient Portal for patients. Used right after login
+     * and whenever a signed-in user opens a logged-out page (landing, login,
+     * sign-up) — see RedirectIfSignedIn.
+     */
+    public static function homeRouteFor(?string $role): string
+    {
+        return in_array($role, self::ADMIN_ROLES, true) ? 'dashboard' : 'userAppointment';
+    }
+
     protected $fillable = [
         'Email',
         'Password',

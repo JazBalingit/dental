@@ -48,10 +48,14 @@ use App\Http\Controllers\PatientVerificationController;
 // Root shows the real landing page (controller action, not a closure, so
 // `php artisan route:cache` can still serialize it). /landing-page keeps
 // working too — route('landingPage') is used all over the views/nav.
-Route::get('/', [UserController::class, 'showLandingPage'])->name('home');
+//
+// `signed.out` (RedirectIfSignedIn) on the landing page, Log In and Sign Up:
+// someone still signed in — e.g. closed the tab without logging out — goes
+// back to their own dashboard / Patient Portal instead of the public page.
+Route::get('/', [UserController::class, 'showLandingPage'])->middleware('signed.out')->name('home');
 
 // ---- Public pages ----
-Route::get('landing-page', [UserController::class, 'showLandingPage'])->name('landingPage');
+Route::get('landing-page', [UserController::class, 'showLandingPage'])->middleware('signed.out')->name('landingPage');
 
 // Landing-page "Contact Us" form — open to guests and signed-in patients alike.
 Route::post('/contact', [ContactController::class, 'send'])->name('contact.send');
@@ -82,14 +86,14 @@ Route::post('/manage-booking/verify', [ManageAppointmentController::class, 'look
 Route::post('/manage-booking/reset', [ManageAppointmentController::class, 'lookupReset'])->name('manage.lookup.reset');
 
 // ---- Signup + OTP verification ----
-Route::get('/signup', [RegisterController::class, 'create'])->name('signup');
+Route::get('/signup', [RegisterController::class, 'create'])->middleware('signed.out')->name('signup');
 Route::post('/signup', [RegisterController::class, 'store'])->name('register.store');
 Route::post('/signup/verify-otp', [RegisterController::class, 'verify'])->name('register.verify');
 Route::post('/signup/resend-otp', [RegisterController::class, 'resend'])->name('register.resend');
 Route::post('/signup/cancel-otp', [RegisterController::class, 'cancelOtp'])->name('register.cancel');
 
 // ---- Login / Logout ----
-Route::get('/login', [LoginController::class, 'create'])->name('login');
+Route::get('/login', [LoginController::class, 'create'])->middleware('signed.out')->name('login');
 Route::post('/login', [LoginController::class, 'login'])->name('login.store');
 Route::post('/logout', [LoginController::class, 'logout'])->name('logout');
 

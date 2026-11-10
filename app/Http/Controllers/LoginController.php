@@ -109,9 +109,7 @@ class LoginController extends Controller
 
         session(['activity_log_id' => $this->activityLog->startSession($user->UserID)]);
 
-        return in_array($user->AccountRole, UserAccount::ADMIN_ROLES, true)
-            ? redirect()->route('dashboard')
-            : redirect()->route('userAppointment');
+        return redirect()->route(UserAccount::homeRouteFor($user->AccountRole));
     }
 
     /**

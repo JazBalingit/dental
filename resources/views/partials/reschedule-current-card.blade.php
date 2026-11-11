@@ -24,7 +24,7 @@
         <div class="rs-card-steps">
             @if ($audience === 'staff')
                 <i class="bi bi-info-circle me-1"></i> Pick a new date and time below. The patient is notified and can
-                <strong>accept</strong> it, <strong>choose another time</strong>, or <strong>keep the original</strong>. Until they answer, both the
+                <strong>accept</strong> it, <strong>choose another time</strong>, or <strong>decline</strong> it (declining cancels the appointment). Until they answer, both the
                 original and the proposed time stay reserved; an unanswered proposal expires after {{ \App\Models\RescheduleRequest::RESPONSE_HOURS }} hours
                 (or when the original visit starts).
             @else

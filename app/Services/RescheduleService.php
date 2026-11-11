@@ -17,7 +17,8 @@ use RuntimeException;
  *  Staff propose  → the original slot stays reserved AND the proposed slot is
  *                   held (schedule rows Not Available) so nobody else takes it.
  *  Patient accepts → the appointment moves; the old slot is released.
- *  Patient keeps the original / staff withdraw / it expires → the hold is released.
+ *  Patient declines → the appointment is cancelled; both holds are released.
+ *  Staff withdraw / it expires → the hold is released, the original time stays.
  *  Patient picks their own time → the appointment moves there as Pending
  *                   (staff approve it again); any open proposal is dropped.
  *
@@ -79,7 +80,7 @@ class RescheduleService
             'New Time Proposed for Your Appointment',
             "The clinic would like to move your appointment to {$proposal->when_label} with {$dentist->display_name}."
                 . ($proposal->Reason ? " Reason: {$proposal->Reason}." : '')
-                . ' Open your appointment (Patient Portal → Current Appointments, or the "Manage my appointment" button) to accept it, choose another time, or keep your original schedule. Please respond by '
+                . ' Open your appointment (Patient Portal → Current Appointments, or the "Manage my appointment" button) to accept it or choose another time. Declining it cancels the appointment. Please respond by '
                 . $proposal->ExpiresAt->format('M j, g:i A') . '.',
             'warning'
         );
@@ -147,26 +148,52 @@ class RescheduleService
         return $appointment;
     }
 
-    /** Patient keeps the original time: the proposal is dropped and its hold released. */
-    public function decline(RescheduleRequest $proposal): void
+    /**
+     * Patient declines the proposed time: the appointment is CANCELLED (not
+     * kept at its original time). Both the proposal's hold and the original
+     * slots are released, and the patient (bell + email) and the clinic are told.
+     */
+    public function decline(RescheduleRequest $proposal): Appointment
     {
-        DB::transaction(function () use ($proposal) {
+        $appointment = DB::transaction(function () use (&$proposal) {
             $proposal = RescheduleRequest::lockForUpdate()->findOrFail($proposal->RescheduleID);
             $this->assertOpen($proposal);
+            $appointment = Appointment::with('patientInfo.userAccount')->lockForUpdate()->findOrFail($proposal->AppointmentID);
+
             $proposal->update(['Status' => 'Declined', 'RespondedAt' => now()]);
             $this->release($proposal->ProposedDentistID, $proposal->ProposedDate->format('Y-m-d'), $proposal->held_times);
+
+            if (in_array($appointment->Status, ['Pending', 'Approved'], true)) {
+                $times = $this->timesOf($appointment);
+                $appointment->Status = 'Cancelled';
+                $appointment->DeclineReason = "Cancelled because the patient declined the proposed new time ({$proposal->when_label}).";
+                $appointment->save();
+                $this->release($appointment->DentistID, $appointment->AppointmentDate->format('Y-m-d'), $times);
+            }
+
+            return $appointment;
         });
 
-        $appointment = $proposal->appointment()->with('patientInfo')->first();
+        $when = "{$appointment->AppointmentDate->format('F j, Y')}, {$appointment->time_range_label}";
         $patientName = $this->patientName($appointment);
-        $this->notifications->notifyAdmins(
-            'Reschedule Declined',
-            "{$patientName} kept their original time ({$appointment->AppointmentDate->format('F j, Y')}, {$appointment->time_range_label}) instead of the proposed one.",
-            'info',
-            $appointment->AppointmentID,
-            $appointment->Status
+
+        $this->notifications->notifyPatient(
+            $appointment,
+            'Appointment Cancelled',
+            "You declined the proposed new time ({$proposal->when_label}), so your appointment on {$when} has been cancelled. You're welcome to book a new appointment anytime.",
+            'danger',
+            'Cancelled'
         );
-        $this->activityLog->log('Reschedule Declined', "Kept the original appointment time instead of the proposed {$proposal->when_label}.");
+        $this->notifications->notifyAdmins(
+            'Reschedule Declined — Appointment Cancelled',
+            "{$patientName} declined the proposed new time ({$proposal->when_label}), so their appointment on {$when} was cancelled and the time is open again.",
+            'danger',
+            $appointment->AppointmentID,
+            'Cancelled'
+        );
+        $this->activityLog->log('Reschedule Declined', "Declined the proposed new time ({$proposal->when_label}) — the appointment on {$when} was cancelled.");
+
+        return $appointment;
     }
 
     /** Staff take back an open proposal. */

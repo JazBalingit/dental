@@ -103,7 +103,7 @@ class RescheduleController extends Controller
             return redirect()->route('userAppointment')->with('error', $e->getMessage());
         }
 
-        return redirect()->route('userAppointment')->with('success', 'Got it — you kept your original appointment time. The clinic has been told.');
+        return redirect()->route('userAppointment')->with('success', 'You declined the new time, so your appointment has been cancelled. You can book a new one anytime.');
     }
 
     /** /user-appointment/{appointment}/reschedule — the patient picks their own new time. */

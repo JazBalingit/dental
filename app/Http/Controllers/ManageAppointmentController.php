@@ -162,7 +162,7 @@ class ManageAppointmentController extends Controller
             return redirect()->route('manage.show', $token)->with('error', $e->getMessage());
         }
 
-        return redirect()->route('manage.show', $token)->with('success', 'Got it — you kept your original appointment time. The clinic has been told.');
+        return redirect()->route('manage.show', $token)->with('success', 'You declined the new time, so your appointment has been cancelled. You can book a new one anytime.');
     }
 
     // ---------------- "Manage my booking" lookup ----------------

@@ -125,11 +125,11 @@
                                     </form>
                                     <a href="{{ route('userAppointment.reschedule', $current->AppointmentID) }}" class="btn-outline" style="text-decoration:none;"><i class="fas fa-calendar-plus"></i> Choose another time</a>
                                     <form method="POST" action="{{ route('myReschedules.decline', $rs->RescheduleID) }}" class="m-0"
-                                        data-confirm-title="Keep your original time?"
-                                        data-confirm-message="You'll stay on {{ $current->AppointmentDate->format('F j, Y') }}, {{ $current->time_range_label }}, and the proposed time will be released."
-                                        data-confirm-label="Keep original" data-confirm-class="btn-pill-archive">
+                                        data-confirm-title="Decline the new time?"
+                                        data-confirm-message="Declining cancels your appointment on {{ $current->AppointmentDate->format('F j, Y') }}, {{ $current->time_range_label }}. You can book a new appointment anytime."
+                                        data-confirm-label="Decline and cancel" data-confirm-class="btn-pill-cancel">
                                         @csrf
-                                        <button type="submit" class="btn-outline"><i class="fas fa-undo"></i> Keep original time</button>
+                                        <button type="submit" class="btn-outline"><i class="fas fa-times"></i> Decline</button>
                                     </form>
                                 </div>
                             </div>
@@ -217,7 +217,10 @@
                                         <strong>The clinic proposed a new time:</strong> {{ $ors->when_label }}
                                         <div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:6px;">
                                             <form method="POST" action="{{ route('myReschedules.accept', $ors->RescheduleID) }}" class="m-0">@csrf<button type="submit" class="btn-prim"><i class="fas fa-check"></i> Accept</button></form>
-                                            <form method="POST" action="{{ route('myReschedules.decline', $ors->RescheduleID) }}" class="m-0">@csrf<button type="submit" class="btn-outline"><i class="fas fa-undo"></i> Keep original</button></form>
+                                            <form method="POST" action="{{ route('myReschedules.decline', $ors->RescheduleID) }}" class="m-0"
+                                                data-confirm-title="Decline the new time?"
+                                                data-confirm-message="Declining cancels this appointment on {{ $other->AppointmentDate->format('F j, Y') }}, {{ $other->time_range_label }}. You can book a new appointment anytime."
+                                                data-confirm-label="Decline and cancel" data-confirm-class="btn-pill-cancel">@csrf<button type="submit" class="btn-outline"><i class="fas fa-times"></i> Decline</button></form>
                                         </div>
                                     </div>
                                 @endif

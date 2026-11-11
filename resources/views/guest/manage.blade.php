@@ -93,9 +93,7 @@
             <form method="POST" action="{{ route('manage.proposal.accept', $a->ManageToken) }}" class="m-0">@csrf
               <button type="submit" class="btn btn-brand btn-sm"><i class="bi bi-check2 me-1"></i> Accept new time</button>
             </form>
-            <form method="POST" action="{{ route('manage.proposal.decline', $a->ManageToken) }}" class="m-0">@csrf
-              <button type="submit" class="btn btn-ghost btn-sm"><i class="bi bi-arrow-counterclockwise me-1"></i> Keep original time</button>
-            </form>
+            <button type="button" class="btn btn-ghost btn-sm" data-bs-toggle="modal" data-bs-target="#gmDeclineModal"><i class="bi bi-x-lg me-1"></i> Decline</button>
           </div>
         </div>
       @endif
@@ -153,6 +151,30 @@
             <div class="modal-footer">
               <button type="button" class="btn btn-ghost" data-bs-dismiss="modal">Keep it</button>
               <button type="submit" class="btn btn-danger"><i class="bi bi-x-circle me-1"></i> Yes, cancel</button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  @endif
+
+  @if ($isActive && $rs)
+    {{-- Declining the clinic's proposed time cancels the appointment. --}}
+    <div class="modal fade" id="gmDeclineModal" tabindex="-1" aria-hidden="true">
+      <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+          <form method="POST" action="{{ route('manage.proposal.decline', $a->ManageToken) }}">
+            @csrf
+            <div class="modal-header">
+              <h5 class="modal-title"><i class="bi bi-exclamation-triangle me-2" style="color:#ef4444"></i>Decline the new time?</h5>
+              <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+              <p class="mb-0">Declining cancels your <strong>{{ $a->AppointmentDate->format('M j') }} · {{ $a->time_range_label }}</strong> appointment. You can book a new appointment anytime.</p>
+            </div>
+            <div class="modal-footer">
+              <button type="button" class="btn btn-ghost" data-bs-dismiss="modal">Go back</button>
+              <button type="submit" class="btn btn-danger"><i class="bi bi-x-circle me-1"></i> Decline and cancel</button>
             </div>
           </form>
         </div>

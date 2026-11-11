@@ -38,6 +38,11 @@ class PatientInfo extends Model
     protected $casts = [
         'DateOfBirth' => 'date:Y-m-d',
         'IsWalkIn' => 'boolean',
+        // "EDERLYN SALE" → "Ederlyn Sale" (see App\Casts\PersonName).
+        'FirstName' => \App\Casts\PersonName::class,
+        'MiddleName' => \App\Casts\PersonName::class,
+        'LastName' => \App\Casts\PersonName::class,
+        'ParentsName' => \App\Casts\PersonName::class,
     ];
 
     // Usage in Blade: $patientInfo->photo_url

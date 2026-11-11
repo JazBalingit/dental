@@ -27,6 +27,10 @@ class StaffInfo extends Model
 
     protected $casts = [
         'DateOfBirth' => 'date:Y-m-d',
+        // "EDERLYN SALE" → "Ederlyn Sale" (see App\Casts\PersonName).
+        'FirstName' => \App\Casts\PersonName::class,
+        'MiddleName' => \App\Casts\PersonName::class,
+        'LastName' => \App\Casts\PersonName::class,
     ];
 
     /** Age in years — from the birthdate when known, else the stored Age. */

@@ -75,6 +75,7 @@ class Appointment extends Model
         'ApprovedAt' => 'datetime',
         'DurationHours' => 'float',
         'BookedForOther' => 'boolean',
+        'BookedByName' => \App\Casts\PersonName::class,
     ];
 
     /**

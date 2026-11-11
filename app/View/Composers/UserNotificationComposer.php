@@ -22,9 +22,8 @@ class UserNotificationComposer
         $navUserName = session('user_email');
         if ($userId) {
             $account = UserAccount::with('patientInfo')->find($userId);
-            $photo = $account?->patientInfo?->ProfilePicture;
-            if ($photo) {
-                $navUserPhoto = asset($photo);
+            if ($account?->patientInfo) {
+                $navUserPhoto = $account->patientInfo->photo_url;
             }
             $fullName = trim(($account?->patientInfo?->FirstName ?? '') . ' ' . ($account?->patientInfo?->LastName ?? ''));
             if ($fullName) {

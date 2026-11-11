@@ -22,6 +22,7 @@ use App\Http\Controllers\OdontogramController;
 use App\Http\Controllers\BackupController;
 use App\Http\Controllers\ConfigurationController;
 use App\Http\Controllers\WalkInController;
+use App\Http\Controllers\ProfilePhotoController;
 use App\Http\Controllers\ReportController;
 use App\Http\Controllers\ContactController;
 use App\Http\Controllers\EmailChangeController;
@@ -84,6 +85,9 @@ Route::get('/manage-booking', [ManageAppointmentController::class, 'lookup'])->n
 Route::post('/manage-booking/send', [ManageAppointmentController::class, 'lookupSend'])->name('manage.lookup.send');
 Route::post('/manage-booking/verify', [ManageAppointmentController::class, 'lookupVerify'])->name('manage.lookup.verify');
 Route::post('/manage-booking/reset', [ManageAppointmentController::class, 'lookupReset'])->name('manage.lookup.reset');
+
+// ---- Profile photos (stored in the database; the controller requires a signed-in session) ----
+Route::get('/profile-photos/{id}', [ProfilePhotoController::class, 'show'])->whereNumber('id')->name('profilePhotos.show');
 
 // ---- Signup + OTP verification ----
 Route::get('/signup', [RegisterController::class, 'create'])->middleware('signed.out')->name('signup');
@@ -230,6 +234,7 @@ Route::middleware('admin')->group(function () {
     // Staff self-service profile (view info, verify email, change password)
     Route::get('/staff-profile', [StaffProfileController::class, 'edit'])->name('staffProfile');
     Route::post('/staff-profile/update', [StaffProfileController::class, 'updateProfile'])->name('staffProfile.updateProfile');
+    Route::post('/staff-profile/photo', [StaffProfileController::class, 'updatePhoto'])->name('staffProfile.updatePhoto');
     Route::post('/staff-profile/send-verification', [StaffProfileController::class, 'sendVerification'])->name('staffProfile.sendVerification');
     Route::post('/staff-profile/verify-email', [StaffProfileController::class, 'verifyEmail'])->name('staffProfile.verifyEmail');
     Route::post('/staff-profile/update-password', [StaffProfileController::class, 'updatePassword'])->name('staffProfile.password.update');

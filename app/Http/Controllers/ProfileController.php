@@ -80,10 +80,7 @@ class ProfileController extends Controller
         ];
 
         if ($request->hasFile('photo')) {
-            $file = $request->file('photo');
-            $filename = 'patient_' . $patientInfo->PatientID . '_' . time() . '.' . $file->getClientOriginalExtension();
-            $file->move(public_path('images/profiles'), $filename);
-            $updates['ProfilePicture'] = 'images/profiles/' . $filename;
+            $updates['ProfilePicture'] = \App\Models\ProfilePhoto::storeUpload($request->file('photo'), $patientInfo->ProfilePicture);
         }
 
         // Work out which fields actually changed so the activity log can

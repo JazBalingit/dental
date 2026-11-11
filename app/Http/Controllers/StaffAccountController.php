@@ -112,13 +112,7 @@ class StaffAccountController extends Controller
             'IsArchived' => false,
         ]);
 
-        $photoPath = null;
-        if ($request->hasFile('photo')) {
-            $file = $request->file('photo');
-            $filename = 'staff_' . $account->UserID . '_' . time() . '.' . $file->getClientOriginalExtension();
-            $file->move(public_path('images/profiles'), $filename);
-            $photoPath = 'images/profiles/' . $filename;
-        }
+        $photoPath = $request->hasFile('photo') ? \App\Models\ProfilePhoto::storeUpload($request->file('photo')) : null;
 
         StaffInfo::create([
             'UserID' => $account->UserID,
@@ -188,10 +182,7 @@ class StaffAccountController extends Controller
         ];
 
         if ($request->hasFile('photo')) {
-            $file = $request->file('photo');
-            $filename = 'staff_' . $account->UserID . '_' . time() . '.' . $file->getClientOriginalExtension();
-            $file->move(public_path('images/profiles'), $filename);
-            $updates['ProfilePicture'] = 'images/profiles/' . $filename;
+            $updates['ProfilePicture'] = \App\Models\ProfilePhoto::storeUpload($request->file('photo'), $info->ProfilePicture);
         }
 
         $info->update($updates);

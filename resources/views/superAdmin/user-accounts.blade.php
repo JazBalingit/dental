@@ -466,16 +466,8 @@
     <script src="{{ asset('js/ph-address.js') }}"></script>
     <script src="{{ asset('js/birthdate-age.js') }}"></script>
     <script>
-        document.querySelectorAll('input[type="file"][name="photo"]').forEach(function (input) {
-            input.addEventListener('change', function () {
-                var file = input.files[0];
-                if (file && file.size > 5 * 1024 * 1024) {
-                    alert('The photo is too large. Please choose an image up to 5MB only.');
-                    input.value = '';
-                }
-            });
-        });
     </script>
+    <script src="{{ asset('js/profile-photo.js') }}"></script>
 </body>
 
 </html>

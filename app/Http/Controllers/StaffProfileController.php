@@ -101,6 +101,24 @@ class StaffProfileController extends Controller
         return redirect()->route('staffProfile')->with('success', 'Profile updated successfully.');
     }
 
+    /** My Profile → Change Photo: staff, dentists and admins set their own photo. */
+    public function updatePhoto(Request $request)
+    {
+        $staff = $this->currentStaff();
+
+        $request->validate(
+            ['photo' => 'required|image|mimes:jpg,jpeg,png,webp|max:5120'],
+            ['photo.max' => 'The photo is too large. Please choose an image up to 5MB.', 'photo.mimes' => 'Please choose a JPG, PNG or WebP photo.']
+        );
+
+        // Staff keep it on their StaffInfo; the super admin (no StaffInfo) on the account.
+        $owner = $staff->staffInfo ?? $staff;
+        $owner->update(['ProfilePicture' => \App\Models\ProfilePhoto::storeUpload($request->file('photo'), $owner->ProfilePicture)]);
+        $this->activityLog->log('Profile Updated', 'Changed own profile photo (My Profile).', $staff->UserID);
+
+        return redirect()->route('staffProfile')->with('success', 'Profile photo updated.');
+    }
+
     public function sendVerification(Request $request)
     {
         $staff = $this->currentStaff();

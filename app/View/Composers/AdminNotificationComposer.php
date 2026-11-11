@@ -34,7 +34,7 @@ class AdminNotificationComposer
             'adminAccountEmail' => $email,
             // Staff profile photo for the sidebar badge; falls back to the
             // shared default avatar when there's no StaffInfo / no upload.
-            'adminAccountPhoto' => $account?->staffInfo?->photo_url ?? asset('images/default.png'),
+            'adminAccountPhoto' => $account?->photo_url ?? asset('images/default.png'),
         ]);
 
         if (!$isAdmin) {

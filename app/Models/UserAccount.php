@@ -43,7 +43,20 @@ class UserAccount extends Model
         'EmailVerifiedAt',
         'LastLoginAt',
         'IsSuperAdmin',
+        'ProfilePicture',
     ];
+
+    /**
+     * The account's photo: the staff photo when there's a StaffInfo row,
+     * else the account's own (the super admin has no StaffInfo), else the
+     * default avatar.
+     */
+    public function getPhotoUrlAttribute(): string
+    {
+        return ProfilePhoto::urlFor($this->staffInfo?->ProfilePicture)
+            ?? ProfilePhoto::urlFor($this->ProfilePicture)
+            ?? asset('images/default.png');
+    }
 
     protected $casts = [
         'EmailVerifiedAt' => 'datetime',

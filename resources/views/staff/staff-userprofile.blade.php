@@ -85,13 +85,22 @@
                         <div class="settings-pane" data-profile-pane="profile" @if ($activeTab !== 'profile') hidden @endif>
                             <div class="card-soft p-3 p-md-4">
                                 <div class="d-flex align-items-center gap-3 mb-4">
-                                    <img class="avatar-initials" src="{{ $si->photo_url ?? asset('images/default.png') }}" alt="" style="width:72px;height:72px;">
+                                    <img class="avatar-initials" src="{{ $staff->photo_url }}" alt="" style="width:72px;height:72px;object-fit:cover;">
                                     <div>
                                         <h5 class="fw-semibold mb-1">{{ $si->FirstName ?? '' }} {{ $si->LastName ?? '' }}{{ $si ? '' : ($isSuperAdmin ? 'Super Admin' : 'Administrator') }}</h5>
                                         <span class="pill pill-info">{{ $isSuperAdmin ? 'Super Admin' : ucfirst($staff->AccountRole) }}</span>
                                         @if ($staff->Position)
                                             <span class="pill pill-success">{{ $staff->Position }}</span>
                                         @endif
+                                        {{-- Picking a photo uploads it straight away (shrunk in the browser first). --}}
+                                        <form method="POST" action="{{ route('staffProfile.updatePhoto') }}" enctype="multipart/form-data" class="mt-2">
+                                            @csrf
+                                            <label class="btn btn-pill btn-pill-edit" style="cursor:pointer;"><i class="bi bi-camera"></i> Change Photo
+                                                <input type="file" name="photo" accept=".jpg,.jpeg,.png,.webp" class="d-none" data-photo-autosubmit>
+                                            </label>
+                                            <span class="small text-muted-2 ms-1">JPG or PNG</span>
+                                        </form>
+                                        @error('photo') <div class="small text-danger mt-1">{{ $message }}</div> @enderror
                                     </div>
                                 </div>
 
@@ -412,6 +421,7 @@
             });
         });
     </script>
+    <script src="{{ asset('js/profile-photo.js') }}"></script>
 </body>
 
 </html>

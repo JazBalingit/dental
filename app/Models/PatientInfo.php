@@ -48,11 +48,9 @@ class PatientInfo extends Model
     // Usage in Blade: $patientInfo->photo_url
     public function getPhotoUrlAttribute()
     {
-        // Fall back to the default avatar when the file is gone (e.g. an upload
-        // wiped by a Railway redeploy), instead of rendering a broken image.
-        return $this->ProfilePicture && is_file(public_path($this->ProfilePicture))
-            ? asset($this->ProfilePicture)
-            : asset('images/default.png');
+        // Stored in the database (survives redeploys); the default avatar when
+        // there's no photo, or an old file upload has since been wiped.
+        return ProfilePhoto::urlFor($this->ProfilePicture) ?? asset('images/default.png');
     }
 
     /** Age in years — from the birthdate when known, else the stored Age. */

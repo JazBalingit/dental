@@ -127,16 +127,12 @@
         padding-left: .5rem;
     }
 
-    /* Review & Confirm — landscape: summary (left) | note + photos + buttons (right). */
-    .book-confirm-view:not([hidden]) { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.25fr); gap: 1rem 1.25rem; align-items: start; }
-    .book-confirm-head { grid-column: 1 / -1; padding-bottom: .75rem; border-bottom: 1px solid #edf1ee; }
-    /* Reschedule review has nothing beside the summary — keep it one column. */
-    .book-confirm-view.is-single:not([hidden]) { grid-template-columns: minmax(0, 1fr); gap: .85rem; }
+    /* Review & Confirm — one column (summary, then medical history, note +
+       photos, buttons), scrolling inside the modal body. */
+    .book-confirm-view:not([hidden]) { display: flex; flex-direction: column; gap: 1rem; }
+    .book-confirm-head { padding-bottom: .75rem; border-bottom: 1px solid #edf1ee; }
     .book-confirm-summary .py-2 { padding-top: .45rem !important; padding-bottom: .45rem !important; }
     .book-confirm-form .book-photos { margin-bottom: .75rem !important; }
-    @media (max-width: 767.98px) {
-        .book-confirm-view:not([hidden]) { grid-template-columns: minmax(0, 1fr); }
-    }
 
     /* Optional booking photos (Review & Confirm step). */
     .book-photos { border: 1px dashed #cfe9d3; border-radius: .75rem; padding: .75rem .85rem; background: #fbfefb; text-align: left; }
@@ -230,10 +226,15 @@
         font-size: .7rem; font-weight: 700; text-transform: uppercase; letter-spacing: .04em;
         color: var(--ink-500, #64748b); margin-bottom: .4rem; display: flex; align-items: center; gap: .35rem;
     }
-    .book-time-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(92px, 1fr)); gap: .4rem; }
+    /* Chips show a range ("9:00 – 9:30 AM"), so they need a little more room. */
+    .book-time-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(136px, 1fr)); gap: .4rem; }
     .book-time-chip {
         border: 1px solid #cfe9d3; background: #f3fbf4; color: #14532d; border-radius: .5rem;
-        padding: .45rem .3rem; font-size: .85rem; font-weight: 600; transition: all .12s ease;
+        padding: .45rem .3rem; font-size: .8rem; font-weight: 600; white-space: nowrap; transition: all .12s ease;
+    }
+    @media (max-width: 575.98px) {
+        .book-time-grid { grid-template-columns: repeat(auto-fill, minmax(122px, 1fr)); }
+        .book-time-chip { font-size: .74rem; padding: .45rem .15rem; }
     }
     .book-time-chip:hover { background: #e3f6e6; border-color: var(--brand-500, #33bd3c); }
     .book-time-chip.is-selected { background: var(--brand-700, #167d1d); border-color: var(--brand-700, #167d1d); color: #fff; }
@@ -574,7 +575,8 @@
                                                                     <div class="book-time-group-label"><i class="bi {{ $group['icon'] }}"></i> {{ $group['label'] }}</div>
                                                                     <div class="book-time-grid">
                                                                         @foreach ($group['times'] as $time => $label)
-                                                                            <button type="button" class="book-time-chip" data-time="{{ $time }}" data-label="{{ $label }}">{{ $label }}</button>
+                                                                            @php $range = \App\Models\DentistSchedule::slotChipLabel($time); @endphp
+                                                                            <button type="button" class="book-time-chip" data-time="{{ $time }}" data-label="{{ $label }}" data-range="{{ $range }}">{{ $range }}</button>
                                                                         @endforeach
                                                                     </div>
                                                                 </div>
@@ -708,7 +710,7 @@
                                                 <div class="book-time-group-label"><i class="bi {{ $group['icon'] }}"></i> {{ $group['label'] }}</div>
                                                 <div class="book-time-grid">
                                                     @foreach ($group['times'] as $time => $label)
-                                                        <span class="book-time-chip is-static">{{ $label }}</span>
+                                                        <span class="book-time-chip is-static">{{ \App\Models\DentistSchedule::slotChipLabel($time) }}</span>
                                                     @endforeach
                                                 </div>
                                             </div>
@@ -740,8 +742,8 @@
                             @endif
 
                             @if (!$readOnly && $calendarMode === 'post' && $bookInteractive)
-                                {{-- Landscape review: summary on the left, note/photos + buttons on the right
-                                     (stacks to one column on phones). --}}
+                                {{-- Review step: one scrollable column — summary, then the
+                                     extra fields (who / medical history), note + photos, buttons. --}}
                                 <div class="book-confirm-view {{ $isReschedule ? 'is-single' : '' }}" hidden>
                                     <div class="book-confirm-head d-flex align-items-center gap-3">
                                         <div class="d-inline-flex align-items-center justify-content-center rounded-circle flex-none"
@@ -986,9 +988,14 @@
 
         slotsView.hidden = true;
         confirmView.hidden = false;
-        // Landscape review: widen the window while the review step is showing,
-        // and drop the bottom Close bar (✕ and Back cover it) to save height.
-        if (!confirmView.classList.contains('is-single')) modalEl.querySelector('.modal-dialog').classList.add('modal-xl');
+        // One-column review that scrolls inside the window (header stays put),
+        // a little wider while it shows; the bottom Close bar is dropped
+        // (✕ and Back cover it). The picker step itself stays unscrollable so
+        // its time dropdown isn't clipped.
+        var dialog = modalEl.querySelector('.modal-dialog');
+        dialog.classList.add('modal-dialog-scrollable');
+        if (!confirmView.classList.contains('is-single')) dialog.classList.add('modal-lg');
+        modalEl.querySelector('.modal-body').scrollTop = 0;
         modalEl.querySelector('.modal-footer')?.classList.add('d-none');
         return;
       }
@@ -1001,7 +1008,7 @@
         var confirm = modal.querySelector('.book-confirm-view');
         if (slots) slots.hidden = false;
         if (confirm) confirm.hidden = true;
-        modal.querySelector('.modal-dialog').classList.remove('modal-xl');
+        modal.querySelector('.modal-dialog').classList.remove('modal-lg', 'modal-dialog-scrollable');
         modal.querySelector('.modal-footer')?.classList.remove('d-none');
       }
     });
@@ -1016,7 +1023,7 @@
       var openTimes = JSON.parse(picker.dataset.openTimes || '[]');
 
       var toggleText = picker.querySelector('.book-time-toggle-text');
-      toggleText.textContent = label || 'Select a time';
+      toggleText.textContent = chip ? (chip.dataset.range || label) : 'Select a time';
       toggleText.classList.toggle('placeholder-text', !label);
       picker.querySelectorAll('.book-time-chip').forEach(function (c) { c.classList.toggle('is-selected', c === chip); });
 
@@ -1198,7 +1205,7 @@
       if (slotsView) slotsView.hidden = false;
       if (confirmView) confirmView.hidden = true;
       if (e.target.classList.contains('book-day-modal')) {
-        e.target.querySelector('.modal-dialog')?.classList.remove('modal-xl');
+        e.target.querySelector('.modal-dialog')?.classList.remove('modal-lg', 'modal-dialog-scrollable');
         e.target.querySelector('.modal-footer')?.classList.remove('d-none');
       }
 

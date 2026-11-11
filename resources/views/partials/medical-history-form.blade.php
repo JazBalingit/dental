@@ -7,6 +7,7 @@
       values  answers to prefill (a previous version), or []
       staff   true → also shows blood type / blood pressure / bleeding time,
               and no "I certify" box
+    The "I certify" box starts ticked when `values` holds answers on file.
 --}}
 @php
     $mid = $mhf['id'] ?? '';
@@ -102,8 +103,10 @@
     </select>
 
     @if (!$staffMode)
+        {{-- Certified once is enough: when answers are already on file (the
+             patient ticked this when they first saved them), it comes pre-ticked. --}}
         <label class="mh-certify">
-            <input type="checkbox" name="{{ $n }}[certify]" value="1" required {{ old($n . '.certify') ? 'checked' : '' }}>
+            <input type="checkbox" name="{{ $n }}[certify]" value="1" required {{ old($n . '.certify', !empty($pre)) ? 'checked' : '' }}>
             I certify that the medical information above is true and complete to the best of my knowledge.
         </label>
         @error('mh.certify') <div class="field-error"><i class="bi bi-exclamation-circle-fill"></i> {{ $message }}</div> @enderror

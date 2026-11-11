@@ -1,8 +1,9 @@
 {{--
     "Report Preview" — opened by Generate Report on the dashboard. Shows the
     exactly-as-printed report (reports.generate?preview=1) in a frame so the
-    admin can check it before printing. Print prints the frame; Back returns
-    to the report options.
+    admin can check it before printing. Print prints the frame; Download PDF
+    saves it as an A4 PDF (the frame's downloadReportPdf()); Back returns to
+    the report options.
 --}}
 <div class="modal fade" id="reportPreviewModal" tabindex="-1" aria-labelledby="reportPreviewModalLabel" aria-hidden="true">
   <div class="modal-dialog modal-dialog-centered modal-xl modal-fullscreen-lg-down">
@@ -11,7 +12,7 @@
         <div class="icon-badge"><i class="bi bi-eye"></i></div>
         <div class="flex-grow-1">
           <div class="modal-title" id="reportPreviewModalLabel">Report Preview</div>
-          <div class="subtitle">This is exactly what will be printed. Check it, then print or go back to change the options.</div>
+          <div class="subtitle">This is exactly what will be printed. Check it, then print it, download it as a PDF, or go back to change the options.</div>
         </div>
         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
       </div>
@@ -24,6 +25,9 @@
       </div>
       <div class="modal-footer">
         <button type="button" class="btn-ghost" id="reportPreviewBackBtn"><i class="bi bi-arrow-left me-1"></i> Back</button>
+        <button type="button" class="btn btn-sec px-4" id="reportPreviewPdfBtn" disabled>
+          <i class="bi bi-file-earmark-arrow-down me-1"></i> Download PDF
+        </button>
         <button type="button" class="btn btn-brand px-4" id="reportPreviewPrintBtn" disabled>
           <i class="bi bi-printer me-1"></i> Print
         </button>

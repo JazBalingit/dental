@@ -220,6 +220,21 @@ class DentistSchedule extends Model
     }
 
     /**
+     * "9:00 – 9:30 AM" / "11:30 AM – 12:00 PM" — the compact range shown on
+     * every calendar's time chips. AM/PM is written once when both ends
+     * share it.
+     */
+    public static function slotChipLabel(string $time): string
+    {
+        $start = Carbon::createFromFormat('H:i', $time);
+        $end = $start->copy()->addMinutes(static::SLOT_MINUTES);
+
+        return $start->format('A') === $end->format('A')
+            ? $start->format('g:i') . ' – ' . $end->format('g:i A')
+            : $start->format('g:i A') . ' – ' . $end->format('g:i A');
+    }
+
+    /**
      * "1 hour 30 minutes" / "30 minutes" / "2 hours" — for a given number
      * of half-hour slots. Shared by the booking failure/success messages
      * and Appointment::duration_label.

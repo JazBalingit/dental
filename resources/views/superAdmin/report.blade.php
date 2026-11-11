@@ -32,6 +32,12 @@
         'services' => "This section shows how many appointments were booked for each service {$rangePhrase}.",
     ];
     $summaryIntro = "This summary combines the appointments and patients reports {$rangePhrase} into a single document.";
+    // e.g. "appointments-report_2026-11-01_to_2026-11-30.pdf"
+    $pdfFilename = \Illuminate\Support\Str::slug($reportTitle) . '_' . match (true) {
+        !$start || !$end => 'all-dates',
+        $start->isSameDay($end) => $start->format('Y-m-d'),
+        default => $start->format('Y-m-d') . '_to_' . $end->format('Y-m-d'),
+    } . '.pdf';
     $statusPill = fn ($status) => match ($status) {
         'Completed' => 'good',
         'Approved' => 'info',
@@ -127,6 +133,15 @@
     .report-signature-line { border-top: 1px solid var(--ink-700); padding-top: .4rem; }
     .report-signature-name { font-weight: 700; color: var(--ink-900); font-size: .9rem; }
     .report-signature-role { font-size: .75rem; color: var(--ink-500); text-transform: uppercase; letter-spacing: .04em; margin-top: .1rem; }
+    /* Download PDF: html2pdf.js lays a copy of the sheet out at the page's
+       inner width inside .html2pdf__container — give it the printout's look
+       (no card padding/shadow) and the full letterhead even on a phone. */
+    .html2pdf__container .report-sheet { box-shadow: none; padding: 0; border-radius: 0; }
+    .html2pdf__container .letterhead { grid-template-columns: 76px 1fr 76px; gap: 1rem; }
+    .html2pdf__container .letterhead .logo { width: 76px; height: 76px; }
+    .html2pdf__container .letterhead-text { text-align: center; }
+    .html2pdf__container .letterhead-spacer { display: block; }
+    .html2pdf__container .letterhead-name { font-size: 1.3rem; }
     @media print {
       /* styles.css sets `html, body { background: var(--ink-100) }` for
          the normal on-screen admin theme — this page only ever whitened
@@ -406,6 +421,40 @@
     window.addEventListener('afterprint', function () {
       if (window.parent !== window) window.parent.postMessage('report-printed', window.location.origin);
     });
+
+    // "Download PDF" (Report Preview modal): renders the sheet onto A4 pages
+    // with the printout's 1-inch margins and saves it. html2pdf.js
+    // (html2canvas + jsPDF) is only fetched the first time it's needed.
+    window.downloadReportPdf = function () {
+      function loadLibrary() {
+        if (window.html2pdf) return Promise.resolve();
+        return new Promise(function (resolve, reject) {
+          var s = document.createElement('script');
+          s.src = 'https://cdn.jsdelivr.net/npm/html2pdf.js@0.14.0/dist/html2pdf.bundle.min.js';
+          s.onload = resolve;
+          s.onerror = function () { s.remove(); reject(new Error('Could not load the PDF tool.')); };
+          document.head.appendChild(s);
+        });
+      }
+
+      return loadLibrary().then(function () {
+        return document.fonts ? document.fonts.ready : null;
+      }).then(function () {
+        return window.html2pdf().set({
+          margin: 25.4, // mm = 1 inch, same as @page
+          filename: @json($pdfFilename),
+          image: { type: 'jpeg', quality: 0.98 },
+          html2canvas: { scale: 2, useCORS: true, backgroundColor: '#ffffff' },
+          jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
+          // Same "keep together" pieces as the print stylesheet.
+          pagebreak: {
+            mode: ['css', 'legacy'],
+            avoid: ['.letterhead', '.report-title', '.report-stats', '.report-bar-row', '.report-service-head',
+                    '.report-subtitle', '.report-section h2', '.report-desc', 'tr', '.report-signature'],
+          },
+        }).from(document.querySelector('.report-sheet')).save();
+      });
+    };
   </script>
 </body>
 

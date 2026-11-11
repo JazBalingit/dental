@@ -591,10 +591,14 @@
         var previewFrame = document.getElementById('reportPreviewFrame');
         var previewLoading = document.getElementById('reportPreviewLoading');
         var printBtn = document.getElementById('reportPreviewPrintBtn');
+        var pdfBtn = document.getElementById('reportPreviewPdfBtn');
+        var pdfBtnLabel = pdfBtn.innerHTML;
         var backBtn = document.getElementById('reportPreviewBackBtn');
 
         function openPreview(url) {
             printBtn.disabled = true;
+            pdfBtn.disabled = true;
+            pdfBtn.innerHTML = pdfBtnLabel;
             previewLoading.hidden = false;
             previewFrame.style.visibility = 'hidden';
             previewFrame.src = url;
@@ -619,11 +623,27 @@
             previewLoading.hidden = true;
             previewFrame.style.visibility = 'visible';
             printBtn.disabled = false;
+            pdfBtn.disabled = false;
         });
 
         printBtn.addEventListener('click', function () {
             previewFrame.contentWindow.focus();
             previewFrame.contentWindow.print();
+        });
+
+        // Download PDF: the report page builds and saves the file itself
+        // (window.downloadReportPdf in superAdmin/report.blade.php).
+        pdfBtn.addEventListener('click', function () {
+            var frameWin = previewFrame.contentWindow;
+            if (!frameWin || typeof frameWin.downloadReportPdf !== 'function') return;
+            pdfBtn.disabled = true;
+            pdfBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span> Preparing PDF…';
+            Promise.resolve().then(function () { return frameWin.downloadReportPdf(); }).then(function () {
+                pdfBtn.innerHTML = pdfBtnLabel;
+            }, function () {
+                pdfBtn.innerHTML = '<i class="bi bi-exclamation-triangle me-1"></i> Couldn\'t create the PDF, try again';
+                setTimeout(function () { pdfBtn.innerHTML = pdfBtnLabel; }, 4000);
+            }).then(function () { pdfBtn.disabled = false; });
         });
 
         backBtn.addEventListener('click', function () {

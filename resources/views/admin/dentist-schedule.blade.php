@@ -275,12 +275,12 @@
         .ds-block.is-pending { background: #fff8e6; border-left-color: #d4a017; color: #6b4b00; }
         .ds-block.is-completed { background: #f4efff; border-left-color: #6d28d9; color: #4c1d95; }
         .ds-group-label { font-size: .7rem; font-weight: 700; color: var(--ink-500); margin: .5rem 0 .35rem; display: flex; align-items: center; gap: .35rem; }
-        .ds-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(96px, 1fr)); gap: .4rem; }
+        .ds-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: .4rem; }
         .ds-grid form { display: contents; }
         .ds-chip {
             display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0;
             width: 100%; border-radius: .55rem; padding: .4rem .3rem; border: 1px solid transparent;
-            font-size: .84rem; font-weight: 700; line-height: 1.2; transition: transform .1s ease, box-shadow .1s ease;
+            font-size: .8rem; font-weight: 700; line-height: 1.2; white-space: nowrap; transition: transform .1s ease, box-shadow .1s ease;
         }
         .ds-chip small { font-size: .66rem; font-weight: 600; opacity: .85; }
         button.ds-chip:not(:disabled):hover { transform: translateY(-1px); box-shadow: 0 4px 10px -6px rgba(15,23,42,.35); }
@@ -378,6 +378,7 @@
                                 $dsCounts = ['open' => 0, 'closed' => 0, 'booked' => 0, 'pending' => 0, 'completed' => 0];
                                 $dsChips = [];
                                 foreach ($slots as $time => $label) {
+                                    $label = \App\Models\DentistSchedule::slotChipLabel($time); // "9:00 – 9:30 AM"
                                     $appt = $occupiedSlots[$dateStr . '_' . $time] ?? null;
                                     $row = $daySlots[$time] ?? null;
                                     if ($appt) {

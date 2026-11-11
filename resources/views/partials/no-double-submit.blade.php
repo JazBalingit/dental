@@ -24,6 +24,11 @@
         document.addEventListener('click', function (e) {
             var el = e.target.closest && e.target.closest(CLICKABLE);
             if (!el) return;
+            // Clicking a <label> makes the browser send a second click to the
+            // control inside it (e.g. the hidden file input behind "Change
+            // Photo"). That one isn't a repeat — blocking it stopped the file
+            // picker from ever opening.
+            if (el.tagName === 'LABEL' && e.target !== el && e.target.matches('input, select, textarea')) return;
             var now = Date.now();
             var last = parseInt(el.dataset.lastClick || '0', 10);
             if (now - last < CLICK_GAP_MS) {

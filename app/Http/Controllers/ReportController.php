@@ -51,34 +51,35 @@ class ReportController extends Controller
         $completed = $this->completedVisits($start, $end);
 
         if (in_array($type, ['appointments', 'summary'], true)) {
-            // Categorize by the services each visit covered. A visit with
-            // several services is listed under each of them.
+            // Count visits per service performed. A visit covering several
+            // services counts once under each of them.
             $byService = [];
             foreach ($completed as $appointment) {
-                foreach ($this->serviceNames($appointment) as $name) {
-                    $byService[$name][] = $appointment;
+                $names = $this->serviceNames($appointment);
+                $appointment->serviceLabel = implode(', ', $names);
+                foreach ($names as $name) {
+                    $byService[$name] = ($byService[$name] ?? 0) + 1;
                 }
             }
-            uksort($byService, fn ($a, $b) => count($byService[$b]) <=> count($byService[$a]) ?: strcasecmp($a, $b));
+            uksort($byService, fn ($a, $b) => $byService[$b] <=> $byService[$a] ?: strcasecmp($a, $b));
 
             $data['appointmentStats'] = [
                 'completed' => $completed->count(),
                 'patients' => $completed->pluck('PatientID')->unique()->count(),
                 'services' => count($byService),
             ];
-            $data['appointmentsByService'] = $byService;
+            // Every completed visit, oldest first, one table row each.
+            $data['visits'] = $completed;
 
             // Every booking type is always listed, even at zero, so the report
             // shows Online, Walk-in and Follow-up side by side.
-            $bySource = collect(self::SOURCES)->mapWithKeys(fn ($label, $source) => [
+            $data['appointmentsBySource'] = collect(self::SOURCES)->mapWithKeys(fn ($label, $source) => [
                 $label => $completed->where('Source', $source)->count(),
-            ]);
-            $data['appointmentsBySource'] = $bySource->all();
+            ])->all();
 
             if ($includeCharts) {
-                $data['sourceChart'] = $this->barRows($bySource, true);
-                $data['dailyChart'] = $this->visitsTimeSeries($completed, $start, $end);
-                $data['completedServiceChart'] = $this->barRows(collect($byService)->map(fn ($rows) => count($rows)));
+                [$data['dateBucket'], $data['visitsByDate']] = $this->visitsTimeSeries($completed, $start, $end);
+                $data['visitsByService'] = $byService;
             }
         }
 
@@ -115,24 +116,13 @@ class ReportController extends Controller
                         $perService[$name][$appointment->PatientID] = true;
                     }
                 }
-                $data['treatmentBreakdown'] = $this->barRows(collect($perService)->map(fn ($ids) => count($ids))->sortDesc());
+                $data['patientsByTreatment'] = collect($perService)->map(fn ($ids) => count($ids))->sortDesc()->all();
             }
 
             if ($includePatientDetails) {
                 $data['patientsList'] = $patients->values();
             }
         }
-
-        if ($type === 'summary' && $includeCharts) {
-            $perService = [];
-            foreach ($completed as $appointment) {
-                foreach ($this->serviceNames($appointment) as $name) {
-                    $perService[$name] = ($perService[$name] ?? 0) + 1;
-                }
-            }
-            $data['serviceBreakdown'] = $this->barRows(collect($perService)->sortDesc());
-        }
-
 
         return view('superAdmin.report', $data);
     }
@@ -242,35 +232,24 @@ class ReportController extends Controller
         return $names ?: ['Unspecified service'];
     }
 
-    /** label => count  →  bar-chart rows with a width percentage. */
-    protected function barRows($counts, bool $keepZeros = false): array
-    {
-        $max = max(1, $counts->max() ?? 1);
-
-        return $counts->map(fn ($count, $label) => [
-            'label' => $label,
-            'count' => $count,
-            'pct' => ($keepZeros && !$count) ? 0 : max(4, (int) round($count / $max * 100)),
-        ])->values()->all();
-    }
-
     /**
-     * Bucket visit counts by day (short ranges) or by month (long/all-time ranges).
+     * Completed visits per day (short ranges) or per month (long and
+     * all-time ranges). Days or months with no visits are left out.
+     *
+     * @return array{0: string, 1: array<string, int>}  ['Date'|'Month', label => count]
      */
     protected function visitsTimeSeries($visits, ?Carbon $start, ?Carbon $end): array
     {
-        if (!$start || !$end || $start->diffInDays($end) > 31) {
-            $counts = $visits->groupBy(fn ($a) => $a->AppointmentDate->format('Y-m'))
-                ->sortKeys()
-                ->mapWithKeys(fn ($rows, $period) => [Carbon::createFromFormat('Y-m', $period)->format('M Y') => $rows->count()]);
-        } else {
-            $perDay = $visits->countBy(fn ($a) => $a->AppointmentDate->format('Y-m-d'));
-            $counts = collect();
-            for ($d = $start->copy(); $d->lte($end); $d->addDay()) {
-                $counts[$d->format('M j')] = $perDay[$d->format('Y-m-d')] ?? 0;
-            }
-        }
+        $byMonth = !$start || !$end || $start->diffInDays($end) > 31;
+        $key = $byMonth ? 'Y-m' : 'Y-m-d';
 
-        return $this->barRows($counts);
+        $counts = $visits->countBy(fn ($a) => $a->AppointmentDate->format($key))
+            ->sortKeys()
+            ->mapWithKeys(fn ($count, $period) => [
+                // '2026-02' + '-01' — never let a missing day roll into the next month.
+                Carbon::parse($byMonth ? $period . '-01' : $period)->format($byMonth ? 'F Y' : 'D, M j, Y') => $count,
+            ]);
+
+        return [$byMonth ? 'Month' : 'Date', $counts->all()];
     }
 }

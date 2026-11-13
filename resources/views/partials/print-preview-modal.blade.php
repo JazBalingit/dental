@@ -2,8 +2,11 @@
     Generic "Print Preview" — one copy per page. Any button with
     data-print-preview="{{ url }}" (optionally data-print-title="…") opens
     this modal, loads that page in a frame exactly as it will print, and
-    prints the frame on "Print". If the button sits inside another open
-    modal, that one closes first and comes back when the preview closes.
+    prints the frame on "Print". "Download PDF" saves it as an A4 PDF via
+    the frame's downloadDocPdf() (public/js/print-doc.js); it stays hidden
+    for pages that don't load that script. If the button sits inside
+    another open modal, that one closes first and comes back when the
+    preview closes.
 --}}
 <div class="modal fade" id="printPreviewModal" tabindex="-1" aria-labelledby="printPreviewTitle" aria-hidden="true">
   <div class="modal-dialog modal-dialog-centered modal-xl modal-fullscreen-lg-down">
@@ -23,6 +26,9 @@
       </div>
       <div class="modal-footer">
         <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Close</button>
+        <button type="button" class="btn btn-sec px-4" id="printPreviewPdfBtn" disabled>
+          <i class="bi bi-file-earmark-arrow-down me-1"></i> Download PDF
+        </button>
         <button type="button" class="btn btn-success px-4" id="printPreviewPrintBtn" disabled
           style="background:#167d1d;border-color:#167d1d;"><i class="bi bi-printer me-1"></i> Print</button>
       </div>
@@ -39,11 +45,15 @@
     var frame = document.getElementById('printPreviewFrame');
     var loading = document.getElementById('printPreviewLoading');
     var printBtn = document.getElementById('printPreviewPrintBtn');
+    var pdfBtn = document.getElementById('printPreviewPdfBtn');
+    var pdfBtnLabel = pdfBtn.innerHTML;
     var subtitle = document.getElementById('printPreviewSubtitle');
     var returnTo = null;
 
     function open(trigger) {
       printBtn.disabled = true;
+      pdfBtn.disabled = true;
+      pdfBtn.innerHTML = pdfBtnLabel;
       loading.hidden = false;
       frame.style.visibility = 'hidden';
       subtitle.textContent = trigger.dataset.printTitle
@@ -58,11 +68,28 @@
       loading.hidden = true;
       frame.style.visibility = 'visible';
       printBtn.disabled = false;
+      var canPdf = typeof frame.contentWindow.downloadDocPdf === 'function';
+      pdfBtn.hidden = !canPdf;
+      pdfBtn.disabled = !canPdf;
     });
 
     printBtn.addEventListener('click', function () {
       frame.contentWindow.focus();
       frame.contentWindow.print();
+    });
+
+    // Download PDF: the previewed page builds and saves the file itself.
+    pdfBtn.addEventListener('click', function () {
+      var frameWin = frame.contentWindow;
+      if (!frameWin || typeof frameWin.downloadDocPdf !== 'function') return;
+      pdfBtn.disabled = true;
+      pdfBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span> Preparing PDF…';
+      Promise.resolve().then(function () { return frameWin.downloadDocPdf(); }).then(function () {
+        pdfBtn.innerHTML = pdfBtnLabel;
+      }, function () {
+        pdfBtn.innerHTML = '<i class="bi bi-exclamation-triangle me-1"></i> Couldn\'t create the PDF, try again';
+        setTimeout(function () { pdfBtn.innerHTML = pdfBtnLabel; }, 4000);
+      }).then(function () { pdfBtn.disabled = false; });
     });
 
     document.addEventListener('click', function (e) {

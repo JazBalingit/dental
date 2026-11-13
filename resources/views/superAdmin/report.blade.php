@@ -9,7 +9,7 @@
     $typeTitles = [
         'appointments' => 'Appointments Report',
         'patients' => 'Patients Report',
-        'summary' => 'Full Summary Report',
+        'summary' => 'Summary Report',
     ];
     $reportTitle = $typeTitles[$type] ?? 'Report';
     // Phrase for the covered dates, e.g. "from Sep 14, 2026 to Sep 20, 2026".
@@ -18,392 +18,276 @@
         $start->isSameDay($end) => 'on ' . $start->format('M j, Y'),
         default => 'from ' . $start->format('M j, Y') . ' to ' . $end->format('M j, Y'),
     };
-    $withCharts = $includeCharts ?? false;
+    $withBreakdowns = $includeCharts ?? false;
     $withDetails = $includePatientDetails ?? false;
 
-    $descriptions = [
-        'appointments' => "This report covers completed visits {$rangePhrase}, including walk-ins and follow-ups. It shows how many visits were completed, how many patients were served, how many services were performed and how many visits came from online appointments, walk-ins and follow-ups"
-            . ($withCharts ? ', along with completed visits over time, per booking type and per service' : '')
-            . ', followed by every completed visit grouped by service, with each patient\'s ID, name, booking type and appointment details'
-            . ($withDetails ? ' including their contact.' : '.'),
-        'patients' => 'This report covers every patient, registered or walk-in, who had a completed visit ' . $rangePhrase . '. It shows the total number of patients, how many are registered or walk-in, and their gender breakdown'
-            . ($withCharts ? ', along with the number of patients per treatment' : '')
-            . ($withDetails ? ', followed by the full list of patients with each one\'s type, age, gender, phone, address and visits.' : '.'),
-        'services' => "This section shows how many appointments were booked for each service {$rangePhrase}.",
-    ];
-    $summaryIntro = "This summary combines the appointments and patients reports {$rangePhrase} into a single document.";
+    $intro = match ($type) {
+        'patients' => "This report lists the patients — registered, guest or walk-in — who had a completed visit {$rangePhrase}, with totals by patient type and gender.",
+        'summary' => "This summary combines the appointments and patients reports {$rangePhrase} in one document: completed visits first, then the patients who were seen.",
+        default => "This report lists every completed visit {$rangePhrase} — online appointments, walk-ins and follow-ups — with totals by booking type.",
+    };
+
     // e.g. "appointments-report_2026-11-01_to_2026-11-30.pdf"
     $pdfFilename = \Illuminate\Support\Str::slug($reportTitle) . '_' . match (true) {
         !$start || !$end => 'all-dates',
         $start->isSameDay($end) => $start->format('Y-m-d'),
         default => $start->format('Y-m-d') . '_to_' . $end->format('Y-m-d'),
     } . '.pdf';
-    $statusPill = fn ($status) => match ($status) {
-        'Completed' => 'good',
-        'Approved' => 'info',
-        'Pending' => 'warn',
-        'Cancelled', 'Declined', 'No Show' => 'bad',
-        'Available' => 'good',
-        default => 'info',
-    };
+
+    $patientCode = fn ($id) => $id ? 'PT-' . str_pad($id, 4, '0', STR_PAD_LEFT) : '—';
+    $share = fn ($count, $total) => $total ? number_format($count / $total * 100, 1) . '%' : '—';
   @endphp
   <title>{{ $reportTitle }} • Dental Clinic</title>
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
-  <link
-    href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Poppins:wght@500;600;700&display=swap"
-    rel="stylesheet">
-  <link rel="stylesheet" href="{{ asset('css/styles.css') }}">
-  <style>
-    body { background: var(--ink-100); font-family: 'Inter', sans-serif; }
-    /* The chart bars, stat cards and status pills are all CSS backgrounds,
-       which browsers strip when printing unless told to keep them (the
-       "Background graphics" checkbox) — force them on so the printout matches. */
-    html, body, .report-sheet, .report-sheet * {
-      -webkit-print-color-adjust: exact !important;
-      print-color-adjust: exact !important;
-    }
-    .report-toolbar {
-      position: sticky; top: 0; z-index: 10;
-      background: #fff; border-bottom: 1px solid var(--ink-300);
-      padding: .85rem 1.5rem; display: flex; align-items: center; justify-content: space-between; gap: 1rem;
-    }
-    .report-toolbar .back-link { color: var(--ink-700); text-decoration: none; font-weight: 600; font-size: .9rem; }
-    .report-toolbar .back-link:hover { color: var(--brand-700); }
-    .report-wrap { max-width: 900px; margin: 0 auto; padding: 2rem 1.5rem 4rem; }
-    .report-sheet { background: #fff; border-radius: var(--radius-lg); padding: 2.25rem; box-shadow: 0 1px 3px rgba(15,23,42,.08); }
-    /* Letterhead: logo + clinic name, tagline, address and contacts, closed
-       by a thick-and-thin rule. The empty third column mirrors the logo's
-       width so the text block sits exactly in the page's centre. */
-    .letterhead { display: grid; grid-template-columns: 76px 1fr 76px; align-items: center; gap: 1rem; padding-bottom: 1rem; border-bottom: 3px solid var(--brand-700); position: relative; }
-    .letterhead::after { content: ''; position: absolute; left: 0; right: 0; bottom: -7px; border-bottom: 1px solid var(--brand-700); }
-    .letterhead .logo { width: 76px; height: 76px; object-fit: contain; }
-    .letterhead-text { text-align: center; }
-    .letterhead-name { font-family: 'Poppins', sans-serif; font-size: 1.3rem; font-weight: 700; color: var(--brand-900); letter-spacing: .04em; text-transform: uppercase; line-height: 1.15; }
-    .letterhead-tag { font-size: .8rem; font-style: italic; color: var(--brand-700); margin: .15rem 0 .4rem; }
-    .letterhead-line { font-size: .78rem; color: var(--ink-700); line-height: 1.55; }
-    .letterhead-line .sep { color: var(--ink-300); margin: 0 .4rem; }
-    .report-title { text-align: center; margin: 1.75rem 0 1.6rem; }
-    .report-title h1 { font-family: 'Poppins', sans-serif; font-size: 1.2rem; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--ink-900); margin: 0; }
-    .report-title .meta { display: flex; justify-content: center; flex-wrap: wrap; gap: .25rem 1.5rem; margin-top: .4rem; font-size: .82rem; color: var(--ink-500); }
-    .report-title .meta strong { color: var(--ink-700); }
-    @media (max-width: 575.98px) {
-      .letterhead { grid-template-columns: 56px 1fr; gap: .75rem; }
-      .letterhead .logo { width: 56px; height: 56px; }
-      .letterhead-text { text-align: left; }
-      .letterhead-spacer { display: none; }
-      .letterhead-name { font-size: 1.05rem; }
-    }
-    .report-section { margin-bottom: 2rem; }
-    .report-section h2 { font-family: 'Poppins', sans-serif; font-size: 1.05rem; color: var(--brand-900); margin-bottom: 1rem; display: flex; align-items: center; gap: .5rem; }
-    .report-desc { font-size: .85rem; color: var(--ink-500); line-height: 1.55; margin: -.5rem 0 1rem; }
-    .report-intro { font-size: .9rem; color: var(--ink-700); line-height: 1.6; margin-bottom: 1.75rem; }
-    .report-stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: .75rem; margin-bottom: 1.25rem; }
-    .report-stat { background: var(--brand-50); border: 1px solid var(--brand-100); border-radius: var(--radius-md); padding: .85rem 1rem; }
-    .report-stat .label { font-size: .75rem; color: var(--ink-500); font-weight: 600; text-transform: uppercase; letter-spacing: .02em; }
-    .report-stat .value { font-family: 'Poppins', sans-serif; font-size: 1.4rem; color: var(--ink-900); font-weight: 700; }
-    .report-chart { display: flex; flex-direction: column; gap: .5rem; }
-    .report-subtitle { font-size: .8rem; font-weight: 700; color: var(--ink-700); text-transform: uppercase; letter-spacing: .03em; margin: 1.1rem 0 .55rem; }
-    .report-bar-row { display: grid; grid-template-columns: 90px 1fr 40px; align-items: center; gap: .65rem; font-size: .82rem; }
-    .report-chart.wide .report-bar-row { grid-template-columns: 150px 1fr 96px; }
-    .report-bar-note { color: var(--ink-500); font-weight: 500; font-size: .74rem; white-space: nowrap; }
-    .report-bar-track { background: var(--ink-100); border-radius: 999px; height: 10px; overflow: hidden; }
-    .report-bar-fill { background: linear-gradient(90deg, var(--brand-700), var(--brand-500)); height: 100%; border-radius: 999px; }
-    .report-bar-label { color: var(--ink-700); font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-    .report-bar-value { text-align: right; color: var(--ink-900); font-weight: 700; }
-    table.report-table { width: 100%; border-collapse: collapse; font-size: .82rem; }
-    table.report-table th { text-align: left; background: var(--brand-50); color: var(--brand-900); font-weight: 700; padding: .55rem .7rem; border-bottom: 2px solid var(--brand-100); }
-    table.report-table td { padding: .55rem .7rem; border-bottom: 1px solid var(--ink-100); color: var(--ink-700); }
-    table.report-table tr:last-child td { border-bottom: none; }
-    .pill-mini { display: inline-block; padding: .15rem .55rem; border-radius: 999px; font-size: .72rem; font-weight: 700; }
-    .pill-mini.good { background: #e3fde5; color: #167d1d; }
-    .pill-mini.info { background: #e3f2fd; color: #0d6efd; }
-    .pill-mini.warn { background: #fff8e1; color: #b45309; }
-    .pill-mini.bad { background: #fdecea; color: #c0392b; }
-    .report-empty { color: var(--ink-500); font-size: .85rem; font-style: italic; }
-    .report-service-group { margin-top: 1.25rem; }
-    .report-service-head { display: flex; justify-content: space-between; align-items: baseline; gap: 1rem; font-weight: 700; color: var(--brand-900); font-size: .92rem; padding: 0 0 .4rem; border-bottom: 1px solid var(--brand-100); margin-bottom: .25rem; }
-    .report-service-count { font-weight: 600; font-size: .78rem; color: var(--ink-500); white-space: nowrap; }
-    /* Standard document margins: 1 inch on every side of every printed page. */
-    @page { size: A4; margin: 1in; }
-    .report-signature { display: flex; justify-content: flex-end; margin-top: 3rem; }
-    .report-signature-block { width: 260px; text-align: center; }
-    .report-signature-label { font-size: .8rem; color: var(--ink-500); text-align: left; }
-    .report-signature-space { height: 50px; }
-    .report-signature-line { border-top: 1px solid var(--ink-700); padding-top: .4rem; }
-    .report-signature-name { font-weight: 700; color: var(--ink-900); font-size: .9rem; }
-    .report-signature-role { font-size: .75rem; color: var(--ink-500); text-transform: uppercase; letter-spacing: .04em; margin-top: .1rem; }
-    /* Download PDF: html2pdf.js lays a copy of the sheet out at the page's
-       inner width inside .html2pdf__container — give it the printout's look
-       (no card padding/shadow) and the full letterhead even on a phone. */
-    .html2pdf__container .report-sheet { box-shadow: none; padding: 0; border-radius: 0; }
-    .html2pdf__container .letterhead { grid-template-columns: 76px 1fr 76px; gap: 1rem; }
-    .html2pdf__container .letterhead .logo { width: 76px; height: 76px; }
-    .html2pdf__container .letterhead-text { text-align: center; }
-    .html2pdf__container .letterhead-spacer { display: block; }
-    .html2pdf__container .letterhead-name { font-size: 1.3rem; }
-    @media print {
-      /* styles.css sets `html, body { background: var(--ink-100) }` for
-         the normal on-screen admin theme — this page only ever whitened
-         `body`. Because print-color-adjust:exact above forces backgrounds
-         to actually print instead of being stripped, `html`'s grey never
-         got overridden and showed through as a shaded block wherever the
-         document's content ended before the physical page did (e.g. below
-         the signature on the last page). */
-      html,
-      body { background: #fff; }
-      .no-print { display: none !important; }
-      .report-wrap { padding: 0; max-width: none; }
-      .report-sheet { box-shadow: none; padding: 0; border-radius: 0; }
-      /* A whole .report-section (heading + stats + chart + the FULL table)
-         easily runs longer than one page once there's real data in the
-         table — telling the browser to never break *inside* it just pushed
-         the entire section to the next page instead, leaving whatever came
-         before it (the report header) alone on an almost-blank page 1.
-         Only the small pieces below need to stay intact; the section and
-         its table are left free to flow and break across pages normally. */
-      .letterhead,
-      .report-title,
-      .report-stats,
-      .report-bar-row,
-      .report-signature { page-break-inside: avoid; }
-      .report-section h2,
-      .report-subtitle,
-      .report-service-head { page-break-after: avoid; }
-      thead { display: table-header-group; } /* repeat column headers on each page */
-      table.report-table { page-break-inside: auto; }
-      tr { page-break-inside: avoid; }
-    }
-  </style>
-    <link rel="stylesheet" href="{{ asset('css/modals.css') }}">
-    <link rel="stylesheet" href="{{ asset('css/mobile.css') }}">
+  <meta name="pdf-filename" content="{{ $pdfFilename }}">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Poppins:wght@600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{{ asset('css/print-doc.css') }}">
 </head>
 
 <body>
+  <div class="doc-wrap">
+    <div class="doc-sheet">
 
+      @include('partials.print-letterhead', ['clinic' => $clinic ?? null])
 
-  <div class="report-wrap">
-    <div class="report-sheet">
-
-      @php
-        $clinic = $clinic ?? \App\Models\SystemSetting::aboutInfo();
-        // Phones share a line; the email gets its own so nothing wraps
-        // mid-line on the printed page.
-        $phoneParts = array_filter([
-            filled($clinic['phone'] ?? null) ? 'Tel. ' . $clinic['phone'] : null,
-            filled($clinic['mobile'] ?? null) ? 'Mobile ' . $clinic['mobile'] : null,
-        ]);
-      @endphp
-      <header class="letterhead">
-        <img class="logo" src="{{ $clinic['logo'] ?? '/images/puspus_logo.png' }}" alt="Puspus-Britanico Dental Clinic logo">
-        <div class="letterhead-text">
-          <div class="letterhead-name">Puspus-Britanico Dental Clinic</div>
-          @if (filled($clinic['heroSubtitle'] ?? null))
-            <div class="letterhead-tag">{{ $clinic['heroSubtitle'] }}</div>
-          @endif
-          @if (filled($clinic['address'] ?? null))
-            <div class="letterhead-line">{{ $clinic['address'] }}</div>
-          @endif
-          @if ($phoneParts)
-            <div class="letterhead-line">
-              @foreach ($phoneParts as $part)
-                @if (!$loop->first)<span class="sep">|</span>@endif{{ $part }}
-              @endforeach
-            </div>
-          @endif
-          @if (filled($clinic['email'] ?? null))
-            <div class="letterhead-line">{{ $clinic['email'] }}</div>
-          @endif
-        </div>
-        <div class="letterhead-spacer" aria-hidden="true"></div>
-      </header>
-
-      <div class="report-title">
+      <div class="doc-title">
         <h1>{{ $reportTitle }}</h1>
-        <div class="meta">
-          <div><strong>Range:</strong> {{ $rangeLabel }}</div>
-          <div><strong>Generated:</strong> {{ $generatedAt->format('M j, Y g:i A') }}</div>
-        </div>
       </div>
 
-      @if ($type === 'summary')
-        <p class="report-intro">{{ $summaryIntro }}</p>
+      <table class="doc-table doc-kv doc-meta">
+        <tr>
+          <th>Report Period</th>
+          <td>{{ $rangeLabel }}</td>
+          <th>Date Generated</th>
+          <td>{{ $generatedAt->format('M j, Y g:i A') }}</td>
+        </tr>
+        <tr>
+          <th>Prepared By</th>
+          <td>{{ $adminAccountName ?? 'Administrator' }}</td>
+          <th>Coverage</th>
+          <td>Completed visits only</td>
+        </tr>
+      </table>
+
+      <p class="doc-intro">{{ $intro }}</p>
+
+      {{-- ============ APPOINTMENTS ============ --}}
+      @if (in_array($type, ['appointments', 'summary']))
+        @php $totalVisits = $appointmentStats['completed']; @endphp
+
+        <section class="doc-section doc-keep">
+          <h2 class="doc-section-title">Appointment Summary</h2>
+          <p class="doc-section-desc">Totals for the period. Booking type shows how each completed visit was made.</p>
+          <table class="doc-table doc-figures">
+            <thead>
+              <tr>
+                <th>Completed Visits</th>
+                <th>Patients Served</th>
+                <th>Services Performed</th>
+                @foreach ($appointmentsBySource as $label => $count)
+                  <th>{{ $label }}</th>
+                @endforeach
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>{{ number_format($totalVisits) }}</td>
+                <td>{{ number_format($appointmentStats['patients']) }}</td>
+                <td>{{ number_format($appointmentStats['services']) }}</td>
+                @foreach ($appointmentsBySource as $count)
+                  <td>{{ number_format($count) }}</td>
+                @endforeach
+              </tr>
+            </tbody>
+          </table>
+        </section>
+
+        @if ($withBreakdowns && !empty($visitsByDate))
+          <section class="doc-section doc-keep">
+            <h2 class="doc-section-title">Completed Visits by {{ $dateBucket }}</h2>
+            <p class="doc-section-desc">Number of completed visits per {{ strtolower($dateBucket) === 'month' ? 'month' : 'day' }}; {{ strtolower($dateBucket) === 'month' ? 'months' : 'days' }} without visits are not listed.</p>
+            <table class="doc-table">
+              <thead>
+                <tr><th>{{ $dateBucket }}</th><th class="num" style="width: 18%;">Visits</th><th class="num" style="width: 18%;">Share</th></tr>
+              </thead>
+              <tbody>
+                @foreach ($visitsByDate as $label => $count)
+                  <tr><td>{{ $label }}</td><td class="num">{{ number_format($count) }}</td><td class="num">{{ $share($count, $totalVisits) }}</td></tr>
+                @endforeach
+              </tbody>
+              <tfoot>
+                <tr><td>Total</td><td class="num">{{ number_format($totalVisits) }}</td><td class="num">100.0%</td></tr>
+              </tfoot>
+            </table>
+          </section>
+        @endif
+
+        @if ($withBreakdowns && !empty($visitsByService))
+          <section class="doc-section doc-keep">
+            <h2 class="doc-section-title">Completed Visits by Service</h2>
+            <p class="doc-section-desc">How often each service was performed. A visit covering several services is counted under each one.</p>
+            <table class="doc-table">
+              <thead>
+                <tr><th>Service</th><th class="num" style="width: 18%;">Visits</th></tr>
+              </thead>
+              <tbody>
+                @foreach ($visitsByService as $label => $count)
+                  <tr><td>{{ $label }}</td><td class="num">{{ number_format($count) }}</td></tr>
+                @endforeach
+              </tbody>
+            </table>
+          </section>
+        @endif
+
+        <section class="doc-section">
+          <h2 class="doc-section-title">List of Completed Visits</h2>
+          <p class="doc-section-desc">Every completed visit in the period, oldest first.</p>
+          @if ($visits->isEmpty())
+            <div class="doc-empty">No completed visits found for this period.</div>
+          @else
+            <div class="doc-table-scroll">
+              <table class="doc-table">
+                <thead>
+                  <tr>
+                    <th class="center">No.</th>
+                    <th>Schedule</th>
+                    <th>Patient ID</th>
+                    <th>Patient Name</th>
+                    <th>Service(s)</th>
+                    <th>Booking Type</th>
+                    <th>Dentist</th>
+                    @if ($withDetails)<th>Contact</th>@endif
+                  </tr>
+                </thead>
+                <tbody>
+                  @foreach ($visits as $a)
+                    <tr>
+                      <td class="row-no">{{ $loop->iteration }}</td>
+                      <td class="nowrap">
+                        {{ optional($a->AppointmentDate)->format('M j, Y') }}
+                        @if ($a->AppointmentTime)<div class="muted">{{ $a->time_range_label }}</div>@endif
+                      </td>
+                      <td class="nowrap">{{ $patientCode($a->patientInfo?->PatientID) }}</td>
+                      <td>{{ trim(($a->patientInfo->FirstName ?? '') . ' ' . ($a->patientInfo->LastName ?? '')) ?: '—' }}</td>
+                      <td>{{ $a->serviceLabel }}</td>
+                      <td class="nowrap">{{ $a->Source }}</td>
+                      <td>{{ $a->dentist?->display_name ?? '—' }}</td>
+                      @if ($withDetails)
+                        <td>{{ $a->patientInfo->PhoneNumber ?? $a->patientInfo?->userAccount?->Email ?? '—' }}</td>
+                      @endif
+                    </tr>
+                  @endforeach
+                </tbody>
+              </table>
+            </div>
+          @endif
+        </section>
       @endif
 
-      @if (in_array($type, ['appointments', 'summary']))
-        <div class="report-section">
-          <h2><i class="bi bi-calendar-check"></i> Completed Appointments</h2>
-          <p class="report-desc">{{ $descriptions['appointments'] }}</p>
-          <div class="report-stats">
-            <div class="report-stat"><div class="label">Completed Visits</div><div class="value">{{ $appointmentStats['completed'] }}</div></div>
-            <div class="report-stat"><div class="label">Patients Served</div><div class="value">{{ $appointmentStats['patients'] }}</div></div>
-            <div class="report-stat"><div class="label">Services Performed</div><div class="value">{{ $appointmentStats['services'] }}</div></div>
-          </div>
-          <div class="report-stats">
-            @foreach ($appointmentsBySource as $label => $count)
-              <div class="report-stat"><div class="label">{{ $label }}</div><div class="value">{{ $count }}</div></div>
-            @endforeach
-          </div>
+      {{-- ============ PATIENTS ============ --}}
+      @if (in_array($type, ['patients', 'summary']))
+        <section class="doc-section doc-keep">
+          <h2 class="doc-section-title">Patient Summary</h2>
+          <p class="doc-section-desc">Patients with at least one completed visit in the period, each counted once.</p>
+          <table class="doc-table doc-figures">
+            <thead>
+              <tr>
+                <th>Total Patients</th>
+                <th>Registered</th>
+                <th>Guest</th>
+                <th>Walk-in</th>
+                <th>Male</th>
+                <th>Female</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>{{ number_format($patientStats['total']) }}</td>
+                <td>{{ number_format($patientStats['registered']) }}</td>
+                <td>{{ number_format($patientStats['guest']) }}</td>
+                <td>{{ number_format($patientStats['walkin']) }}</td>
+                <td>{{ number_format($patientStats['male']) }}</td>
+                <td>{{ number_format($patientStats['female']) }}</td>
+              </tr>
+            </tbody>
+          </table>
+        </section>
 
-          @if (!empty($dailyChart))
-            <div class="report-subtitle">Completed Visits Over Time</div>
-            <div class="report-chart mb-3">
-              @foreach ($dailyChart as $row)
-                <div class="report-bar-row">
-                  <div class="report-bar-label">{{ $row['label'] }}</div>
-                  <div class="report-bar-track"><div class="report-bar-fill" style="width: {{ $row['pct'] }}%"></div></div>
-                  <div class="report-bar-value">{{ $row['count'] }}</div>
-                </div>
-              @endforeach
-            </div>
-          @endif
+        @if ($withBreakdowns && !empty($patientsByTreatment))
+          <section class="doc-section doc-keep">
+            <h2 class="doc-section-title">Patients per Treatment</h2>
+            <p class="doc-section-desc">Number of different patients who received each treatment. A patient with several treatments is counted under each one.</p>
+            <table class="doc-table">
+              <thead>
+                <tr><th>Treatment</th><th class="num" style="width: 18%;">Patients</th></tr>
+              </thead>
+              <tbody>
+                @foreach ($patientsByTreatment as $label => $count)
+                  <tr><td>{{ $label }}</td><td class="num">{{ number_format($count) }}</td></tr>
+                @endforeach
+              </tbody>
+            </table>
+          </section>
+        @endif
 
-          @if (!empty($sourceChart))
-            <div class="report-subtitle">Completed Visits by Booking Type</div>
-            <div class="report-chart wide mb-3">
-              @foreach ($sourceChart as $row)
-                <div class="report-bar-row">
-                  <div class="report-bar-label">{{ $row['label'] }}</div>
-                  <div class="report-bar-track"><div class="report-bar-fill" style="width: {{ $row['pct'] }}%"></div></div>
-                  <div class="report-bar-value">{{ $row['count'] }}</div>
-                </div>
-              @endforeach
-            </div>
-          @endif
-
-          @if (!empty($completedServiceChart))
-            <div class="report-subtitle">Completed Visits per Service</div>
-            <div class="report-chart wide mb-3">
-              @foreach ($completedServiceChart as $row)
-                <div class="report-bar-row">
-                  <div class="report-bar-label">{{ $row['label'] }}</div>
-                  <div class="report-bar-track"><div class="report-bar-fill" style="width: {{ $row['pct'] }}%"></div></div>
-                  <div class="report-bar-value">{{ $row['count'] }}</div>
-                </div>
-              @endforeach
-            </div>
-          @endif
-
-          {{-- Every completed visit, grouped by the service performed. A visit
-               covering several services appears under each one. --}}
-          @if (empty($appointmentsByService))
-            <div class="report-empty">No completed appointments found for this range.</div>
-          @else
-            @foreach ($appointmentsByService as $serviceName => $rows)
-              <div class="report-service-group">
-                <div class="report-service-head">
-                  <span>{{ $serviceName }}</span>
-                  <span class="report-service-count">{{ count($rows) }} completed {{ count($rows) === 1 ? 'visit' : 'visits' }}</span>
-                </div>
-                <table class="report-table">
+        @if (isset($patientsList))
+          <section class="doc-section">
+            <h2 class="doc-section-title">List of Patients</h2>
+            <p class="doc-section-desc">Sorted by last name. Visits counts completed visits within the period only.</p>
+            @if ($patientsList->isEmpty())
+              <div class="doc-empty">No patients with a completed visit in this period.</div>
+            @else
+              <div class="doc-table-scroll">
+                <table class="doc-table">
                   <thead>
                     <tr>
-                      <th>Patient ID</th><th>Patient Name</th><th>Booking Type</th><th>Date</th><th>Time</th><th>Duration</th><th>Dentist</th>
-                      @if ($withDetails)<th>Contact</th>@endif
+                      <th class="center">No.</th>
+                      <th>Patient ID</th>
+                      <th>Name</th>
+                      <th>Type</th>
+                      <th class="center">Age</th>
+                      <th>Gender</th>
+                      <th>Contact No.</th>
+                      <th>Address</th>
+                      <th class="num">Visits</th>
+                      <th>Last Visit</th>
                     </tr>
                   </thead>
                   <tbody>
-                    @foreach ($rows as $a)
+                    @foreach ($patientsList as $p)
                       <tr>
-                        <td>{{ $a->patientInfo ? 'PT-' . str_pad($a->patientInfo->PatientID, 4, '0', STR_PAD_LEFT) : '—' }}</td>
-                        <td>{{ trim(($a->patientInfo->FirstName ?? '') . ' ' . ($a->patientInfo->LastName ?? '')) ?: '—' }}</td>
-                        <td>{{ \App\Http\Controllers\ReportController::SOURCES[$a->Source] ?? $a->Source }}</td>
-                        <td>{{ optional($a->AppointmentDate)->format('M j, Y') }}</td>
-                        <td>{{ $a->AppointmentTime ? $a->time_range_label : '—' }}</td>
-                        <td>{{ ($a->fromRecord ?? false) ? '—' : $a->duration_label }}</td>
-                        <td>{{ $a->dentist?->display_name ?? '—' }}</td>
-                        @if ($withDetails)
-                          <td>{{ $a->patientInfo->PhoneNumber ?? $a->patientInfo?->userAccount?->Email ?? '—' }}</td>
-                        @endif
+                        <td class="row-no">{{ $loop->iteration }}</td>
+                        <td class="nowrap">{{ $patientCode($p->PatientID) }}</td>
+                        <td>{{ collect([$p->LastName, $p->FirstName])->filter()->implode(', ') ?: '—' }}</td>
+                        <td>{{ $p->patient_type }}</td>
+                        <td class="center">{{ $p->Age ?? '—' }}</td>
+                        <td>{{ $p->Gender ? ucfirst(strtolower($p->Gender)) : '—' }}</td>
+                        <td class="nowrap">{{ $p->PhoneNumber ?? '—' }}</td>
+                        <td>{{ $p->Address ?? '—' }}</td>
+                        <td class="num">{{ $p->completedVisits }}</td>
+                        <td class="nowrap">{{ $p->lastCompletedVisit?->format('M j, Y') ?? '—' }}</td>
                       </tr>
                     @endforeach
                   </tbody>
                 </table>
               </div>
-            @endforeach
-          @endif
-        </div>
-      @endif
-
-      @if (in_array($type, ['patients', 'summary']))
-        <div class="report-section">
-          <h2><i class="bi bi-people"></i> Patients</h2>
-          <p class="report-desc">{{ $descriptions['patients'] }}</p>
-          <div class="report-stats">
-            <div class="report-stat"><div class="label">Total</div><div class="value">{{ $patientStats['total'] }}</div></div>
-            <div class="report-stat"><div class="label">Registered</div><div class="value">{{ $patientStats['registered'] }}</div></div>
-            <div class="report-stat"><div class="label">Walk-in</div><div class="value">{{ $patientStats['walkin'] }}</div></div>
-            <div class="report-stat"><div class="label">Guest (no account)</div><div class="value">{{ $patientStats['guest'] }}</div></div>
-            <div class="report-stat"><div class="label">Male</div><div class="value">{{ $patientStats['male'] }}</div></div>
-            <div class="report-stat"><div class="label">Female</div><div class="value">{{ $patientStats['female'] }}</div></div>
-          </div>
-
-          @if (!empty($treatmentBreakdown))
-            <div class="report-chart mb-3">
-              @foreach ($treatmentBreakdown as $row)
-                <div class="report-bar-row">
-                  <div class="report-bar-label">{{ $row['label'] }}</div>
-                  <div class="report-bar-track"><div class="report-bar-fill" style="width: {{ $row['pct'] }}%"></div></div>
-                  <div class="report-bar-value">{{ $row['count'] }}</div>
-                </div>
-              @endforeach
-            </div>
-          @endif
-
-          @if (isset($patientsList))
-            @if ($patientsList->isEmpty())
-              <div class="report-empty">No patients with a completed visit in this range.</div>
-            @else
-              <table class="report-table">
-                <thead>
-                  <tr><th>Patient ID</th><th>Name</th><th>Type</th><th>Age</th><th>Gender</th><th>Phone</th><th>Address</th><th>Visits</th><th>Last Visit</th></tr>
-                </thead>
-                <tbody>
-                  @foreach ($patientsList as $p)
-                    <tr>
-                      <td>PT-{{ str_pad($p->PatientID, 4, '0', STR_PAD_LEFT) }}</td>
-                      <td>{{ trim(($p->FirstName ?? '') . ' ' . ($p->LastName ?? '')) ?: '—' }}</td>
-                      <td>{{ $p->patient_type }}</td>
-                      <td>{{ $p->Age ?? '—' }}</td>
-                      <td>{{ $p->Gender ?? '—' }}</td>
-                      <td>{{ $p->PhoneNumber ?? '—' }}</td>
-                      <td>{{ $p->Address ?? '—' }}</td>
-                      <td>{{ $p->completedVisits }}</td>
-                      <td>{{ $p->lastCompletedVisit?->format('M j, Y') ?? '—' }}</td>
-                    </tr>
-                  @endforeach
-                </tbody>
-              </table>
             @endif
-          @endif
-        </div>
+          </section>
+        @endif
       @endif
 
-      @if ($type === 'summary' && !empty($serviceBreakdown))
-        <div class="report-section">
-          <h2><i class="bi bi-bar-chart"></i> Appointments by Service</h2>
-          <p class="report-desc">{{ $descriptions['services'] }}</p>
-          <div class="report-chart">
-            @foreach ($serviceBreakdown as $row)
-              <div class="report-bar-row">
-                <div class="report-bar-label">{{ $row['label'] }}</div>
-                <div class="report-bar-track"><div class="report-bar-fill" style="width: {{ $row['pct'] }}%"></div></div>
-                <div class="report-bar-value">{{ $row['count'] }}</div>
-              </div>
-            @endforeach
+      <div class="doc-signatures end">
+        <div class="doc-signature">
+          <div class="doc-signature-label">Prepared by:</div>
+          <div class="doc-signature-space"></div>
+          <div class="doc-signature-line">
+            <div class="doc-signature-name">{{ $adminAccountName ?? 'Administrator' }}</div>
+            <div class="doc-signature-role">Administrator</div>
           </div>
         </div>
-      @endif
+      </div>
 
-      <div class="report-signature">
-        <div class="report-signature-block">
-          <div class="report-signature-label">Prepared by:</div>
-          <div class="report-signature-space"></div>
-          <div class="report-signature-line">
-            <div class="report-signature-name">{{ $adminAccountName ?? 'Administrator' }}</div>
-            <div class="report-signature-role">Administrator</div>
-          </div>
-        </div>
+      <div class="doc-footnote">
+        Puspus-Britanico Dental Clinic · {{ $reportTitle }} · System-generated on {{ $generatedAt->format('M j, Y g:i A') }}
       </div>
 
     </div>
@@ -421,41 +305,9 @@
     window.addEventListener('afterprint', function () {
       if (window.parent !== window) window.parent.postMessage('report-printed', window.location.origin);
     });
-
-    // "Download PDF" (Report Preview modal): renders the sheet onto A4 pages
-    // with the printout's 1-inch margins and saves it. html2pdf.js
-    // (html2canvas + jsPDF) is only fetched the first time it's needed.
-    window.downloadReportPdf = function () {
-      function loadLibrary() {
-        if (window.html2pdf) return Promise.resolve();
-        return new Promise(function (resolve, reject) {
-          var s = document.createElement('script');
-          s.src = 'https://cdn.jsdelivr.net/npm/html2pdf.js@0.14.0/dist/html2pdf.bundle.min.js';
-          s.onload = resolve;
-          s.onerror = function () { s.remove(); reject(new Error('Could not load the PDF tool.')); };
-          document.head.appendChild(s);
-        });
-      }
-
-      return loadLibrary().then(function () {
-        return document.fonts ? document.fonts.ready : null;
-      }).then(function () {
-        return window.html2pdf().set({
-          margin: 25.4, // mm = 1 inch, same as @page
-          filename: @json($pdfFilename),
-          image: { type: 'jpeg', quality: 0.98 },
-          html2canvas: { scale: 2, useCORS: true, backgroundColor: '#ffffff' },
-          jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
-          // Same "keep together" pieces as the print stylesheet.
-          pagebreak: {
-            mode: ['css', 'legacy'],
-            avoid: ['.letterhead', '.report-title', '.report-stats', '.report-bar-row', '.report-service-head',
-                    '.report-subtitle', '.report-section h2', '.report-desc', 'tr', '.report-signature'],
-          },
-        }).from(document.querySelector('.report-sheet')).save();
-      });
-    };
   </script>
+  {{-- "Download PDF" in the Report Preview modal: window.downloadDocPdf(). --}}
+  <script src="{{ asset('js/print-doc.js') }}"></script>
 </body>
 
 </html>

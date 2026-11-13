@@ -1,0 +1,148 @@
+/*
+ * Printable documents — the admin reports (superAdmin/report.blade.php) and
+ * the patient's Dental Record (patient-records/print.blade.php).
+ *
+ * These are paper forms, not screens: a letterhead, a title block, then
+ * every section as a plain bordered table (no cards, pills, charts or
+ * icons). On screen the page sits on a grey backdrop like a sheet of paper;
+ * printed, it's just the sheet.
+ */
+
+:root {
+  --doc-ink: #111827;
+  --doc-text: #1f2937;
+  --doc-muted: #4b5563;
+  --doc-rule: #9ca3af;      /* table grid lines */
+  --doc-rule-strong: #374151;
+  --doc-head-bg: #e5e7eb;   /* column-header row */
+  --doc-label-bg: #f3f4f6;  /* label cells of key/value tables */
+  --doc-accent: #167d1d;    /* clinic green, letterhead rule only */
+}
+
+html,
+body {
+  background: #e5e7eb;
+  color: var(--doc-text);
+  font-family: 'Inter', Arial, Helvetica, sans-serif;
+  font-size: 13px;
+  margin: 0;
+}
+
+/* Keep the grey header rows and label cells when printing (browsers drop
+   backgrounds unless told otherwise). */
+html, body, .doc-sheet, .doc-sheet * {
+  -webkit-print-color-adjust: exact !important;
+  print-color-adjust: exact !important;
+}
+
+.doc-wrap { max-width: 900px; margin: 0 auto; padding: 2rem 1.5rem 4rem; }
+.doc-sheet { background: #fff; padding: 2.25rem; box-shadow: 0 1px 4px rgba(15, 23, 42, .12); }
+
+/* ---------- Letterhead ----------
+   Logo + clinic name, tagline, address and contacts, closed by a
+   thick-and-thin rule. The empty third column mirrors the logo's width so
+   the text block sits exactly in the page's centre. */
+.letterhead { display: grid; grid-template-columns: 72px 1fr 72px; align-items: center; gap: 1rem; padding-bottom: .9rem; border-bottom: 3px solid var(--doc-accent); position: relative; }
+.letterhead::after { content: ''; position: absolute; left: 0; right: 0; bottom: -6px; border-bottom: 1px solid var(--doc-accent); }
+.letterhead .logo { width: 72px; height: 72px; object-fit: contain; }
+.letterhead-text { text-align: center; }
+.letterhead-name { font-family: 'Poppins', 'Inter', Arial, sans-serif; font-size: 1.3rem; font-weight: 700; color: var(--doc-accent); letter-spacing: .04em; text-transform: uppercase; line-height: 1.15; }
+.letterhead-tag { font-size: .78rem; font-style: italic; color: var(--doc-muted); margin: .15rem 0 .35rem; }
+.letterhead-line { font-size: .76rem; color: var(--doc-text); line-height: 1.55; }
+.letterhead-line .sep { color: var(--doc-rule); margin: 0 .4rem; }
+
+/* ---------- Title block ---------- */
+.doc-title { text-align: center; margin: 1.6rem 0 1rem; }
+.doc-title h1 { font-family: 'Poppins', 'Inter', Arial, sans-serif; font-size: 1.15rem; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: var(--doc-ink); margin: 0; }
+.doc-title .doc-subtitle { font-size: .8rem; color: var(--doc-muted); margin-top: .2rem; }
+
+/* Report period / record no. / date table right under the title. */
+table.doc-meta { margin-bottom: .9rem; }
+
+/* Short paragraph under the title saying what the document is. */
+.doc-intro { font-size: .82rem; color: var(--doc-text); line-height: 1.55; margin: 0 0 1.25rem; text-align: justify; }
+
+/* ---------- Sections ---------- */
+.doc-section { margin-bottom: 1.15rem; }
+.doc-section-title { font-size: .78rem; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--doc-ink); border-bottom: 2px solid var(--doc-rule-strong); padding-bottom: .25rem; margin: 0 0 .35rem; }
+.doc-section-desc { font-size: .74rem; color: var(--doc-muted); line-height: 1.45; margin: 0 0 .5rem; }
+.doc-empty { font-size: .8rem; color: var(--doc-muted); font-style: italic; border: 1px solid var(--doc-rule); padding: .55rem .7rem; }
+
+/* ---------- Tables ---------- */
+table.doc-table { width: 100%; border-collapse: collapse; font-size: .76rem; line-height: 1.35; }
+table.doc-table th,
+table.doc-table td { border: 1px solid var(--doc-rule); padding: .38rem .5rem; vertical-align: top; text-align: left; }
+table.doc-table thead th { background: var(--doc-head-bg); color: var(--doc-ink); font-size: .66rem; font-weight: 700; letter-spacing: .05em; text-transform: uppercase; vertical-align: bottom; border-color: var(--doc-rule-strong) var(--doc-rule) var(--doc-rule-strong); }
+table.doc-table td { color: var(--doc-text); }
+table.doc-table .num { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+table.doc-table .center { text-align: center; }
+table.doc-table .nowrap { white-space: nowrap; }
+table.doc-table .muted { color: var(--doc-muted); }
+table.doc-table td.row-no { color: var(--doc-muted); text-align: center; width: 1%; white-space: nowrap; }
+table.doc-table tfoot td { font-weight: 700; background: var(--doc-label-bg); border-top: 2px solid var(--doc-rule-strong); }
+
+/* Key/value table: grey label cells beside their values. */
+table.doc-kv th { background: var(--doc-label-bg); color: var(--doc-muted); font-size: .64rem; font-weight: 700; letter-spacing: .05em; text-transform: uppercase; width: 17%; white-space: nowrap; }
+table.doc-kv td { font-weight: 600; color: var(--doc-ink); }
+
+/* One header row of figure names over one row of numbers. */
+table.doc-figures td { font-size: 1.05rem; font-weight: 700; color: var(--doc-ink); text-align: center; padding: .45rem .4rem; }
+table.doc-figures thead th { text-align: center; }
+
+/* Free-text box (e.g. the dentist's notes). */
+.doc-note { border: 1px solid var(--doc-rule); padding: .55rem .7rem; font-size: .8rem; line-height: 1.5; white-space: pre-line; color: var(--doc-text); }
+
+/* ---------- Signatures & footnote ---------- */
+.doc-signatures { display: flex; justify-content: space-between; gap: 2rem; margin-top: 2.5rem; }
+.doc-signatures.end { justify-content: flex-end; }
+.doc-signature { width: 240px; text-align: center; }
+.doc-signature-label { font-size: .76rem; color: var(--doc-muted); text-align: left; }
+.doc-signature-space { height: 44px; }
+.doc-signature-line { border-top: 1px solid var(--doc-ink); padding-top: .35rem; }
+.doc-signature-name { font-weight: 700; color: var(--doc-ink); font-size: .85rem; min-height: 1.1em; }
+.doc-signature-role { font-size: .68rem; color: var(--doc-muted); text-transform: uppercase; letter-spacing: .05em; margin-top: .1rem; }
+.doc-footnote { margin-top: 1.5rem; padding-top: .45rem; border-top: 1px solid var(--doc-rule); font-size: .68rem; color: var(--doc-muted); text-align: center; }
+
+/* ---------- Small screens (preview on a phone) ---------- */
+@media (max-width: 640px) {
+  .doc-wrap { padding: 1rem .75rem 2rem; }
+  .doc-sheet { padding: 1.1rem; }
+  .letterhead { grid-template-columns: 52px 1fr; gap: .75rem; }
+  .letterhead .logo { width: 52px; height: 52px; }
+  .letterhead-text { text-align: left; }
+  .letterhead-spacer { display: none; }
+  .letterhead-name { font-size: 1rem; }
+  .doc-table-scroll { overflow-x: auto; }
+  .doc-signatures { flex-direction: column; align-items: flex-end; }
+}
+
+/* Download PDF (reports): html2pdf.js lays a copy of the sheet out inside
+   .html2pdf__container — give it the printout's look (no card padding or
+   shadow) and the full letterhead even when generated on a phone. */
+.html2pdf__container .doc-sheet { box-shadow: none; padding: 0; }
+.html2pdf__container .letterhead { grid-template-columns: 72px 1fr 72px; gap: 1rem; }
+.html2pdf__container .letterhead .logo { width: 72px; height: 72px; }
+.html2pdf__container .letterhead-text { text-align: center; }
+.html2pdf__container .letterhead-spacer { display: block; }
+.html2pdf__container .letterhead-name { font-size: 1.3rem; }
+
+/* ---------- Print ---------- */
+/* Standard document margins: 1 inch on every side of every page. */
+@page { size: A4; margin: 1in; }
+
+@media print {
+  html, body { background: #fff; font-size: 12px; }
+  .no-print { display: none !important; }
+  .doc-wrap { padding: 0; max-width: none; }
+  .doc-sheet { box-shadow: none; padding: 0; }
+  /* Small pieces stay whole; long tables flow across pages, repeating
+     their column headers on each one. */
+  .letterhead, .doc-title, .doc-intro, .doc-figures, .doc-kv, .doc-teeth, .doc-note, .doc-signatures { page-break-inside: avoid; }
+  /* Short sections (summaries, breakdowns, every Dental Record section)
+     move to the next page whole rather than leave their heading behind.
+     The long report lists don't get this, so they flow across pages. */
+  .doc-keep { page-break-inside: avoid; }
+  .doc-section-title, .doc-section-desc { page-break-after: avoid; }
+  thead { display: table-header-group; }
+  tr { page-break-inside: avoid; }
+}

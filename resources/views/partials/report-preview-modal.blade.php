@@ -2,7 +2,7 @@
     "Report Preview" — opened by Generate Report on the dashboard. Shows the
     exactly-as-printed report (reports.generate?preview=1) in a frame so the
     admin can check it before printing. Print prints the frame; Download PDF
-    saves it as an A4 PDF (the frame's downloadReportPdf()); Back returns to
+    saves it as an A4 PDF (the frame's downloadDocPdf()); Back returns to
     the report options.
 --}}
 <div class="modal fade" id="reportPreviewModal" tabindex="-1" aria-labelledby="reportPreviewModalLabel" aria-hidden="true">

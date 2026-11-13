@@ -45,6 +45,19 @@ class OdontogramTooth extends Model
         'missing'    => '#1f2937',
     ];
 
+    /**
+     * condition key => short code written in the printed Dental Record's
+     * tooth chart (one table cell per tooth), with CONDITIONS as its legend.
+     */
+    public const CONDITION_CODES = [
+        'healthy'    => 'H',
+        'caries'     => 'D',
+        'filling'    => 'F',
+        'root_canal' => 'RC',
+        'crown'      => 'CR',
+        'missing'    => 'M',
+    ];
+
     /** Tooth surfaces staff can tag (FDI adult dentition). */
     public const SURFACES = ['mesial', 'distal', 'occlusal', 'buccal', 'lingual', 'incisal'];
 

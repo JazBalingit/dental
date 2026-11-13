@@ -378,8 +378,8 @@
 
             <div class="include-row">
               <div>
-                <div class="it-title">Charts &amp; graphs</div>
-                <div class="it-desc">Visual breakdowns alongside the data</div>
+                <div class="it-title">Breakdown tables</div>
+                <div class="it-desc">Visits by date &amp; service, patients per treatment</div>
               </div>
               <div class="form-check form-switch mb-0">
                 <input class="form-check-input" type="checkbox" role="switch" checked id="includeCharts">
@@ -635,13 +635,13 @@
         });
 
         // Download PDF: the report page builds and saves the file itself
-        // (window.downloadReportPdf in superAdmin/report.blade.php).
+        // (window.downloadDocPdf, public/js/print-doc.js).
         pdfBtn.addEventListener('click', function () {
             var frameWin = previewFrame.contentWindow;
-            if (!frameWin || typeof frameWin.downloadReportPdf !== 'function') return;
+            if (!frameWin || typeof frameWin.downloadDocPdf !== 'function') return;
             pdfBtn.disabled = true;
             pdfBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span> Preparing PDF…';
-            Promise.resolve().then(function () { return frameWin.downloadReportPdf(); }).then(function () {
+            Promise.resolve().then(function () { return frameWin.downloadDocPdf(); }).then(function () {
                 pdfBtn.innerHTML = pdfBtnLabel;
             }, function () {
                 pdfBtn.innerHTML = '<i class="bi bi-exclamation-triangle me-1"></i> Couldn\'t create the PDF, try again';

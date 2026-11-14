@@ -1,0 +1,124 @@
+PRIVACY POLICY
+PUSPUS-BRITANICO DENTAL CLINIC
+
+Last Updated: November 12, 2026
+
+Puspus-Britanico Dental Clinic ("the Clinic", "we", "us") respects your privacy. This Privacy Policy explains what personal information we collect through our website and online appointment system, why we collect it, how we use and protect it, and the rights you have over it.
+
+We process personal information in accordance with the Data Privacy Act of 2012 (Republic Act No. 10173), its Implementing Rules and Regulations, and the issuances of the National Privacy Commission (NPC).
+
+1. Who We Are
+
+Puspus-Britanico Dental Clinic is located at Blk 6 Lot 2 Poblacion 2, GMA, Cavite. We are the personal information controller responsible for the information you give us through this website, our appointment system and our clinic.
+
+2. Information We Collect
+
+Account and Profile Information
+
+- Your full name, date of birth, age, gender, nationality, religion and occupation.
+- Your home address, mobile or telephone number, and email address.
+- Your password, which is stored only in encrypted form, and an optional profile photo.
+- For patients under 18, the name, contact number, email address and occupation of a parent or guardian.
+
+Health Information
+
+- Your answers to our medical history questions, such as current treatment, past illnesses or operations, hospital stays, medications, allergies, pregnancy or nursing, and conditions like high blood pressure, diabetes or heart disease.
+- Optional details such as your blood type, your physician and your previous dentist.
+- Dental records created by our dentists, including visit details, treatments performed, dental charts, clinical notes, and readings such as blood pressure.
+- Notes and photos you choose to attach when booking, such as photos of the affected tooth, X-rays or previous dental records.
+
+Health information is sensitive personal information under the Data Privacy Act. We give it a higher level of care and use it only for your treatment and the purposes described in this policy.
+
+Appointment Information
+
+- The dentist, services, date and time you book, and the status of each appointment.
+- The reason you give when you cancel or reschedule an appointment.
+- When you book for someone else, the details of the person you are booking for and your relationship to them.
+
+Technical Information
+
+- The date and time you sign in and out, and the IP address used.
+- A record of important actions taken in the system, such as booking, cancelling, or updating a profile or medical history.
+- Essential session cookies that keep you signed in and protect our forms from misuse. We do not use advertising or tracking cookies.
+- Our pages load fonts and display components from third-party content delivery networks, which receive your device's IP address as part of delivering them.
+
+3. How We Use Your Information
+
+We use your personal information only for the following purposes:
+
+- To create and manage your patient account and verify your email address.
+- To book, confirm, reschedule and cancel your appointments, and to remind you of them.
+- To let our dentists prepare for your visit and treat you safely, including checking for allergies and medical conditions.
+- To keep accurate records of your dental care and history with the Clinic.
+- To send you emails about your account and appointments, such as verification codes, approval or decline notices, reminders and schedule changes.
+- To answer your questions, requests and concerns.
+- To prepare internal reports for clinic management, such as the number of visits and services provided.
+- To keep the system secure, prevent unauthorized access and investigate misuse.
+- To comply with our legal and regulatory obligations.
+
+4. Legal Basis for Processing
+
+We process your personal information based on your consent, which you give when you create an account or book an appointment, and because it is necessary to provide the dental care and services you ask for.
+
+We process your health information because it is needed for your dental and medical treatment, as allowed under Section 13 of the Data Privacy Act, and with your consent. You may withdraw your consent at any time, but we may then be unable to book appointments for you or treat you safely.
+
+5. Booking for Someone Else and Minors
+
+You must be at least 18 years old to create an account or to book an appointment for yourself. A parent or guardian may book for a child, and an adult may book for a family member or another person.
+
+If you give us another person's information, you confirm that you are allowed to share it with us and that you have told them about this Privacy Policy. The account holder who books for another person can see that person's appointments, medical history and dental records in their account.
+
+6. Who Can See Your Information
+
+- Our dentists and authorized clinic staff, only as needed for their work.
+- You, through your patient account or the appointment link we send by email.
+- The parent, guardian or other account holder who books appointments on your behalf.
+- Our service providers, as described below.
+- Government authorities, only when required by law, such as a court order or a lawful request from a regulator.
+
+We use trusted service providers to run our online system, including a cloud hosting provider that stores our website and database, and an email delivery service that sends our emails. Some of these providers may store or process data outside the Philippines. They may use your information only to provide their services to us and are required to protect it.
+
+We do not sell, rent or trade your personal information.
+
+7. How We Protect Your Information
+
+- Passwords are stored in encrypted form and are never visible to clinic staff.
+- Sign-up, password resets, email address changes and guest bookings are confirmed with one-time codes sent to your email.
+- Repeated failed sign-in attempts are temporarily blocked.
+- Access to patient information is limited to authorized clinic staff, and important actions are recorded in activity logs.
+- Our website uses an encrypted (HTTPS) connection.
+- Backups of our records are kept to prevent data loss, and only the clinic administrator can create or restore them.
+
+No system is completely secure. If a personal data breach happens that is likely to put you at risk, we will notify you and the National Privacy Commission as required by law.
+
+8. How Long We Keep Your Information
+
+We keep your dental and medical records for as long as you are our patient and afterward for as long as required by law and professional regulations, or as needed to handle legal claims. Appointment notes, photos and activity logs are kept only as long as they are needed for the purposes in this policy. When information is no longer needed, we delete or anonymize it securely.
+
+9. Your Rights
+
+Under the Data Privacy Act, you have the right to:
+
+- Be informed about how your personal information is collected and used.
+- Access your personal information and get a copy of it.
+- Correct information that is inaccurate or incomplete.
+- Object to the processing of your information, or withdraw your consent.
+- Ask us to suspend, withdraw, block or delete your information, subject to our legal duty to keep medical records.
+- Receive your information in a commonly used electronic format.
+- Be compensated for damages caused by the unlawful use of your information.
+- File a complaint with the National Privacy Commission.
+
+You can view and update most of your profile and medical history yourself in your patient account. For other requests, contact us using the details below. We may ask you to confirm your identity first, and we will respond within a reasonable time.
+
+10. Changes to This Policy
+
+We may update this Privacy Policy from time to time. The "Last Updated" date above shows when it was last changed. If we make important changes, we will let you know through the website or by email.
+
+11. Contact Us
+
+If you have questions or concerns about this Privacy Policy or how we handle your information, please contact our Data Protection Officer:
+
+- Email: puspusbritanicodentalclinic@gmail.com
+- Telephone: (02) 8404-5642
+- Mobile: +63 968-476-5943
+- Address: Blk 6 Lot 2 Poblacion 2, GMA, Cavite
